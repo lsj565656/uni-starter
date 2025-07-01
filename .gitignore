@@ -1,0 +1,114 @@
+# uni-app 项目 Git 忽略文件
+
+# ===== 构建输出目录 =====
+unpackage/
+dist/
+
+# ===== 依赖包 =====
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===== 开发工具配置 =====
+.hbuilderx/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== 操作系统生成的文件 =====
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ===== 日志文件 =====
+*.log
+logs/
+*.log.*
+
+# ===== 临时文件 =====
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# ===== 环境配置文件 =====
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ===== 云函数相关 =====
+# 注意：uniCloud-aliyun/ 目录通常需要提交，但某些文件可能需要忽略
+uniCloud-aliyun/cloudfunctions/*/node_modules/
+uniCloud-aliyun/cloudfunctions/*/package-lock.json
+uniCloud-aliyun/cloudfunctions/*/yarn.lock
+
+# ===== 证书和密钥文件 =====
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ===== 数据库文件 =====
+*.db
+*.sqlite
+*.sqlite3
+
+# ===== 压缩文件 =====
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# ===== 图片和媒体文件（可选，根据需要调整） =====
+# *.jpg
+# *.jpeg
+# *.png
+# *.gif
+# *.bmp
+# *.svg
+# *.mp4
+# *.mp3
+# *.wav
+
+# ===== 备份文件 =====
+*.bak
+*.backup
+*_backup.*
+
+# ===== 测试覆盖率报告 =====
+coverage/
+.nyc_output/
+
+# ===== 编辑器配置文件 =====
+.editorconfig
+
+# ===== 包管理器锁定文件（可选，根据需要保留） =====
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ===== 本地配置文件 =====
+config.local.js
+config.local.json
+
+# ===== 调试文件 =====
+.debug/
+
+# ===== 缓存文件 =====
+.cache/
+.parcel-cache/
+
+# ===== 其他 =====
+*.orig
+*.rej 
