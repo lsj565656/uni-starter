@@ -26,10 +26,10 @@ export default {
     // #endif
     'smsCode'
   ],
-  // 政策协议
+  // https://raw.githubusercontent.com/[用户名]/[仓库名]/main/user-service-agreement.html
   agreements: {
-    serviceUrl: 'https://raw.githubusercontent.com/[您的用户名]/[您的仓库名]/main/docs/user-service-agreement.html', // 用户服务协议链接
-    privacyUrl: 'https://raw.githubusercontent.com/[您的用户名]/[您的仓库名]/main/docs/privacy-policy.html', // 隐私政策条款链接
+    serviceUrl: 'https://lsj565656.github.io/uni-starter/user-service-agreement.html', // 用户服务协议链接
+    privacyUrl: 'https://lsj565656.github.io/uni-starter/privacy-policy.html', // 隐私政策条款链接
     // 哪些场景下显示，1.注册（包括登录并注册，如：微信登录、苹果登录、短信验证码登录）、2.登录（如：用户名密码登录）
     scope: [
       'register', 'login', 'realNameVerify'

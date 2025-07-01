@@ -57,7 +57,7 @@ export default {
 		toEvaluate: "To Evaluate",
 		readArticles: "Read Articles",
 		myScore: "My Score",
-		invite: "Invite Friends",
+		// invite: "Invite Friends",
 		feedback: "Problems And Feedback",
 		settings: "Settings",
 		about: "About",

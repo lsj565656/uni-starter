@@ -15,8 +15,8 @@
 
 ### 3. 访问地址
 启用后，您的协议文档将通过以下地址访问：
-- 用户服务协议：`https://[用户名].github.io/[仓库名]/user-service-agreement.html`
-- 隐私政策：`https://[用户名].github.io/[仓库名]/privacy-policy.html`
+- 用户服务协议：`https://lsj565656.github.io/uni-starter/user-service-agreement.html`
+- 隐私政策：`https://lsj565656.github.io/uni-starter/privacy-policy.html`
 
 ### 4. 更新配置文件
 在 `uni_modules/uni-id-pages/config.js` 中更新地址：
