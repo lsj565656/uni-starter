@@ -127,8 +127,7 @@
 				return this.categories.map(c => c.name)
 			},
 			filteredData() {
-				if (this.currentCategory === 0) return this.dataList
-				return (this.dataList || []).filter(item => item.category === this.categories[this.currentCategory].id)
+				return this.dataList;
 			},
 			columnsFiltered() {
 				// 分列：对filteredData分两列
@@ -154,7 +153,16 @@
 				uni.navigateTo({ url: '/pages/list/search/search' })
 			},
 			onCategoryChange(e) {
-				this.currentCategory = e.currentIndex
+				this.currentCategory = e.currentIndex;
+				let where = 'isActive == true';
+				if (this.currentCategory !== 0) {
+					where += ` && category == ${this.categories[this.currentCategory].id}`;
+				}
+				this.where = where;
+				this.dataList = []; // 清空旧数据，防止闪现
+				this.$nextTick(() => {
+					this.refresh();
+				});
 			},
 			retry() { this.refresh() },
 			refresh() {
