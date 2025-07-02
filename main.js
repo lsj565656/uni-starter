@@ -2,6 +2,19 @@ import App from './App'
 import i18n from './lang/i18n'
 
 
+if (process.env.NODE_ENV === 'development') {
+	const rawWarn = console.warn;
+	console.warn = function(msg, ...args) {
+	  if (
+		typeof msg === 'string' &&
+		(msg.includes('Not supported \'formatter\'') || msg.includes('Not supported \'preserveDirectiveContent\''))
+	  ) {
+		return;
+	  }
+	  rawWarn.call(console, msg, ...args);
+	}
+  }
+
 // #ifndef VUE3
 import Vue from 'vue'
 Vue.config.productionTip = false

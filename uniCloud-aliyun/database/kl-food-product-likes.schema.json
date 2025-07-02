@@ -1,0 +1,30 @@
+{
+  "bsonType": "object",
+  "required": ["user_id", "product_id"],
+  "properties": {
+    "_id": { "description": "系统自动生成的唯一ID" },
+    "user_id": {
+      "bsonType": "string",
+      "description": "用户ID，参考uni-id-users._id",
+      "foreignKey": "uni-id-users._id"
+    },
+    "product_id": {
+      "bsonType": "string",
+      "description": "商品ID，参考kl-food-products._id",
+      "foreignKey": "kl-food-products._id"
+    },
+    "create_date": {
+      "bsonType": "timestamp",
+      "description": "点赞时间",
+      "defaultValue": { "$env": "now" }
+    }
+  },
+  "permission": {
+    "read": "auth.uid != null",
+    "create": "auth.uid == doc.user_id",
+    "delete": "auth.uid == doc.user_id"
+  },
+  "indexes": [
+    { "fields": { "user_id": 1, "product_id": 1 }, "unique": true }
+  ]
+} 

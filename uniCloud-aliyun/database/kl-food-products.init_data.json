@@ -1,0 +1,72 @@
+[
+    {
+      "name": "精品卤肉123",
+      "description": "精选五花肉，秘制卤料，外酥里嫩",
+      "price": 12.00,
+      "stock": 50,
+      "image": "https://s3.bmp.ovh/imgs/2025/06/10/7f8698b08ed0a131.jpg",
+      "category": 6,
+      "like_count": 6,
+      "isActive": true
+    },
+    {
+      "name": "五香烧饼123",
+      "description": "现做五香烧饼",
+      "price": 1.00,
+      "stock": 50,
+      "image": "https://s3.bmp.ovh/imgs/2025/06/10/74a9c32cd547c77f.jpg",
+      "category": 2,
+      "like_count": 8,
+      "isActive": true
+    },
+    {
+      "name": "酸辣粉123",
+      "description": "手工红薯粉，酸辣开胃",
+      "price": 10.00,
+      "stock": 40,
+      "image": "https://s3.bmp.ovh/imgs/2025/06/10/74a9c32cd547c77f.jpg",
+      "category": 3,
+      "like_count": 10,
+      "isActive": true
+    },
+    {
+      "name": "冰镇酸梅汤123",
+      "description": "传统配方，清凉解暑",
+      "price": 6.00,
+      "stock": 100,
+      "image": "https://s3.bmp.ovh/imgs/2025/06/10/4eae7ca520806b92.jpg",
+      "category": 4,
+      "like_count": 12,
+      "isActive": true
+    },
+    {
+      "name": "双拼烧饼套餐123",
+      "description": "卤肉+牛肉双拼，配酸梅汤",
+      "price": 25.00,
+      "stock": 20,
+      "image": "https://s3.bmp.ovh/imgs/2025/03/29/51528881eecdeb81.webp",
+      "category": 5,
+      "like_count": 14,
+      "isActive": true
+    },
+    {
+      "name": "招牌三件套123",
+      "description": "卤肉烧饼+酸辣粉+酸梅汤",
+      "price": 28.00,
+      "stock": 15,
+      "image": "https://s3.bmp.ovh/imgs/2025/06/10/7f8698b08ed0a131.jpg",
+      "category": 5,
+      "like_count": 16,
+      "isActive": true
+    },
+    {
+      "name": "原味烧饼123",
+      "description": "现做原味烧饼",
+      "price": 1.00,
+      "stock": 50,
+      "image": "https://s3.bmp.ovh/imgs/2025/06/10/74a9c32cd547c77f.jpg",
+      "category": 2,
+      "like_count": 18,
+      "isActive": true
+    }
+  ]

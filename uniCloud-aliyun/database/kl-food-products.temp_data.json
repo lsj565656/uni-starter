@@ -1,0 +1,172 @@
+[
+  {
+    "name": "原味烧饼",
+    "description": "现做原味烧饼",
+    "price": 1,
+    "stock": 50,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/74a9c32cd547c77f.jpg",
+    "category": 1,
+    "like_count": 18,
+    "isActive": true
+  },
+  {
+    "name": "五香烧饼",
+    "description": "现做五香烧饼",
+    "price": 1,
+    "stock": 50,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/74a9c32cd547c77f.jpg",
+    "category": 1,
+    "like_count": 8,
+    "isActive": true
+  },
+  {
+    "name": "酸辣粉",
+    "description": "手工红薯粉，酸辣开胃",
+    "price": 10,
+    "stock": 40,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/74a9c32cd547c77f.jpg",
+    "category": 1,
+    "like_count": 10,
+    "isActive": true
+  },
+  {
+    "name": "冰镇酸梅汤",
+    "description": "传统配方，清凉解暑",
+    "price": 6,
+    "stock": 100,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/4eae7ca520806b92.jpg",
+    "category": 1,
+    "like_count": 12,
+    "isActive": true
+  },
+  {
+    "name": "精品卤肉",
+    "description": "精选五花肉，秘制卤料，外酥里嫩",
+    "price": 12,
+    "stock": 50,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/7f8698b08ed0a131.jpg",
+    "category": 1,
+    "like_count": 6,
+    "isActive": true
+  },
+  {
+    "name": "双拼烧饼套餐",
+    "description": "卤肉+牛肉双拼，配酸梅汤",
+    "price": 25,
+    "stock": 20,
+    "image": "https://s3.bmp.ovh/imgs/2025/03/29/51528881eecdeb81.webp",
+    "category": 1,
+    "like_count": 14,
+    "isActive": true
+  },
+  {
+    "name": "招牌三件套",
+    "description": "卤肉烧饼+酸辣粉+酸梅汤",
+    "price": 28,
+    "stock": 15,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/7f8698b08ed0a131.jpg",
+    "category": 1,
+    "like_count": 16,
+    "isActive": true
+  },
+  {
+    "name": "鲜榨橙汁",
+    "description": "新鲜橙子现榨，维C满满",
+    "price": 8,
+    "stock": 60,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/juice-orange.jpg",
+    "category": 2,
+    "like_count": 5,
+    "isActive": true
+  },
+  {
+    "name": "冰拿铁",
+    "description": "香浓咖啡，冰爽一夏",
+    "price": 15,
+    "stock": 30,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/coffee-latte.jpg",
+    "category": 2,
+    "like_count": 7,
+    "isActive": true
+  },
+  {
+    "name": "蓝牙耳机",
+    "description": "无线蓝牙，高清音质",
+    "price": 99,
+    "stock": 25,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/bluetooth-earphone.jpg",
+    "category": 3,
+    "like_count": 3,
+    "isActive": true
+  },
+  {
+    "name": "智能手环",
+    "description": "健康监测，运动计步",
+    "price": 129,
+    "stock": 40,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/smart-band.jpg",
+    "category": 3,
+    "like_count": 4,
+    "isActive": true
+  },
+  {
+    "name": "家政保洁服务",
+    "description": "专业团队，服务到家",
+    "price": 88,
+    "stock": 100,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/cleaning-service.jpg",
+    "category": 4,
+    "like_count": 2,
+    "isActive": true
+  },
+  {
+    "name": "快递代寄",
+    "description": "上门取件，安全快捷",
+    "price": 10,
+    "stock": 200,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/express-service.jpg",
+    "category": 4,
+    "like_count": 1,
+    "isActive": true
+  },
+  {
+    "name": "KTV欢唱套餐",
+    "description": "畅唱3小时，饮品小吃全包",
+    "price": 198,
+    "stock": 10,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/ktv.jpg",
+    "category": 5,
+    "like_count": 9,
+    "isActive": true
+  },
+  {
+    "name": "电影院双人票",
+    "description": "热门大片，情侣专享",
+    "price": 80,
+    "stock": 50,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/cinema.jpg",
+    "category": 5,
+    "like_count": 6,
+    "isActive": true
+  },
+  {
+    "name": "文具大礼包",
+    "description": "学习用品一应俱全",
+    "price": 35,
+    "stock": 100,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/stationery.jpg",
+    "category": 6,
+    "like_count": 2,
+    "isActive": true
+  },
+  {
+    "name": "创意钥匙扣",
+    "description": "个性定制，送礼佳品",
+    "price": 12,
+    "stock": 80,
+    "image": "https://s3.bmp.ovh/imgs/2025/06/10/keychain.jpg",
+    "category": 6,
+    "like_count": 1,
+    "isActive": true
+  }
+] 

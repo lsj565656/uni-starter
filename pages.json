@@ -2,10 +2,8 @@
 	"pages": [{
 			"path": "pages/list/list",
 			"style": {
-				// #ifndef APP
-				"enablePullDownRefresh": true,
-				// #endif
-				"navigationStyle": "custom"
+				"navigationBarTitleText": "列表",
+				"enablePullDownRefresh": true
 			}
 		},
 		{
