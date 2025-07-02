@@ -47,6 +47,9 @@
 				scrollable
 				:style="{ flex: 1 }"
 			/>
+			<view class="filter-icon-btn" @click="showFilter = true">
+				<uni-icons type="tune" size="26" color="#4c82ff" />
+			</view>
 		</view>
 
 		<unicloud-db ref='udb' v-slot:default="{data, pagination, hasMore, loading, error, options}" @error="onqueryerror"
@@ -329,13 +332,26 @@
 		position: sticky;
 		top: 60px;
 		left: 0;
-		right: 0;
 		background: #fff;
-		z-index: 999;
+		z-index: 1001;
 		height: 50px;
+		width: 100%;
+		padding-right: 10%;
 		display: flex;
 		align-items: center;
 		box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+	}
+	.filter-icon-btn {
+		position: fixed;
+		top: 60px;
+		right: 0px;
+		background: #ffffff46;
+		height: 50px;
+		width: 10%;
+		z-index: 1002;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 	.search-row {
 		display: flex;
