@@ -3,7 +3,10 @@
 			"path": "pages/list/list",
 			"style": {
 				"navigationBarTitleText": "列表",
-				"enablePullDownRefresh": true
+				"enablePullDownRefresh": true,
+				// #ifdef MP || APP-PLUS
+				"navigationStyle": "custom"
+				// #endif
 			}
 		},
 		{

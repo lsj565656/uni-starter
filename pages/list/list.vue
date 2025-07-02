@@ -4,23 +4,49 @@
 		<statusBar></statusBar>
 		<!-- #endif -->
 
-		<!-- 粘性搜索+分类栏（uni-segmented-control实现） -->
-		<view class="sticky-bar">
-			<view class="search-row">
-				<uni-segmented-control
-					:current="currentCategory"
-					:values="categoryNames"
-					@clickItem="onCategoryChange"
-					styleType="text"
-					activeColor="#1976d2"
-					class="custom-segmented-control"
-					scrollable
-					:style="{ flex: 1 }"
+		<!-- 自定义头部导航 -->
+		<view class="custom-navbar">
+			<!-- #ifdef MP-WEIXIN -->
+			<view class="navbar-placeholder"></view>
+			<view class="navbar-search-mp">
+				<uni-search-bar
+					v-model="keyword"
+					ref="searchBar"
+					radius="100"
+					cancelButton="none"
+					disabled
+					:placeholder="inputPlaceholder"
 				/>
-				<view class="search-icon-btn" @click="goToSearch">
-					<uni-icons type="search" size="22" color="#4c82ff" />
-				</view>
+				<view class="cover-search-bar" @click="goToSearch"></view>
 			</view>
+			<!-- #endif -->
+			<!-- #ifndef MP-WEIXIN -->
+			<view class="navbar-search-app">
+				<uni-search-bar
+					v-model="keyword"
+					ref="searchBar"
+					radius="100"
+					cancelButton="none"
+					disabled
+					:placeholder="inputPlaceholder"
+				/>
+				<view class="cover-search-bar" @click="goToSearch"></view>
+			</view>
+			<!-- #endif -->
+		</view>
+
+		<!-- 分类栏 -->
+		<view class="sticky-bar">
+			<uni-segmented-control
+				:current="currentCategory"
+				:values="categoryNames"
+				@clickItem="onCategoryChange"
+				styleType="text"
+				activeColor="#1976d2"
+				class="custom-segmented-control"
+				scrollable
+				:style="{ flex: 1 }"
+			/>
 		</view>
 
 		<unicloud-db ref='udb' v-slot:default="{data, pagination, hasMore, loading, error, options}" @error="onqueryerror"
@@ -254,9 +280,54 @@
 		font-size: 14px;
 		color: #999999;
 	}
-	.sticky-bar {
+	.custom-navbar {
+		width: 100%;
+		background: #fff;
+		padding-top: var(--status-bar-height, 0px);
+		box-sizing: border-box;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		height: 60px;
 		position: fixed;
 		top: 0;
+		z-index: 1000;
+		border-bottom: 1px solid #f0f0f0;
+	}
+	.navbar-placeholder {
+		width: 100%;
+		height: 100%;
+		display: inline-block;
+	}
+	.navbar-search-mp {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		height: 100%;
+		position: relative;
+	}
+	.navbar-search-app {
+		width: 100%;
+		height: 60px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		position: relative;
+	}
+	.navbar-search-app .uni-searchbar {
+		width: 100%;	
+	}
+	.cover-search-bar {
+		height: 100%;
+		width: 100%;
+		position: fixed;
+		top: 0;
+		left: 0;
+		z-index: 2;
+	}
+	.sticky-bar {
+		position: sticky;
+		top: 60px;
 		left: 0;
 		right: 0;
 		background: #fff;
@@ -273,17 +344,9 @@
 		width: 100%;
 		flex-direction: row;
 	}
-	.search-icon-btn {
-		width: 50px;
-		height: 50px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		cursor: pointer;
-	}
 	.custom-segmented-control {
 		height: 50px;
-		width: calc(100% - 50px);
+		width: 100%;
 		flex: 1;
 		min-width: 50px;
 	}
@@ -302,7 +365,7 @@
 		margin: 10px 0;
 	}
 	.masonry-col {
-		width: 48%;
+		width: 49%;
 		margin: 0 auto;
 		box-sizing: border-box;
 	}
@@ -310,7 +373,7 @@
 		margin-bottom: 12px;
 		max-height: 340px;
 		overflow: hidden;
-		margin: 4px 2px !important;
+		margin: 4px 1px !important;
 	}
 	.custom-cover { position: relative; }
 	.cover-image { width: 100%; height: 120px; object-fit: cover; border-radius: 8px 8px 0 0; }
