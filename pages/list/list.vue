@@ -6,33 +6,33 @@
 
 		<!-- 自定义头部导航 -->
 		<view class="custom-navbar">
-			<!-- #ifdef MP-WEIXIN -->
-			<view class="navbar-placeholder"></view>
-			<view class="navbar-search-mp">
-				<uni-search-bar
-					v-model="keyword"
-					ref="searchBar"
-					radius="100"
-					cancelButton="none"
-					disabled
-					:placeholder="inputPlaceholder"
-				/>
-				<view class="cover-search-bar" @click="goToSearch"></view>
-			</view>
-			<!-- #endif -->
-			<!-- #ifndef MP-WEIXIN -->
-			<view class="navbar-search-app">
-				<uni-search-bar
-					v-model="keyword"
-					ref="searchBar"
-					radius="100"
-					cancelButton="none"
-					disabled
-					:placeholder="inputPlaceholder"
-				/>
-				<view class="cover-search-bar" @click="goToSearch"></view>
-			</view>
-			<!-- #endif -->
+					<!-- #ifdef MP-WEIXIN -->
+		<view class="navbar-placeholder"></view>
+		<view class="navbar-search-mp">
+			<uni-search-bar
+				v-model="keyword"
+				ref="searchBar"
+				radius="100"
+				cancelButton="none"
+				disabled
+				:placeholder="inputPlaceholder"
+			/>
+			<view class="search-click-area" @click="goToSearch"></view>
+		</view>
+		<!-- #endif -->
+					<!-- #ifndef MP-WEIXIN -->
+		<view class="navbar-search-app">
+			<uni-search-bar
+				v-model="keyword"
+				ref="searchBar"
+				radius="100"
+				cancelButton="none"
+				disabled
+				:placeholder="inputPlaceholder"
+			/>
+			<view class="search-click-area" @click="goToSearch"></view>
+		</view>
+		<!-- #endif -->
 		</view>
 
 		<!-- 分类栏 -->
@@ -47,14 +47,89 @@
 				scrollable
 				:style="{ flex: 1 }"
 			/>
-			<view class="filter-icon-btn" @click="showFilter = true">
-				<uni-icons type="tune" size="26" color="#4c82ff" />
+			<view class="filter-icon-btn" @click.stop="toggleFilterDrawer">
+				<uni-badge :text="activeFilterCount" :absolute="true" :offset="[0, 0]" :is-dot="false" v-if="activeFilterCount > 0">
+					<uni-icons type="tune" size="26" color="#4c82ff" />
+				</uni-badge>
+				<uni-icons v-else type="tune" size="26" color="#4c82ff" />
 			</view>
 		</view>
+
+		<!-- 筛选抽屉 -->
+		<uni-drawer ref="filterDrawer" mode="right" :mask-click="true" :width="300" @close="onFilterDrawerClose">
+			<view class="filter-drawer-content" @click.stop>
+				<view class="filter-header">
+					<text class="filter-title">筛选条件</text>
+					<text class="filter-desc">排序方式：价格、点赞数、库存三选一</text>
+				</view>
+				
+				<!-- 当前筛选条件展示 -->
+				<view v-if="activeFilterCount > 0" class="current-filters">
+					<text class="current-filters-label">当前筛选：</text>
+					<text class="current-filters-text">{{ currentFilterText }}</text>
+				</view>
+				
+				<view class="filter-section">
+					<text class="filter-label">价格范围</text>
+					<uni-data-select
+						v-model="selectedPriceRange"
+						:localdata="priceRangeOptions"
+						placeholder="选择价格范围"
+						:clear="true"
+						class="filter-select"
+					/>
+				</view>
+				
+				<view class="filter-section">
+					<text class="filter-label">价格排序</text>
+					<uni-data-select
+						v-model="selectedPriceSort"
+						:localdata="priceSortOptions"
+						placeholder="不排序"
+						:clear="true"
+						class="filter-select"
+					/>
+				</view>
+				
+				<view class="filter-section">
+					<text class="filter-label">点赞数排序</text>
+					<uni-data-select
+						v-model="selectedLikeSort"
+						:localdata="likeSortOptions"
+						placeholder="不排序"
+						:clear="true"
+						class="filter-select"
+					/>
+				</view>
+				
+				<view class="filter-section">
+					<text class="filter-label">库存排序</text>
+					<uni-data-select
+						v-model="selectedStockSort"
+						:localdata="stockSortOptions"
+						placeholder="不排序"
+						:clear="true"
+						class="filter-select"
+					/>
+				</view>
+				
+				<view class="filter-actions">
+					<button 
+						class="filter-btn filter-btn-reset" 
+						:class="{ 'filter-btn-disabled': !hasActiveFilters }"
+						:disabled="!hasActiveFilters"
+						@click.stop="resetFilter"
+					>
+						清空筛选
+					</button>
+				</view>
+			</view>
+		</uni-drawer>
 
 		<unicloud-db ref='udb' v-slot:default="{data, pagination, hasMore, loading, error, options}" @error="onqueryerror"
 			collection="kl-food-products"
 			:where="where"
+			:orderby="orderBy"
 			field="image,name,description,like_count,category,stock,price,isActive"
 			:page-size="10"
 			:getcount="true">
@@ -118,7 +193,7 @@
 	let cdbRef;
 	import statusBar from "@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar";
 	import Gps from '@/uni_modules/json-gps/js_sdk/gps.js';
-	const gps = new Gps(),db = uniCloud.database();
+	const gps = new Gps();
 
 	export default {
 		components: {
@@ -127,6 +202,7 @@
 		data() {
 			return {
 				where: 'isActive == true',
+				orderBy: 'price asc',
 				keyword: "",
 				showRefresh: false,
 				listHight: 0,
@@ -141,6 +217,48 @@
 					{ id: 4, name: '服务' },
 					{ id: 5, name: '娱乐' },
 					{ id: 6, name: '其他' }
+				],
+				showFilterDrawer: false,
+				// 筛选相关数据
+				selectedPriceRange: '',
+				selectedPriceSort: '',
+				selectedLikeSort: '',
+				selectedStockSort: '',
+				
+				// 筛选状态跟踪
+				originalFilters: {
+					priceRange: '',
+					priceSort: '',
+					likeSort: '',
+					stockSort: ''
+				},
+				
+				// 价格范围选项
+				priceRangeOptions: [
+					{ value: '', text: '全部价格' },
+					{ value: '0-50', text: '0-50元' },
+					{ value: '50-100', text: '50-100元' },
+					{ value: '100-200', text: '100-200元' },
+					{ value: '200-500', text: '200-500元' },
+					{ value: '500+', text: '500元以上' }
+				],
+				
+				// 价格排序选项
+				priceSortOptions: [
+					{ value: 'asc', text: '价格升序' },
+					{ value: 'desc', text: '价格降序' }
+				],
+				
+				// 点赞数排序选项
+				likeSortOptions: [
+					{ value: 'asc', text: '点赞数升序' },
+					{ value: 'desc', text: '点赞数降序' }
+				],
+				
+				// 库存排序选项
+				stockSortOptions: [
+					{ value: 'asc', text: '库存升序' },
+					{ value: 'desc', text: '库存降序' }
 				]
 			}
 		},
@@ -165,16 +283,83 @@
 					cols[idx % 2].push(item);
 				});
 				return cols;
+			},
+			activeFilterCount() {
+				let count = 0;
+				if (this.selectedPriceRange && this.selectedPriceRange !== '') count++;
+				if (this.selectedPriceSort) count++;
+				if (this.selectedLikeSort) count++;
+				if (this.selectedStockSort) count++;
+				return count;
+			},
+			currentFilterText() {
+				const filters = [];
+				
+				if (this.selectedPriceRange) {
+					const priceOption = this.priceRangeOptions.find(option => option.value === this.selectedPriceRange);
+					if (priceOption && priceOption.value !== '') {
+						filters.push(priceOption.text);
+					}
+				}
+				
+				if (this.selectedPriceSort) {
+					const priceSortOption = this.priceSortOptions.find(option => option.value === this.selectedPriceSort);
+					if (priceSortOption) {
+						filters.push(priceSortOption.text);
+					}
+				}
+				
+				if (this.selectedLikeSort) {
+					const likeSortOption = this.likeSortOptions.find(option => option.value === this.selectedLikeSort);
+					if (likeSortOption) {
+						filters.push(likeSortOption.text);
+					}
+				}
+				
+				if (this.selectedStockSort) {
+					const stockSortOption = this.stockSortOptions.find(option => option.value === this.selectedStockSort);
+					if (stockSortOption) {
+						filters.push(stockSortOption.text);
+					}
+				}
+				
+				return filters.join(', ');
+			},
+			hasActiveFilters() {
+				return this.activeFilterCount > 0;
 			}
 		},
 		watch: {
 			keyword(keyword, oldValue) {
-				let where = 'isActive == true '
-				if (keyword) {
-					this.where = where + `&& /${keyword}/.test(name)`;
-				} else {
-					this.where = where;
+				this.applyRealTimeFilter(); // 使用统一的筛选方法
+			},
+			// 实时筛选监听
+			selectedPriceRange() {
+				this.applyRealTimeFilter();
+			},
+			selectedPriceSort(newValue) {
+				// 如果选择了价格排序，清空其他排序
+				if (newValue) {
+					this.selectedLikeSort = '';
+					this.selectedStockSort = '';
 				}
+				this.applyRealTimeFilter();
+			},
+			selectedLikeSort(newValue) {
+				// 如果选择了点赞数排序，清空其他排序
+				if (newValue) {
+					this.selectedPriceSort = '';
+					this.selectedStockSort = '';
+				}
+				this.applyRealTimeFilter();
+			},
+			selectedStockSort(newValue) {
+				// 如果选择了库存排序，清空其他排序
+				if (newValue) {
+					this.selectedPriceSort = '';
+					this.selectedLikeSort = '';
+				}
+				this.applyRealTimeFilter();
 			}
 		},
 		methods: {
@@ -183,20 +368,12 @@
 			},
 			onCategoryChange(e) {
 				this.currentCategory = e.currentIndex;
-				let where = 'isActive == true';
-				if (this.currentCategory !== 0) {
-					where += ` && category == ${this.categories[this.currentCategory].id}`;
-				}
-				this.where = where;
-				this.dataList = []; // 清空旧数据，防止闪现
-				this.$nextTick(() => {
-					this.refresh();
-				});
+				this.applyRealTimeFilter();
 			},
 			retry() { this.refresh() },
 			refresh() {
-				if (cdbRef) {
-					cdbRef.loadData({ clear: true }, () => {
+				if (this.$refs.udb) {
+					this.$refs.udb.loadData({ clear: true }, () => {
 						uni.stopPullDownRefresh()
 						this.showRefresh = false
 						uni.showToast({ title: '已刷新', icon: 'success', duration: 2000 })
@@ -204,14 +381,10 @@
 				}
 			},
 			loadMore() {
-				if (cdbRef) cdbRef.loadMore();
+				if (this.$refs.udb) this.$refs.udb.loadMore();
 			},
 			onqueryerror(e) {
 				console.error('[onqueryerror] 类型:', typeof e);
-			},
-			onpullingdown(e) {
-				this.showRefresh = true
-				if(e.pullingDistance>100){ this.refresh() }
 			},
 			actionsClick(type, item) {
 				uni.showToast({ title: `${type}功能开发中`, icon: 'none' });
@@ -221,6 +394,121 @@
 					this.dataList = data;
 				}
 				return true;
+			},
+			toggleFilterDrawer() {
+				if (this.showFilterDrawer) {
+					this.closeFilterDrawer();
+				} else {
+					this.openFilterDrawer();
+				}
+			},
+			openFilterDrawer() {
+				if (this.$refs.filterDrawer) {
+					// 保存当前筛选状态作为原始状态
+					this.originalFilters = {
+						priceRange: this.selectedPriceRange,
+						priceSort: this.selectedPriceSort,
+						likeSort: this.selectedLikeSort,
+						stockSort: this.selectedStockSort
+					};
+					this.$refs.filterDrawer.open();
+					this.showFilterDrawer = true;
+				}
+			},
+			closeFilterDrawer() {
+				if (this.$refs.filterDrawer) {
+					this.$refs.filterDrawer.close();
+					this.showFilterDrawer = false;
+				}
+			},
+			onFilterDrawerClose() {
+				// 抽屉关闭时恢复筛选状态
+				this.selectedPriceRange = this.originalFilters.priceRange;
+				this.selectedPriceSort = this.originalFilters.priceSort;
+				this.selectedLikeSort = this.originalFilters.likeSort;
+				this.selectedStockSort = this.originalFilters.stockSort;
+				this.showFilterDrawer = false;
+			},
+			applyRealTimeFilter() {
+				// 构建筛选条件
+				let where = 'isActive == true';
+				
+				// 分类筛选
+				if (this.currentCategory !== 0) {
+					where += ` && category == ${this.categories[this.currentCategory].id}`;
+				}
+				
+				// 关键词搜索
+				if (this.keyword && this.keyword.trim()) {
+					where += ` && /${this.keyword.trim()}/.test(name)`;
+				}
+				
+				// 价格范围筛选
+				if (this.selectedPriceRange && this.selectedPriceRange !== '') {
+					const [min, max] = this.selectedPriceRange.split('-');
+					if (max === '+') {
+						where += ` && price >= ${min}`;
+					} else {
+						where += ` && price >= ${min} && price <= ${max}`;
+					}
+				}
+				
+				// 更新查询条件
+				this.where = where;
+				
+				// 处理排序逻辑 - 优先级：价格 > 点赞数 > 库存
+				let orderBy = '';
+				if (this.selectedPriceSort) {
+					orderBy = `price ${this.selectedPriceSort}`;
+				} else if (this.selectedLikeSort) {
+					orderBy = `like_count ${this.selectedLikeSort}`;
+				} else if (this.selectedStockSort) {
+					orderBy = `stock ${this.selectedStockSort}`;
+				} else {
+					orderBy = 'price asc'; // 默认排序
+				}
+				
+				this.orderBy = orderBy;
+				
+				// 清空数据并刷新
+				this.dataList = [];
+				this.$nextTick(() => {
+					this.refresh();
+				});
+			},
+			resetFilter() {
+				// 重置所有筛选条件
+				this.selectedPriceRange = '';
+				this.selectedPriceSort = '';
+				this.selectedLikeSort = '';
+				this.selectedStockSort = '';
+				
+				// 重置查询条件，但保留当前分类和关键词
+				let where = 'isActive == true';
+				if (this.currentCategory !== 0) {
+					where += ` && category == ${this.categories[this.currentCategory].id}`;
+				}
+				if (this.keyword && this.keyword.trim()) {
+					where += ` && /${this.keyword.trim()}/.test(name)`;
+				}
+				this.where = where;
+				this.orderBy = 'price asc';
+				
+				// 更新原始状态
+				this.originalFilters = {
+					priceRange: '',
+					priceSort: '',
+					likeSort: '',
+					stockSort: ''
+				};
+				
+				// 清空数据并刷新
+				this.dataList = [];
+				this.showFilterDrawer = false;
+				this.closeFilterDrawer();
+				this.$nextTick(() => {
+					this.refresh();
+				});
 			}
 		},
 		mounted() {
@@ -229,9 +517,9 @@
 		},
 		onReachBottom() {
 			console.log('[onReachBottom] called');
-			if (cdbRef) cdbRef.loadMore();
+			this.loadMore();
 		},
-		async onReady() {
+		onReady() {
 			// #ifdef APP-NVUE
 			/* 可用窗口高度 - 搜索框高 - 状态栏高 */
 			this.listHight = uni.getSystemInfoSync().windowHeight - uni.getSystemInfoSync().statusBarHeight - 50 + 'px';
@@ -240,10 +528,9 @@
 			this.listHight = 'auto'
 			// #endif
 		},
-		async onShow() {
+		onShow() {
 			this.keyword = getApp().globalData.searchText
 			getApp().globalData.searchText = ''
-			// 定位相关逻辑略
 		},
 		onPullDownRefresh() {
 			this.refresh();
@@ -320,13 +607,14 @@
 	.navbar-search-app .uni-searchbar {
 		width: 100%;	
 	}
-	.cover-search-bar {
-		height: 100%;
-		width: 100%;
-		position: fixed;
+	.search-click-area {
+		position: absolute;
 		top: 0;
 		left: 0;
+		right: 0;
+		bottom: 0;
 		z-index: 2;
+		cursor: pointer;
 	}
 	.sticky-bar {
 		position: sticky;
@@ -353,6 +641,9 @@
 		align-items: center;
 		justify-content: center;
 	}
+	.uni-badge--x {
+		right: 4px;
+	}
 	.search-row {
 		display: flex;
 		align-items: center;
@@ -378,11 +669,11 @@
 		overflow-x: hidden;
 		padding: 10px 0;
 		box-sizing: border-box;
-		margin: 10px 0;
 	}
 	.masonry-col {
 		width: 49%;
 		margin: 0 auto;
+		margin-top: 50px;
 		box-sizing: border-box;
 	}
 	.masonry-card {
@@ -402,5 +693,119 @@
 	.load-state{
 		margin: 0 auto 16px auto;
 		width: 90%;
+	}
+	/* 筛选抽屉样式 */
+	.filter-drawer-content {
+		padding: 20px 10px;
+		background: #fff;
+		min-height: 400px;
+		position: relative;
+		z-index: 1004;
+		top: 110px !important;
+	}
+	
+	.filter-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 20px;
+		padding-bottom: 15px;
+		border-bottom: 1px solid #f0f0f0;
+	}
+	
+	.filter-title {
+		font-size: 18px;
+		font-weight: 600;
+		color: #333;
+	}
+	.filter-desc {
+		font-size: 14px;
+		color: #999;
+	}
+	
+	.filter-section {
+		margin-bottom: 20px;
+	}
+	
+	.filter-label {
+		display: block;
+		font-size: 14px;
+		color: #666;
+		margin-bottom: 8px;
+		font-weight: 500;
+	}
+	
+	.filter-select {
+		width: 100%;
+	}
+	
+	.current-filters {
+		margin-bottom: 6px;
+		padding: 2px;
+		background-color: #f8f9fa;
+		border-radius: 8px;
+		border-left: 4px solid #1976d2;
+	}
+	
+	.current-filters-label {
+		font-size: 14px;
+		color: #666;
+		font-weight: 500;
+		margin-right: 8px;
+	}
+	
+	.current-filters-text {
+		font-size: 14px;
+		color: #333;
+		line-height: 1.4;
+	}
+	
+	.filter-actions {
+		margin-top: 10px;
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+		width: 100%;
+	}
+	
+	.filter-btn {
+		width: 60%;
+		height: 44px;
+		border: none;
+		border-radius: 8px;
+		font-size: 16px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.3s ease;
+	}
+	
+	.filter-btn-reset {
+		background-color: #f5f5f5;
+		color: #666;
+	}
+	
+	.filter-btn-reset:active {
+		background-color: #e0e0e0;
+	}
+	
+	.filter-btn-confirm {
+		background-color: #1976d2;
+		color: #fff;
+	}
+	
+	.filter-btn-confirm:active {
+		background-color: #1565c0;
+	}
+	
+	.filter-btn-disabled {
+		background-color: #f0f0f0 !important;
+		color: #ccc !important;
+		cursor: not-allowed !important;
+		opacity: 0.6;
+	}
+	
+	.filter-btn-disabled:active {
+		background-color: #f0f0f0 !important;
 	}
 </style>
