@@ -10,8 +10,10 @@
 			}
 		},
 		{
-			"path": "pages/grid/grid",
+			"path": "pages/home/home",
 			"style": {
+				"navigationBarTitleText": "首页",
+				"enablePullDownRefresh": false,
 				//#ifndef MP
 				"navigationStyle": "custom"
 				//#endif
@@ -235,10 +237,13 @@
 				"path": "pages/list/list"
 			},
 			{
+				"path": "pages/home/home"
+			},
+			{
 				"path": "pages/ucenter/settings/settings"
 			}
 		],
-		"current": 1
+		"current": 3
 	},
 	"tabBar": {
 		"color": "#7A7E83",
@@ -246,15 +251,15 @@
 		"borderStyle": "black",
 		"backgroundColor": "#FFFFFF",
 		"list": [{
+			"pagePath": "pages/home/home",
+			"iconPath": "static/tabbar/home.png",
+			"selectedIconPath": "static/tabbar/home_active.png",
+			"text": "首页"
+		}, {
 			"pagePath": "pages/list/list",
 			"iconPath": "static/tabbar/list.png",
 			"selectedIconPath": "static/tabbar/list_active.png",
 			"text": "列表"
-		}, {
-			"pagePath": "pages/grid/grid",
-			"iconPath": "static/tabbar/grid.png",
-			"selectedIconPath": "static/tabbar/grid_active.png",
-			"text": "宫格"
 		}, {
 			"pagePath": "pages/ucenter/ucenter",
 			"iconPath": "static/tabbar/me.png",

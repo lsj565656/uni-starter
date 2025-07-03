@@ -13,8 +13,8 @@
 				<text class="uer-name" v-else>{{$t('mine.notLogged')}}</text>
 			</view>
 		</view>
-		<uni-grid class="grid" :column="4" :showBorder="false" :square="true">
-			<uni-grid-item class="item" v-for="(item,index) in gridList" @click.native="tapGrid(index)" :key="index">
+		<uni-grid class="home" :column="4" :showBorder="false" :square="true">
+			<uni-grid-item class="item" v-for="(item,index) in homeList" @click.native="tapHome(index)" :key="index">
 				<uni-icons class="icon" color="#007AFF" :type="item.icon" size="26"></uni-icons>
 				<text class="text">{{item.text}}</text>
 			</uni-grid-item>
@@ -59,7 +59,7 @@
 		// #endif
 		data() {
 			return {
-				gridList: [{
+				homeList: [{
 						"text": this.$t('mine.showText'),
 						"icon": "chat"
 					},
@@ -210,7 +210,7 @@
 					url: '/uni_modules/uni-id-pages/pages/userinfo/userinfo'
 				})
 			},
-			tapGrid(index) {
+			tapHome(index) {
 				uni.showToast({
 					// title: '你点击了，第' + (index + 1) + '个',
 					title: this.$t('mine.clicked') + " " + (index + 1) ,
@@ -407,7 +407,7 @@
 		height: 40rpx;
 	}
 
-	.grid {
+	.home {
 		background-color: #FFFFFF;
 		margin-bottom: 6px;
 	}

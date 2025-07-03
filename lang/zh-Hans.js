@@ -43,13 +43,13 @@ export default {
 		complete: "完成",
 		searchHiddenTip: "当前搜索发现已隐藏",
 	},
-	grid:{
-		grid: "宫格组件",
+	home:{
+		home: "首页组件",
 		visibleToAll: "所有人可见",
 		invisibleToTourists: "游客不可见",
 		adminVisible: "管理员可见",
-		clickTip: "点击第",
-		clickTipGrid: "个宫格",
+		clickTip: "你点击了",
+		clickTipGrid: "首页"
 	},
 	mine:{
 		showText: "文字",

@@ -1,5 +1,5 @@
 export default {
-	tabbar:'List,Grid,contacts,Mine',
+	tabbar:'List,Home,contacts,Mine',
 	agreementsTitle:'User service agreement,Privacy policy',
 	common: {
 		wechatFriends: "friends",
@@ -42,13 +42,13 @@ export default {
 		complete: "complete",
 		searchHiddenTip: "Current search found hidden",
 	},
-	grid: {
-		grid: "Grid Assembly",
+	home: {
+		home: "Home Assembly",
 		visibleToAll: "Visible to all",
 		invisibleToTourists: "Invisible to tourists",
 		adminVisible: "Admin visible",
-		clickTip: "Click the",
-		clickTipGrid: "grid",
+		clickTip: "You clicked",
+		clickTipGrid: "home"
 	},
 	mine: {
 		showText: "Text",
