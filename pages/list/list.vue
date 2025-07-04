@@ -56,7 +56,7 @@
 		</view>
 
 		<!-- 筛选抽屉 -->
-		<uni-drawer ref="filterDrawer" mode="right" :mask-click="true" :width="300" @close="onFilterDrawerClose">
+		<uni-drawer ref="filterDrawer" mode="right" :mask="true" :mask-click="false" :width="300" @close="onFilterDrawerClose" @open="onFilterDrawerOpen">
 			<view class="filter-drawer-content" @click.stop>
 				<view class="filter-header">
 					<text class="filter-title">筛选条件</text>
@@ -121,6 +121,14 @@
 						@click.stop="resetFilter"
 					>
 						清空筛选
+					</button>
+				</view>
+				<view class="filter-actions">
+					<button 
+						class="filter-btn filter-btn-reset" 
+						@click.stop="onDrawerContentClick"
+					>
+						取消
 					</button>
 				</view>
 			</view>
@@ -396,10 +404,13 @@
 				return true;
 			},
 			toggleFilterDrawer() {
+				console.log('toggleFilterDrawer showFilterDrawer', this.showFilterDrawer)
 				if (this.showFilterDrawer) {
-					this.closeFilterDrawer();
+					if (this.$refs.filterDrawer) this.$refs.filterDrawer.close();
+					this.showFilterDrawer = false;
 				} else {
-					this.openFilterDrawer();
+					if (this.$refs.filterDrawer) this.$refs.filterDrawer.open();
+					this.showFilterDrawer = true;
 				}
 			},
 			openFilterDrawer() {
@@ -412,22 +423,30 @@
 						stockSort: this.selectedStockSort
 					};
 					this.$refs.filterDrawer.open();
-					this.showFilterDrawer = true;
 				}
 			},
 			closeFilterDrawer() {
 				if (this.$refs.filterDrawer) {
 					this.$refs.filterDrawer.close();
-					this.showFilterDrawer = false;
 				}
 			},
+			onFilterDrawerOpen() {
+				this.showFilterDrawer = true;
+			},
 			onFilterDrawerClose() {
+				this.showFilterDrawer = false;
 				// 抽屉关闭时恢复筛选状态
 				this.selectedPriceRange = this.originalFilters.priceRange;
 				this.selectedPriceSort = this.originalFilters.priceSort;
 				this.selectedLikeSort = this.originalFilters.likeSort;
 				this.selectedStockSort = this.originalFilters.stockSort;
-				this.showFilterDrawer = false;
+				console.log('onFilterDrawerClose showFilterDrawer', this.showFilterDrawer)
+			},
+			onDrawerContentClick() {
+				if (this.$refs.filterDrawer) {
+					this.$refs.filterDrawer.close();
+					this.showFilterDrawer = false;
+				}
 			},
 			applyRealTimeFilter() {
 				// 构建筛选条件
