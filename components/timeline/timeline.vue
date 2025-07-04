@@ -916,6 +916,8 @@ $zigzag-item-height: 140px;
 .timeline-image-wrapper {
 	position: relative;
 	display: inline-block;
+	top: 10px;
+    left: 10px;
 }
 
 .timeline-image {

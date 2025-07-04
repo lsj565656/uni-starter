@@ -120,104 +120,36 @@ const handlePhoneClick = () => {
 			transform: scale(0.98);
 		}
 	}
-	
-	&__status {
-		display: flex;
-		justify-content: center;
-	}
-	
-	&__badge {
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-xs);
-		border-radius: var(--radius-full);
-		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-medium);
-		background-color: var(--error-color);
-		color: var(--text-light);
-		transition: all 0.3s ease;
-		
-		&.status-open {
-			background-color: #28a7464b;
-			color: #fff;
-			box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
-		}
-		
-		&.status-closed {
-			background-color: #6c757d;
-			color: #fff;
-			box-shadow: 0 2px 8px rgba(108, 117, 125, 0.2);
-		}
-		
-		&-text {
-			margin-left: var(--spacing-xs);
-		}
-	}
-	
-	&__icon {
-		width: 36px;
-		height: 36px;
-		background: linear-gradient(135deg, var(--bg-secondary) 0%, #f8f9fa 100%);
-		border-radius: var(--radius-full);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		margin-right: var(--spacing-md);
-		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-		will-change: transform, background;
-		
-		&:hover {
-			background: linear-gradient(135deg, var(--primary-color) 0%, #0056b3 100%);
-			transform: scale(1.1);
-		}
-		
-		&:active {
-			transform: scale(0.95);
-		}
-	}
-	
-	&__announcement {
-		border-radius: var(--radius-md);
-		overflow: hidden;
-		transition: all 0.3s ease;
-		
-		&:active {
-			transform: scale(0.98);
-		}
-	}
-}
-// 自定义uni-card样式
-:deep(.uni-card) {
-	border-radius: var(--radius-xl);
-	box-shadow: var(--shadow-sm);
-	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-	will-change: transform, box-shadow;
 }
 
-.uni-list-item__container {
-	padding: 0 !important;
-	display: flex;
-	align-items: center;
-	justify-content: center;
+// 自定义uni-card样式
+:deep(.uni-card) {
+	border-radius: 12px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	will-change: transform, box-shadow;
+	margin: 16px;
+	background-color: #fff;
 }
 
 :deep(.uni-card__header) {
-	border-bottom: 1px solid var(--border-color);
+	border-bottom: 1px solid #f0f0f0;
 	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 	will-change: transform;
+	padding: 16px;
 	
 	.uni-card__header-title {
-		font-size: var(--font-size-lg);
-		font-weight: var(--font-weight-bold);
-		color: var(--text-primary);
+		font-size: 18px;
+		font-weight: 600;
+		color: #333;
 	}
 	
 	.uni-card__header-extra {
-		font-size: var(--font-size-sm);
-		font-weight: var(--font-weight-medium);
-		padding: var(--spacing-xs) var(--spacing-sm);
-		border-radius: var(--radius-full);
-		background-color: #28a7467a;
+		font-size: 14px;
+		font-weight: 500;
+		padding: 4px 12px;
+		border-radius: 20px;
+		background-color: #28a746;
 		color: #fff;
 		box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
 		
@@ -232,6 +164,7 @@ const handlePhoneClick = () => {
 :deep(.uni-card__content) {
 	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 	will-change: transform;
+	padding: 0;
 	
 	&:active {
 		transform: scale(0.98);
@@ -245,12 +178,12 @@ const handlePhoneClick = () => {
 	padding: 0;
 	
 	&:active {
-		background-color: var(--bg-secondary);
+		background-color: #f8f9fa;
 		transform: scale(0.98);
 	}
 	
 	&:not(:last-child) {
-		border-bottom: 1px solid var(--border-color);
+		border-bottom: 1px solid #f0f0f0;
 	}
 	
 	// 确保列表项内容区域正确显示
@@ -286,106 +219,30 @@ const handlePhoneClick = () => {
 :deep(.uni-list-item__content) {
 	display: flex;
 	align-items: center;
-	padding: 16px 0;
+	padding: 16px;
 }
 
 :deep(.uni-list-item__content-title) {
-	font-size: var(--font-size-sm);
-	color: var(--text-secondary);
-	font-weight: var(--font-weight-medium);
+	font-size: 14px;
+	color: #666;
+	font-weight: 500;
 	margin-bottom: 4px;
 }
 
 :deep(.uni-list-item__content-note) {
-	font-size: var(--font-size-sm);
-	color: var(--text-primary);
-	font-weight: var(--font-weight-medium);
+	font-size: 14px;
+	color: #333;
+	font-weight: 500;
 }
 
 :deep(.uni-list-item__content-arrow) {
-	color: var(--text-secondary);
+	color: #999;
 	transition: all 0.3s ease;
 	
 	&:active {
 		transform: scale(1.2);
 	}
 }
-
-// 自定义uni-notice-bar样式
-:deep(.uni-notice-bar) {
-	border-radius: var(--radius-md);
-	overflow: hidden;
-	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-	will-change: transform;
-	
-	&:active {
-		transform: scale(0.98);
-	}
-}
-
-// 响应式设计
-@media (max-width: 768px) {
-	.shop-info-card {
-		
-		&__badge {
-			font-size: var(--font-size-xs);
-		}
-		
-		&__icon {
-			width: 32px;
-			height: 32px;
-			margin-right: var(--spacing-sm);
-		}
-	}
-	
-	// 移动端图标容器优化
-	.icon-container {
-		width: 20px;
-		height: 20px;
-		margin-right: 10px;
-	}
-	
-	:deep(.uni-card__header) {
-		
-		.uni-card__header-title {
-			font-size: var(--font-size-md);
-		}
-		
-		.uni-card__header-extra {
-			font-size: var(--font-size-xs);
-		}
-	}
-	
-	:deep(.uni-list-item__content) {
-		padding: 12px 0;
-	}
-	
-	:deep(.uni-list-item__content-title) {
-		font-size: var(--font-size-xs);
-	}
-	
-	:deep(.uni-list-item__content-note) {
-		font-size: var(--font-size-xs);
-	}
-}
-
-// 营业状态样式类
-.shop-info-card {
-	&--open {
-		:deep(.uni-card__header-extra) {
-			background-color: #28a74644 !important;
-			color: #fff !important;
-		}
-	}
-	
-	&--closed {
-		:deep(.uni-card__header-extra) {
-			background-color: #6c757d6b !important;
-			color: #fff !important;
-		}
-	}
-}
-
 
 // 优化图标颜色
 :deep(.uni-icons) {
@@ -399,9 +256,64 @@ const handlePhoneClick = () => {
 // 优化列表项点击效果
 :deep(.uni-list-item) {
 	&:active {
-		background: linear-gradient(135deg, var(--bg-secondary) 0%, #e9ecef 100%);
+		background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 		transform: scale(0.98);
 		box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+	}
+}
+
+// 营业状态样式类
+.shop-info-card {
+	&--open {
+		:deep(.uni-card__header-extra) {
+			background-color: #fff !important;
+		}
+	}
+	
+	&--closed {
+		:deep(.uni-card__header-extra) {
+			background-color: #000 !important;
+		}
+	}
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+	:deep(.uni-card) {
+		margin: 12px;
+		border-radius: 8px;
+	}
+	
+	:deep(.uni-card__header) {
+		padding: 12px;
+		
+		.uni-card__header-title {
+			font-size: 16px;
+		}
+		
+		.uni-card__header-extra {
+			font-size: 12px;
+			padding: 2px 8px;
+		}
+	}
+	
+	// 移动端图标容器优化
+	.icon-container {
+		width: 20px;
+		height: 20px;
+		margin-right: 10px;
+	}
+	
+	:deep(.uni-list-item__content) {
+		padding: 12px;
+	}
+	
+	:deep(.uni-list-item__content-title) {
+		font-size: 12px;
+	}
+	
+	:deep(.uni-list-item__content-note) {
+		font-size: 12px;
 	}
 }
 </style> 

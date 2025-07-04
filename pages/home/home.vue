@@ -3,6 +3,16 @@
 		<!-- #ifdef APP -->
 		<statusBar></statusBar>
 		<!-- #endif -->
+
+		<!-- #ifdef MP-WEIXIN -->
+		<!-- 微信 自定义导航栏 -->
+		<view class="custom-nav" :style="{ paddingTop: statusBarHeight + 'px' }">
+			<view class="nav-content">
+				<image class="logo" src="/static/logo.png" mode="aspectFit"></image>
+				<view class="nav-title">首页</view>
+			</view>
+		</view>
+		<!-- #endif -->
 		
 		<!-- banner -->
 		<!-- <unicloud-db ref="bannerdb" v-slot:default="{data, loading, error, options}" collection="opendb-banner"
@@ -21,6 +31,23 @@
             </swiper-item>
         </swiper>
 
+				<!-- 宫格功能区 -->
+		<view class="section">
+			<!-- <uni-title type="h2" title="快捷功能" align="left" /> -->
+			<uni-grid :column="3" :highlight="true" @change="change">
+				<template v-for="(item,i) in homeList">
+					<uni-grid-item :index="i" :key="i"
+						v-if="i<3 || i>2&&i<6&&hasLogin || i>5&&uniIDHasRole('admin')"
+					>
+						<view class="grid-item-box" style="background-color: #fff;">
+							<text class="big-number">{{i+1}}</text>
+							<text class="text">{{item}}</text>
+						</view>
+					</uni-grid-item>
+				</template>
+			</uni-grid>
+		</view>
+
 		<!-- 店铺信息卡片 -->
 		<shop-info-card
 			:store-name="storeName"
@@ -35,13 +62,22 @@
 		/>
 
 		<!-- 食材区 -->
-		<view class="section">
+		<view class="section" id="ingredients-section">
 			<view class="section-header">
-				<uni-icons type="shop" size="20" color="#007aff" />
-				<text class="section-title">新鲜食材</text>
-				<text class="update-time">{{ ingredientsUpdateTime }}</text>
+				<view class="section-title">
+					<uni-icons type="shop" size="20" color="#007aff" />
+					<text>新鲜食材</text>
+				</view>
+				<view class="section-actions">
+					<text class="update-time">{{ ingredientsUpdateTime }}</text>
+					<uni-icons type="refresh" size="16" color="#666" @click="refreshIngredients"></uni-icons>
+				</view>
 			</view>
-			<scroll-view class="ingredients-scroll" scroll-x show-scrollbar="false">
+			<scroll-view class="ingredients-scroll"
+			:class="{ 'scrolled-left': isIngredientsScrolledLeft }"
+			scroll-x show-scrollbar="false"
+			@scroll="handleIngredientsScroll"
+			>
 				<view class="ingredients-container">
 					<ingredient-card
 						v-for="ingredient in ingredients"
@@ -54,52 +90,134 @@
 		</view>
 
 		<!-- 面食制作流程 -->
-		<view class="section">
+		<view class="section" id="flour-process-section">
 			<view class="section-header">
 				<uni-icons type="gear" size="20" color="#007aff" />
 				<text class="section-title">面食制作</text>
+				<view class="timeline-mode-switch">
+					<uni-icons
+						custom-prefix="iconfont"
+						type="icon-align-text-center"
+						:color="flourTimelineMode === 'tree' ? '#007aff' : '#bbb'"
+						size="22"
+						@click="flourTimelineMode = 'tree'"
+						class="mode-icon"
+					/>
+					<uni-icons
+						custom-prefix="iconfont"
+						type="icon-wenzijuzuo"
+						:color="flourTimelineMode === 'vertical' ? '#007aff' : '#bbb'"
+						size="22"
+						@click="flourTimelineMode = 'vertical'"
+						class="mode-icon"
+					/>
+				</view>
+				<view class="section-actions">
+					<text class="update-time">{{ processUpdateTime }}</text>
+					<uni-icons
+						type="refresh"
+						size="16"
+						color="#666"
+						@click="refreshProcess"
+					/>
+				</view>
 			</view>
 			<timeline
 				:steps="flourProcessSteps"
 				:current-step="currentFlourStep"
 				:process-data="flourProcess"
-				mode="tree"
+				:mode="flourTimelineMode"
 				@image-click="handleFlourTimelineImageClick"
 			/>
 		</view>
 
 		<!-- 卤肉制作流程 -->
-		<view class="section">
+		<view id="meat-process" class="section">
 			<view class="section-header">
 				<uni-icons type="fire" size="20" color="#007aff" />
 				<text class="section-title">卤肉制作</text>
+				<view class="timeline-mode-switch">
+					<uni-icons
+						custom-prefix="iconfont"
+						type="icon-align-text-center"
+						:color="meatTimelineMode === 'tree' ? '#007aff' : '#bbb'"
+						size="22"
+						@click="meatTimelineMode = 'tree'"
+						class="mode-icon"
+					/>
+					<uni-icons
+						custom-prefix="iconfont"
+						type="icon-wenzijuzuo"
+						:color="meatTimelineMode === 'vertical' ? '#007aff' : '#bbb'"
+						size="22"
+						@click="meatTimelineMode = 'vertical'"
+						class="mode-icon"
+					/>
+				</view>
+				<view class="section-actions">
+					<text class="update-time">{{ processUpdateTime }}</text>
+					<uni-icons
+						type="refresh"
+						size="16"
+						color="#666"
+						@click="refreshProcess"
+					/>
+				</view>
 			</view>
 			<timeline
 				:steps="meatProcessSteps"
 				:current-step="currentMeatStep"
 				:process-data="meatProcess"
-				mode="tree"
+				:mode="meatTimelineMode"
 				@image-click="handleMeatTimelineImageClick"
 			/>
 		</view>
-
-		<!-- 宫格功能区 -->
-		<view class="section">
-			<uni-title type="h2" title="快捷功能" align="left" />
-			<uni-grid :column="3" :highlight="true" @change="change">
-				<template v-for="(item,i) in homeList">
-					<uni-grid-item :index="i" :key="i"
-						v-if="i<3 || i>2&&i<6&&hasLogin || i>5&&uniIDHasRole('admin')"
-					>
-						<view class="grid-item-box" style="background-color: #fff;">
-							<text class="big-number">{{i+1}}</text>
-							<text class="text">{{item}}</text>
-						</view>
-					</uni-grid-item>
-				</template>
-			</uni-grid>
-		</view>
 	</view>
+	
+	<!-- 食材详情弹窗 -->
+	<uni-popup
+		ref="ingredientPopup"
+		type="center"
+		:animation="true"
+		:is-mask-click="true"
+		@change="onIngredientPopupChange"
+	>
+		<view class="ingredient-popup">
+			<view class="ingredient-popup-header">
+				<text class="ingredient-popup-title">{{ currentIngredient?.name }}</text>
+			</view>
+			<view class="ingredient-popup-content">
+				<!-- 图片轮播 -->
+				<view class="ingredient-images">
+					<swiper
+						class="ingredient-swiper"
+						:indicator-dots="ingredientImages.length > 1"
+						:autoplay="false"
+						indicator-color="rgba(255,255,255,0.3)"
+						indicator-active-color="#fff"
+						@change="onImageSwiperChange"
+					>
+						<swiper-item v-for="(image, index) in ingredientImages" :key="index">
+							<image
+								class="ingredient-image"
+								:src="image"
+								mode="aspectFill"
+								@click="previewImage(index)"
+							/>
+						</swiper-item>
+					</swiper>
+					<!-- 图片计数器 -->
+					<view class="image-counter" v-if="ingredientImages.length > 1">
+						<text>{{ currentImageIndex + 1 }} / {{ ingredientImages.length }}</text>
+					</view>
+				</view>
+				<!-- 食材描述 -->
+				<view class="ingredient-description">
+					<text>{{ currentIngredient?.description }}</text>
+				</view>
+			</view>
+		</view>
+	</uni-popup>
 </template>
 
 <script setup>
@@ -279,6 +397,9 @@
 	const businessHours = ref('09:00-21:00')
 	const address = ref('郑州市中原区煤机路与牛庄南街交叉口西120米')
 	const phone = ref('13673989888')
+	const current = ref(0)
+	const homeList = ref(['食材展示', '制作流程', '热门兑换', '我的订单', '用户评价', '管理后台'])
+	const hasLogin = ref(false)
 
 	const businessStatus = computed(() => {
 		const now = new Date()
@@ -306,6 +427,49 @@
 	const businessStatusClass = computed(() => businessStatus.value.class)
 	const businessStatusIcon = computed(() => businessStatus.value.icon)
 
+	// 食材弹窗相关变量
+	const ingredientPopup = ref(null)
+	const currentIngredient = ref(null)
+	const ingredientImages = ref([])
+	const currentImageIndex = ref(0)
+	const savedScrollTop = ref(0)
+
+	// 时间线模式切换
+	const flourTimelineMode = ref('tree')
+	const meatTimelineMode = ref('tree')
+
+	const onIngredientPopupChange = (e) => {
+		if (e.type === 'hide') {
+			isIngredientPopupOpen.value = false
+			showNavFab.value = false
+			
+			// 恢复页面滚动状态
+			// #ifdef H5
+			if (typeof document !== 'undefined') {
+				document.body.style.overflow = ''
+				document.body.style.position = ''
+				document.body.style.width = ''
+				document.body.style.top = ''
+			}
+			// #endif
+			
+			// 使用更可靠的方式恢复滚动位置
+			nextTick(() => {
+				if (savedScrollTop.value > 0) {
+					// 使用 requestAnimationFrame 确保在下一帧执行
+					requestAnimationFrame(() => {
+						uni.pageScrollTo({
+							scrollTop: savedScrollTop.value,
+							duration: 0
+						})
+					})
+				}
+			})
+		} else if (e.type === 'show') {
+			// 弹窗显示时的逻辑已经在 showIngredientDetail 中处理
+		}
+	}
+
 	// 刷新食材信息方法
 	function refreshIngredients() {
 		uni.showLoading({ title: '刷新中...' })
@@ -319,7 +483,7 @@
 				const hour = String(now.getHours()).padStart(2, '0')
 				const minute = String(now.getMinutes()).padStart(2, '0')
 				ingredientsUpdateTime.value = `${month}-${day} ${hour}:${minute}`
-				uni.showToast({ title: '更新成功', icon: 'success' })
+				uni.showToast({ title: '食材已更新', icon: 'success' })
 			} else {
 				uni.showToast({ title: '已是最新', icon: 'none' })
 			}
@@ -399,99 +563,169 @@
         callPhone()
         // #endif
 	}
+	function callPhone() {
+        uni.makePhoneCall({
+            phoneNumber: phone.value,
+            success: () => { console.log('拨打电话成功') },
+            fail: (err) => {
+                console.error('拨打电话失败：', err)
+                uni.showToast({ title: '拨打电话失败', icon: 'none' })
+            }
+        })
+    }
 	function showIngredientDetail(ingredient) {
-			// 立即设置弹窗状态，阻止页面滚动
-	isIngredientPopupOpen.value = true
-	
-	// 保存当前滚动位置（在页面重新布局之前）
-	const query = uni.createSelectorQuery()
-	query.select('.content-wrapper').scrollOffset()
-	query.exec((res) => {
-		if (res[0]) {
-			savedScrollTop.value = res[0].scrollTop || 0
+		currentIngredient.value = ingredient;
+		const allImages = [ingredient.image];
+		if (ingredient.additionalImages && ingredient.additionalImages.length > 0) {
+			allImages.push(...ingredient.additionalImages);
 		}
-	})
-	
-	currentIngredient.value = ingredient
-	// 将主图片和额外图片合并为轮播数组
-	const allImages = [ingredient.image]
-	if (ingredient.additionalImages && ingredient.additionalImages.length > 0) {
-		allImages.push(...ingredient.additionalImages)
+		ingredientImages.value = allImages;
+		currentImageIndex.value = 0;
+		nextTick(() => {
+			if (ingredientPopup.value) ingredientPopup.value.open();
+		});
 	}
-	ingredientImages.value = allImages
-	currentImageIndex.value = 0
-	
-	// 立即阻止页面滚动（在弹窗打开之前）
-	// #ifdef H5
-	if (typeof document !== 'undefined') {
-		document.body.style.overflow = 'hidden'
-		document.body.style.position = 'fixed'
-		document.body.style.width = '100%'
-		document.body.style.top = `-${savedScrollTop.value}px`
+	function onImageSwiperChange(e) {
+		currentImageIndex.value = e.detail.current
 	}
-	// #endif
-	
-	// #ifdef MP-WEIXIN
-	// 微信小程序使用页面级别的滚动控制
-	uni.pageScrollTo({
-		scrollTop: savedScrollTop.value,
-		duration: 0
-	})
-	// #endif
-	
-	// 延迟打开弹窗，确保状态已更新
-	nextTick(() => {
-		// 再次确认滚动位置（防止在 nextTick 期间发生变化）
-		const query2 = uni.createSelectorQuery()
-		query2.select('.content-wrapper').scrollOffset()
-		query2.exec((res2) => {
-			if (res2[0] && !savedScrollTop.value) {
-				savedScrollTop.value = res2[0].scrollTop || 0
-			}
-			ingredientPopup.value.open()
-		})
-	})
+	function previewImage(index) {
+		uni.previewImage({ current: index, urls: ingredientImages.value })
 	}
 	function handleFlourTimelineImageClick({ allImages, currentIndex }) {
+		console.log('点击了面图片', allImages, currentIndex)
         uni.previewImage({
 		current: currentIndex,
 		urls: allImages
 	})
 	}
 	function handleMeatTimelineImageClick({ allImages, currentIndex }) {
+		console.log('点击了肉图片', allImages, currentIndex)
         uni.previewImage({
 		current: currentIndex,
 		urls: allImages
 	})
 	}
+
+	// Banner相关方法
+	function changeSwiper(e) {
+		current.value = e.detail.current
+	}
+
+	function clickBannerItem(item) {
+		console.log('点击了banner:', item)
+		// 可以在这里添加banner点击逻辑
+	}
+
+	// 宫格功能相关方法
+	function change(e) {
+		const index = e.detail.index
+		const item = homeList.value[index]
+		if (index === 0) {
+			// 食材展示
+			// #ifdef H5
+			if (typeof document !== 'undefined') {
+				const el = document.getElementById('ingredients-section')
+				if (el) {
+					el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+				}
+			}
+			// #endif
+			// #ifndef H5
+			uni.pageScrollTo({
+				selector: '#ingredients-section',
+				duration: 300
+			})
+			// #endif
+			return
+		}
+		if (index === 1) {
+			// 制作流程
+			// #ifdef H5
+			if (typeof document !== 'undefined') {
+				const el = document.getElementById('flour-process-section')
+				if (el) {
+					el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+				}
+			}
+			// #endif
+			// #ifndef H5
+			uni.pageScrollTo({
+				selector: '#flour-process-section',
+				duration: 300
+			})
+			// #endif
+			return
+		}
+		if (index === 2) {
+			// 热门兑换
+			uni.switchTab({
+				url: '/pages/list/list',
+				success() {
+					uni.setStorageSync('listTabCategory', '娱乐')
+				}
+			})
+			return
+		}
+		// 其它功能...
+		uni.showToast({ title: item + '功能', icon: 'none' })
+	}
+
+	const isIngredientsScrolledLeft = ref(false)
+	const processUpdateTime = ref('12-01 14:30')
+
+	function refreshProcess() {
+		uni.showLoading({ title: '刷新中...' })
+		setTimeout(() => {
+			uni.hideLoading()
+			const hasUpdate = Math.random() > 0.5
+			if (hasUpdate) {
+				const now = new Date()
+				const month = String(now.getMonth() + 1).padStart(2, '0')
+				const day = String(now.getDate()).padStart(2, '0')
+				const hour = String(now.getHours()).padStart(2, '0')
+				const minute = String(now.getMinutes()).padStart(2, '0')
+				processUpdateTime.value = `${month}-${day} ${hour}:${minute}`
+				uni.showToast({ title: '流程已更新', icon: 'success' })
+			} else {
+				uni.showToast({ title: '已是最新', icon: 'none' })
+			}
+		}, 1000)
+	}
 </script>
 
 <style>
-	/* #ifndef APP-NVUE */
-	page {
+	.custom-nav {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 1000;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+	}
+
+	.nav-content {
 		display: flex;
-		flex-direction: column;
-		box-sizing: border-box;
-		background-color: #fff;
-		min-height: 100%;
-		height: auto;
+		align-items: center;
+		justify-content: space-between;
+		padding: 20rpx 40rpx;
+		height: 88rpx;
 	}
-	view {
-		font-size: 14px;
-		line-height: inherit;
+
+	.nav-content .logo {
+		width: 60rpx;
+		height: 60rpx;
+		border-radius: 12rpx;
 	}
-	.example-body {
-		/* #ifndef APP-NVUE */
-		display: flex;
-		/* #endif */
-		flex-direction: row;
-		flex-wrap: wrap;
-		justify-content: center;
-		padding: 0;
-		font-size: 14px;
-		background-color: #ffffff;
+
+	.nav-content .nav-title {
+		font-size: 36rpx;
+		font-weight: bold;
+		color: #fff;
+		flex: 1;
+		text-align: center;
+		margin: 0 20rpx;
 	}
-	/* #endif */
 	
 	.section-box{
 		display: flex;
@@ -601,7 +835,7 @@
 	.home-container {
 		background: #f8f9fa;
 		min-height: 100vh;
-		padding-bottom: 40rpx;
+		padding-bottom: 10rpx;
 	}
 	.banner-image {
 		width: 100%;
@@ -615,7 +849,7 @@
 		overflow: hidden;
 	}
 	.section {
-		margin: 16px 0;
+		margin: 10px 0;
 		background: #fff;
 		border-radius: 12px;
 		box-shadow: 0 2px 8px rgba(0,0,0,0.04);
@@ -663,5 +897,114 @@
 		text-align: center;
 		font-size: 16px;
 		margin-top: 6px;
+	}
+
+	.timeline-mode-switch {
+		display: flex;
+		align-items: center;
+		margin-left: 12px;
+		.mode-icon {
+			margin-left: 8px;
+			cursor: pointer;
+			transition: color 0.2s;
+		}
+	}
+
+	/* 食材详情弹窗样式 */
+	.ingredient-popup {
+		background-color: #fff;
+		border-radius: 20rpx;
+		width: 90vw;
+		max-width: 600rpx;
+		max-height: 80vh;
+		overflow: hidden;
+		box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.3);
+	}
+
+	.ingredient-popup-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 30rpx 40rpx 20rpx 40rpx;
+		border-bottom: 1rpx solid #f0f0f0;
+	}
+
+	.ingredient-popup-title {
+		font-size: 36rpx;
+		font-weight: bold;
+		color: #333;
+		flex: 1;
+	}
+
+	.close-icon {
+		padding: 10rpx;
+		cursor: pointer;
+		transition: opacity 0.2s;
+		
+		&:active {
+			opacity: 0.6;
+		}
+	}
+
+	.ingredient-popup-content {
+		padding: 0 40rpx 40rpx 40rpx;
+	}
+
+	.ingredient-images {
+		width: 100%;
+		margin-bottom: 30rpx;
+		position: relative;
+	}
+
+	.ingredient-swiper {
+		width: 100%;
+		height: 400rpx;
+		border-radius: 16rpx;
+		overflow: hidden;
+		box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
+	}
+
+	.ingredient-image {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		border-radius: 16rpx;
+		transition: transform 0.3s ease;
+		
+		&:active {
+			transform: scale(0.98);
+		}
+	}
+
+	.image-counter {
+		position: absolute;
+		bottom: 20rpx;
+		right: 20rpx;
+		background: rgba(0, 0, 0, 0.6);
+		color: #fff;
+		padding: 8rpx 16rpx;
+		border-radius: 20rpx;
+		font-size: 24rpx;
+		backdrop-filter: blur(10rpx);
+	}
+
+	.ingredient-description {
+		text-align: left;
+		font-size: 28rpx;
+		color: #666;
+		line-height: 1.6;
+		padding: 20rpx 0;
+	}
+
+	/* 弹窗打开时锁定页面滚动 */
+	.popup-open {
+		overflow: hidden !important;
+		touch-action: none !important;
+		overscroll-behavior: none !important;
+	}
+	.popup-open .content-wrapper {
+		overflow: hidden !important;
+		touch-action: none !important;
+		overscroll-behavior: none !important;
 	}
 </style> 

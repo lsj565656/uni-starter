@@ -54,4 +54,64 @@
 <style lang="scss">
 	/*每个页面公共css */
 	@import "static/iconfont.css";
+	
+	/* 全局CSS变量定义 */
+	:root {
+		/* 颜色变量 */
+		--primary-color: #007aff;
+		--success-color: #28a746;
+		--warning-color: #ffc107;
+		--error-color: #dc3545;
+		--text-primary: #333333;
+		--text-secondary: #666666;
+		--text-light: #ffffff;
+		--bg-primary: #ffffff;
+		--bg-secondary: #f8f9fa;
+		--border-color: #e9ecef;
+		
+		/* 字体变量 */
+		--font-size-xs: 12px;
+		--font-size-sm: 14px;
+		--font-size-md: 16px;
+		--font-size-lg: 18px;
+		--font-size-xl: 20px;
+		--font-weight-normal: 400;
+		--font-weight-medium: 500;
+		--font-weight-bold: 600;
+		
+		/* 间距变量 */
+		--spacing-xs: 4px;
+		--spacing-sm: 8px;
+		--spacing-md: 12px;
+		--spacing-lg: 16px;
+		--spacing-xl: 20px;
+		
+		/* 圆角变量 */
+		--radius-sm: 4px;
+		--radius-md: 8px;
+		--radius-lg: 12px;
+		--radius-xl: 16px;
+		--radius-full: 50%;
+		
+		/* 阴影变量 */
+		--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+		--shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+		--shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+	}
+	
+	/* 移动端适配 */
+	@media (max-width: 768px) {
+		:root {
+			--font-size-xs: 10px;
+			--font-size-sm: 12px;
+			--font-size-md: 14px;
+			--font-size-lg: 16px;
+			--font-size-xl: 18px;
+			--spacing-xs: 2px;
+			--spacing-sm: 4px;
+			--spacing-md: 8px;
+			--spacing-lg: 12px;
+			--spacing-xl: 16px;
+		}
+	}
 </style>

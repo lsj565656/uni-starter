@@ -531,6 +531,16 @@
 		onShow() {
 			this.keyword = getApp().globalData.searchText
 			getApp().globalData.searchText = ''
+			// 新增：处理外部跳转指定分类
+			const tabCategory = uni.getStorageSync('listTabCategory')
+			if (tabCategory) {
+				const idx = this.categories.findIndex(c => c.name === tabCategory)
+				if (idx !== -1) {
+					this.currentCategory = idx
+					this.applyRealTimeFilter()
+				}
+				uni.removeStorageSync('listTabCategory')
+			}
 		},
 		onPullDownRefresh() {
 			this.refresh();
