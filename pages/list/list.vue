@@ -79,7 +79,7 @@
 				</uni-segmented-control>
 			</scroll-view>
 			<view class="filter-icon-btn" @click.stop="toggleFilterDrawer">
-				<uni-badge :text="activeFilterCount" :absolute="true" :offset="[0, 0]" :is-dot="false" v-if="activeFilterCount > 0">
+				<uni-badge :text="activeFilterCount" :absolute="'true'" :offset="[0, 0]" :is-dot="false" v-if="activeFilterCount > 0">
 					<uni-icons type="tune" size="26" color="#4c82ff" />
 				</uni-badge>
 				<uni-icons v-else type="tune" size="26" color="#4c82ff" />
@@ -91,7 +91,6 @@
 			<view class="filter-drawer-content" @click.stop>
 				<view class="filter-header">
 					<text class="filter-title">筛选条件</text>
-					<text class="filter-desc">排序方式：价格、点赞数、库存三选一</text>
 				</view>
 				
 				<!-- 当前筛选条件展示 -->
@@ -100,51 +99,62 @@
 					<text class="current-filters-text">{{ currentFilterText }}</text>
 				</view>
 				
-				<view class="filter-section">
-					<text class="filter-label">价格范围</text>
-					<uni-data-select
-						v-model="selectedPriceRange"
-						:localdata="priceRangeOptions"
-						placeholder="选择价格范围"
-						:clear="true"
-						class="filter-select"
-					/>
+				<!-- 仅看类型按钮并排，无文本 -->
+				<view class="filter-section mode-switch-row">
+					<button :class="['mode-switch-btn', mode === 'score' ? 'active' : '']" :disabled="isFiltering" @click="onModeSwitch('score')">仅看积分</button>
+					<button :class="['mode-switch-btn', mode === 'price' ? 'active' : '']" :disabled="isFiltering" @click="onModeSwitch('price')">仅看价格</button>
 				</view>
 				
-				<view class="filter-section">
-					<text class="filter-label">价格排序</text>
+				<view class="filter-section" v-if="mode === 'score' || mode === 'price'">
+					<text class="filter-label">{{ mode === 'score' ? '积分排序' : '价格排序' }}</text>
 					<uni-data-select
-						v-model="selectedPriceSort"
-						:localdata="priceSortOptions"
+						v-model="selectedScoreOrPriceSort"
+						:localdata="scoreOrPriceSortOptions"
 						placeholder="不排序"
 						:clear="true"
+						:disabled="isFiltering"
 						class="filter-select"
 					/>
 				</view>
 				
 				<view class="filter-section">
-					<text class="filter-label">点赞数排序</text>
+					<text class="filter-label">点赞排序</text>
 					<uni-data-select
 						v-model="selectedLikeSort"
 						:localdata="likeSortOptions"
 						placeholder="不排序"
 						:clear="true"
+						:disabled="isFiltering"
 						class="filter-select"
 					/>
 				</view>
 				
 				<view class="filter-section">
-					<text class="filter-label">库存排序</text>
+					<text class="filter-label">发布时间排序</text>
 					<uni-data-select
-						v-model="selectedStockSort"
-						:localdata="stockSortOptions"
+						v-model="selectedDateSort"
+						:localdata="dateSortOptions"
 						placeholder="不排序"
 						:clear="true"
+						:disabled="isFiltering"
 						class="filter-select"
 					/>
 				</view>
 				
-				<view class="filter-actions">
+				<view class="filter-section">
+					<text class="filter-label">最大参与人数排序</text>
+					<uni-data-select
+						v-model="selectedScaleSort"
+						:localdata="scaleSortOptions"
+						placeholder="不排序"
+						:clear="true"
+						:disabled="isFiltering"
+						class="filter-select"
+					/>
+				</view>
+				
+				<!-- 清空筛选和取消按钮并排 -->
+				<view class="filter-actions filter-actions-row">
 					<button 
 						class="filter-btn filter-btn-reset" 
 						:class="{ 'filter-btn-disabled': !hasActiveFilters }"
@@ -153,8 +163,6 @@
 					>
 						清空筛选
 					</button>
-				</view>
-				<view class="filter-actions">
 					<button 
 						class="filter-btn filter-btn-reset" 
 						@click.stop="onDrawerContentClick"
@@ -253,14 +261,14 @@
 				selectedPriceRange: '',
 				selectedPriceSort: '',
 				selectedLikeSort: '',
-				selectedStockSort: '',
+				selectedScoreRange: '',
 				
 				// 筛选状态跟踪
 				originalFilters: {
 					priceRange: '',
 					priceSort: '',
 					likeSort: '',
-					stockSort: ''
+					scoreRange: ''
 				},
 				
 				// 价格范围选项
@@ -285,18 +293,42 @@
 					{ value: 'desc', text: '点赞数降序' }
 				],
 				
-				// 库存排序选项
-				stockSortOptions: [
-					{ value: 'asc', text: '库存升序' },
-					{ value: 'desc', text: '库存降序' }
+				// 积分范围选项
+				scoreRangeOptions: [
+					{ value: '', text: '全部积分' },
+					{ value: '0-200', text: '0~200积分' },
+					{ value: '200-500', text: '200~500积分' },
+					{ value: '500+', text: '500积分以上' }
 				],
-				likesTaskIds: [] // 新增：存储当前用户点赞的所有任务id
+				
+				// 积分排序选项
+				scoreSortOptions: [
+					{ value: 'asc', text: '积分升序' },
+					{ value: 'desc', text: '积分降序' }
+				],
+				
+				// 规模排序选项
+				scaleSortOptions: [
+					{ value: 'asc', text: '规模升序' },
+					{ value: 'desc', text: '规模降序' }
+				],
+				likesTaskIds: [], // 新增：存储当前用户点赞的所有任务id
+				mode: '', // 仅看积分/仅看价格
+				isFiltering: false, // 新增：刷新未完成时禁用筛选
+				selectedScoreOrPriceSort: '', // 新增：积分/价格排序
+				selectedDateSort: '', // 发布时间排序
+				dateSortOptions: [
+					{ value: 'asc', text: '发布时间升序' },
+					{ value: 'desc', text: '发布时间降序' }
+				],
+				selectedScaleSort: '',
 			}
 		},
 		computed: {
 			colList() {
 				const db = uniCloud.database();
-				let where = 'isActive == true';
+				let where = this.where;
+				// let where = "isActive == true";
 				if (this.currentCategory !== 0) {
 					where += ` && category == ${this.currentCategory}`;
 				}
@@ -336,81 +368,126 @@
 			},
 			activeFilterCount() {
 				let count = 0;
-				if (this.selectedPriceRange && this.selectedPriceRange !== '') count++;
-				if (this.selectedPriceSort) count++;
-				if (this.selectedLikeSort) count++;
-				if (this.selectedStockSort) count++;
+				if (this.mode === 'price') {
+					count++; // 仅看价格
+					if (this.selectedPriceRange && this.selectedPriceRange !== '') count++;
+					if (this.selectedPriceSort) count++;
+				} else if (this.mode === 'score') {
+					count++; // 仅看积分
+					if (this.selectedScoreRange && this.selectedScoreRange !== '') count++;
+					if (this.selectedScoreSort) count++;
+				}
+				if (this.selectedScaleSort) count++;
 				return count;
 			},
 			currentFilterText() {
 				const filters = [];
-				
-				if (this.selectedPriceRange) {
-					const priceOption = this.priceRangeOptions.find(option => option.value === this.selectedPriceRange);
-					if (priceOption && priceOption.value !== '') {
-						filters.push(priceOption.text);
+				if (this.mode === 'price') {
+					filters.push('仅看价格');
+					if (this.selectedScoreOrPriceSort) {
+						const opt = this.scoreOrPriceSortOptions.find(option => option.value === this.selectedScoreOrPriceSort);
+						if (opt) filters.push(opt.text);
+					}
+				} else if (this.mode === 'score') {
+					filters.push('仅看积分');
+					if (this.selectedScoreOrPriceSort) {
+						const opt = this.scoreOrPriceSortOptions.find(option => option.value === this.selectedScoreOrPriceSort);
+						if (opt) filters.push(opt.text);
 					}
 				}
-				
-				if (this.selectedPriceSort) {
-					const priceSortOption = this.priceSortOptions.find(option => option.value === this.selectedPriceSort);
-					if (priceSortOption) {
-						filters.push(priceSortOption.text);
-					}
-				}
-				
 				if (this.selectedLikeSort) {
-					const likeSortOption = this.likeSortOptions.find(option => option.value === this.selectedLikeSort);
-					if (likeSortOption) {
-						filters.push(likeSortOption.text);
-					}
+					const opt = this.likeSortOptions.find(option => option.value === this.selectedLikeSort);
+					if (opt) filters.push('点赞' + (opt.value === 'asc' ? '升序' : '降序'));
 				}
-				
-				if (this.selectedStockSort) {
-					const stockSortOption = this.stockSortOptions.find(option => option.value === this.selectedStockSort);
-					if (stockSortOption) {
-						filters.push(stockSortOption.text);
-					}
+				if (this.selectedDateSort) {
+					const opt = this.dateSortOptions.find(option => option.value === this.selectedDateSort);
+					if (opt) filters.push(opt.text);
 				}
-				
+				if (this.selectedScaleSort) {
+					const opt = this.scaleSortOptions.find(option => option.value === this.selectedScaleSort);
+					if (opt) filters.push('最大参与人数' + (opt.value === 'asc' ? '升序' : '降序'));
+				}
 				return filters.join(', ');
 			},
 			hasActiveFilters() {
 				return this.activeFilterCount > 0;
-			}
+			},
+			scoreOrPriceSortOptions() {
+				return this.mode === 'score'
+					? [ { value: 'asc', text: '积分升序' }, { value: 'desc', text: '积分降序' } ]
+					: [ { value: 'asc', text: '价格升序' }, { value: 'desc', text: '价格降序' } ];
+			},
 		},
 		watch: {
 			keyword(keyword, oldValue) {
 				this.applyRealTimeFilter(); // 使用统一的筛选方法
 			},
 			// 实时筛选监听
-			selectedPriceRange() {
+			selectedPriceRange(newValue) {
+				if (newValue) {
+					this.selectedScoreRange = '';
+				}
+				this.applyRealTimeFilter();
+			},
+			selectedScoreRange(newValue) {
+				if (newValue) {
+					this.selectedPriceRange = '';
+				}
 				this.applyRealTimeFilter();
 			},
 			selectedPriceSort(newValue) {
-				// 如果选择了价格排序，清空其他排序
+				if (newValue) {
+					this.selectedScoreSort = '';
+				}
+				this.applyRealTimeFilter();
+			},
+			selectedScoreSort(newValue) {
+				if (newValue) {
+					this.selectedPriceSort = '';
+				}
+				this.applyRealTimeFilter();
+			},
+			selectedScaleSort(newValue) {
+				if (newValue) {
+					this.selectedScoreOrPriceSort = '';
+					this.selectedLikeSort = '';
+					this.selectedDateSort = '';
+				}
+				this.applyRealTimeFilter();
+			},
+			mode(newValue) {
+				if (newValue) {
+					this.selectedScoreOrPriceSort = '';
+					this.selectedLikeSort = '';
+					this.selectedDateSort = '';
+					this.selectedScaleSort = '';
+					this.applyRealTimeFilter();
+				}
+			},
+			selectedScoreOrPriceSort(newValue) {
 				if (newValue) {
 					this.selectedLikeSort = '';
-					this.selectedStockSort = '';
+					this.selectedDateSort = '';
+					this.selectedScaleSort = '';
 				}
 				this.applyRealTimeFilter();
 			},
 			selectedLikeSort(newValue) {
-				// 如果选择了点赞数排序，清空其他排序
 				if (newValue) {
-					this.selectedPriceSort = '';
-					this.selectedStockSort = '';
+					this.selectedScoreOrPriceSort = '';
+					this.selectedDateSort = '';
+					this.selectedScaleSort = '';
 				}
 				this.applyRealTimeFilter();
 			},
-			selectedStockSort(newValue) {
-				// 如果选择了库存排序，清空其他排序
+			selectedDateSort(newValue) {
 				if (newValue) {
-					this.selectedPriceSort = '';
+					this.selectedScoreOrPriceSort = '';
 					this.selectedLikeSort = '';
+					this.selectedScaleSort = '';
 				}
 				this.applyRealTimeFilter();
-			}
+			},
 		},
 		methods: {
 			goToSearch() {
@@ -470,7 +547,7 @@
 						priceRange: this.selectedPriceRange,
 						priceSort: this.selectedPriceSort,
 						likeSort: this.selectedLikeSort,
-						stockSort: this.selectedStockSort
+						scoreRange: this.selectedScoreRange
 					};
 					this.$refs.filterDrawer.open();
 				}
@@ -489,7 +566,7 @@
 				this.selectedPriceRange = this.originalFilters.priceRange;
 				this.selectedPriceSort = this.originalFilters.priceSort;
 				this.selectedLikeSort = this.originalFilters.likeSort;
-				this.selectedStockSort = this.originalFilters.stockSort;
+				this.selectedScoreRange = this.originalFilters.scoreRange;
 			},
 			onDrawerContentClick() {
 				if (this.$refs.filterDrawer) {
@@ -511,6 +588,7 @@
 				this.likesTaskIds = (res.result.data || []).map(item => (item.task_id && item.task_id.$oid) ? item.task_id.$oid : item.task_id);
 			},
 			async applyRealTimeFilter() {
+				this.isFiltering = true;
 				await this.fetchLikesTaskIds();
 				let where = 'isActive == true';
 				if (this.currentCategory !== 0) {
@@ -519,14 +597,19 @@
 				if (this.keyword && this.keyword.trim()) {
 					where += ` && /${this.keyword.trim()}/.test(name)`;
 				}
+				if (this.mode == 'score' || this.mode == 'price') {
+					where += ` && mode == '${this.mode}'`;
+				}
 				this.where = where;
 				let orderBy = '';
-				if (this.selectedPriceSort) {
-					orderBy = `price ${this.selectedPriceSort}`;
+				if (this.selectedScoreOrPriceSort) {
+					orderBy = (this.mode === 'score' ? 'score' : 'price') + ' ' + this.selectedScoreOrPriceSort;
 				} else if (this.selectedLikeSort) {
-					orderBy = `like_count ${this.selectedLikeSort}`;
-				} else if (this.selectedStockSort) {
-					orderBy = `score ${this.selectedStockSort}`;
+					orderBy = 'like_count ' + this.selectedLikeSort;
+				} else if (this.selectedDateSort) {
+					orderBy = 'create_date ' + this.selectedDateSort;
+				} else if (this.selectedScaleSort) {
+					orderBy = 'max_participants ' + this.selectedScaleSort;
 				} else {
 					orderBy = 'create_date desc';
 				}
@@ -534,15 +617,18 @@
 				this.dataList = [];
 				this.$nextTick(() => {
 					this.refresh();
+					this.isFiltering = false;
 				});
 			},
 			resetFilter() {
 				// 重置所有筛选条件
+				this.mode = '';
 				this.selectedPriceRange = '';
 				this.selectedPriceSort = '';
 				this.selectedLikeSort = '';
-				this.selectedStockSort = '';
-				
+				this.selectedScoreRange = '';
+				this.selectedScoreSort = '';
+				this.selectedScaleSort = '';
 				// 重置查询条件，但保留当前分类和关键词
 				let where = 'isActive == true';
 				if (this.currentCategory !== 0) {
@@ -552,16 +638,14 @@
 					where += ` && /${this.keyword.trim()}/.test(name)`;
 				}
 				this.where = where;
-				this.orderBy = 'price asc';
-				
+				this.orderBy = 'create_date desc';
 				// 更新原始状态
 				this.originalFilters = {
 					priceRange: '',
 					priceSort: '',
 					likeSort: '',
-					stockSort: ''
+					scoreRange: ''
 				};
-				
 				// 清空数据并刷新
 				this.dataList = [];
 				this.showFilterDrawer = false;
@@ -581,6 +665,18 @@
 				// 跳转到搜索页并带上当前 keyword
 				uni.navigateTo({
 					url: '/pages/list/search/search?keyword=' + encodeURIComponent(this.keyword)
+				});
+			},
+			onModeSwitch(mode) {
+				if (this.mode === mode) return;
+				this.mode = mode;
+				this.selectedPriceRange = '';
+				this.selectedScoreRange = '';
+				this.selectedPriceSort = '';
+				this.selectedScoreSort = '';
+				this.selectedScaleSort = '';
+				this.$nextTick(() => {
+					this.applyRealTimeFilter();
 				});
 			}
 		},
@@ -885,5 +981,34 @@
 	}
 	.filter-btn-disabled:active {
 		background-color: #f0f0f0 !important;
+	}
+	.filter-actions-row {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		gap: 16px;
+	}
+	.mode-switch-row {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 20px;
+		gap: 16px;
+	}
+	.mode-switch-btn {
+		flex: 1;
+		height: 44px;
+		border: none;
+		border-radius: 8px;
+		font-size: 16px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.3s ease;
+	}
+	.mode-switch-btn.active {
+		background-color: #1976d2;
+		color: #fff;
 	}
 </style>
