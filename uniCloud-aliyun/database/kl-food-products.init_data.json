@@ -7,7 +7,9 @@
       "image": "https://s3.bmp.ovh/imgs/2025/06/10/7f8698b08ed0a131.jpg",
       "category": 6,
       "like_count": 6,
-      "isActive": true
+      "isActive": true,
+      "isHot": true,
+      "user_id": "68627a8d862066586ce32cbd"
     },
     {
       "name": "五香烧饼123",
@@ -17,7 +19,9 @@
       "image": "https://s3.bmp.ovh/imgs/2025/06/10/74a9c32cd547c77f.jpg",
       "category": 2,
       "like_count": 8,
-      "isActive": true
+      "isActive": true,
+      "isHot": true,
+      "user_id": "68627a8d862066586ce32cbd"
     },
     {
       "name": "酸辣粉123",
@@ -27,7 +31,9 @@
       "image": "https://s3.bmp.ovh/imgs/2025/06/10/74a9c32cd547c77f.jpg",
       "category": 3,
       "like_count": 10,
-      "isActive": true
+      "isActive": true,
+      "isHot": true,
+      "user_id": "68627a8d862066586ce32cbd"
     },
     {
       "name": "冰镇酸梅汤123",
@@ -37,7 +43,9 @@
       "image": "https://s3.bmp.ovh/imgs/2025/06/10/4eae7ca520806b92.jpg",
       "category": 4,
       "like_count": 12,
-      "isActive": true
+      "isActive": true,
+      "isHot": true,
+      "user_id": "68627a8d862066586ce32cbd"
     },
     {
       "name": "双拼烧饼套餐123",
@@ -47,7 +55,9 @@
       "image": "https://s3.bmp.ovh/imgs/2025/03/29/51528881eecdeb81.webp",
       "category": 5,
       "like_count": 14,
-      "isActive": true
+      "isActive": true,
+      "isHot": true,
+      "user_id": "68627a8d862066586ce32cbd"
     },
     {
       "name": "招牌三件套123",
@@ -57,7 +67,9 @@
       "image": "https://s3.bmp.ovh/imgs/2025/06/10/7f8698b08ed0a131.jpg",
       "category": 5,
       "like_count": 16,
-      "isActive": true
+      "isActive": true,
+      "isHot": true,
+      "user_id": "68627a8d862066586ce32cbd"
     },
     {
       "name": "原味烧饼123",
@@ -67,6 +79,8 @@
       "image": "https://s3.bmp.ovh/imgs/2025/06/10/74a9c32cd547c77f.jpg",
       "category": 2,
       "like_count": 18,
-      "isActive": true
+      "isActive": true,
+      "isHot": true,
+      "user_id": "_uni_starter_test_user_id"
     }
   ]

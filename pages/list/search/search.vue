@@ -66,7 +66,260 @@
 </template>
 
 <script>
-// ... 保持原有 script 内容 ...
+	/**
+	 * 云端一体搜索模板
+	 * @description uniCloud云端一体搜索模板，自带下拉候选、历史搜索、热搜。无需再开发服务器代码
+	 */
+	const searchLogDbName = 'opendb-search-log'; // 搜索记录数据库
+	const mallGoodsDbName = 'opendb-news-articles'; // 文章数据库
+	const associativeSearchField = 'title'; // 联想时，搜索框值检索数据库字段名
+	const associativeField = '_id,title'; // 联想列表每一项携带的字段
+	const localSearchListKey = '__local_search_history'; //	本地历史存储字段名
+
+	// 数组去重
+	const arrUnique = arr => {
+		for (let i = arr.length - 1; i >= 0; i--) {
+			const curIndex = arr.indexOf(arr[i]);
+			const lastIndex = arr.lastIndexOf(arr[i])
+			curIndex != lastIndex && arr.splice(lastIndex, 1)
+		}
+		return arr
+	} // 节流
+	// 防抖
+	function debounce(fn, interval, isFirstAutoRun) {
+		/**
+		 * 
+		 * @param {要执行的函数} fn 
+		 * @param {在操作多长时间后可再执行，第一次立即执行} interval 
+		 */
+		var _self = fn;
+		var timer = null;
+		var first = true;
+
+		if (isFirstAutoRun) {
+			_self();
+		}
+
+		return function() {
+			var args = arguments;
+			var _me = this;
+			if (first) {
+				first = false;
+				_self.apply(_me, args);
+			}
+
+			if (timer) {
+				clearTimeout(timer)
+				// return false;
+			}
+
+			timer = setTimeout(function() {
+				clearTimeout(timer);
+				timer = null;
+				_self.apply(_me, args);
+			}, interval || 200);
+		}
+	}
+
+	export default {
+		data() {
+			return {
+				mallGoodsDbName,
+				searchLogDbName,
+				statusBarHeight:'0px',
+				localSearchList: uni.getStorageSync(localSearchListKey),
+				localSearchListDel: false,
+				netHotListIsHide: false,
+				searchText: '',
+				iconColor: '#999999',
+				associativeList: [],
+				keyBoardPopup: false,
+				hotWorld: 'DCloud', //	搜索热词，如果没有输入即回车，则搜索热词，但是不会加入搜索记录
+				focus: true, //	是否自动聚焦
+				speechEngine: 'iFly' //	语音识别引擎 iFly 讯飞 baidu 百度
+			}
+		},
+		created() {
+			this.db = uniCloud.database();
+			this.searchLogDb = this.db.collection(this.searchLogDbName);
+			this.mallGoodsDb = this.db.collection(this.mallGoodsDbName);
+			// #ifndef H5
+			uni.onKeyboardHeightChange((res) => {
+				this.keyBoardPopup = res.height !== 0;
+			})
+			// #endif
+
+			this.searchText = getApp().globalData.searchText;
+		},
+		computed: {
+			associativeShow() {
+				return this.searchText && this.associativeList.length;
+			}
+		},
+		onLoad(options) {
+			//#ifdef APP
+			this.statusBarHeight = `${uni.getSystemInfoSync().statusBarHeight}px`;
+			//#endif
+			if (options && options.keyword) {
+				this.searchText = decodeURIComponent(options.keyword);
+			}
+		},
+		methods: {
+			clear(res) {
+				console.log("res: ", res);
+			},
+			confirm(res) {
+				// 键盘确认
+				this.search(res.value);
+			},
+			cancel(res) {
+				uni.hideKeyboard();
+				this.searchText = '';
+				this.loadList();
+			},
+			search(value) {
+				if (!value && !this.hotWorld) {
+					return;
+				}
+				if (value) {
+					if (this.searchText !== value) {
+						this.searchText = value
+					}
+
+					this.localSearchListManage(value);
+
+					this.searchLogDbAdd(value)
+				} else if (this.hotWorld) {
+					this.searchText = this.hotWorld
+				}
+
+				uni.hideKeyboard();
+				this.loadList(this.searchText);
+			},
+			localSearchListManage(word) {
+				let list = uni.getStorageSync(localSearchListKey);
+				if (list.length) {
+					this.localSearchList.unshift(word);
+					arrUnique(this.localSearchList);
+					if (this.localSearchList.length > 10) {
+						this.localSearchList.pop();
+					}
+				} else {
+					this.localSearchList = [word];
+				}
+				uni.setStorageSync(localSearchListKey, this.localSearchList);
+			},
+			LocalSearchListClear() {
+				uni.showModal({
+					content: "确认清空搜索历史吗",
+					confirmText: "删除",
+					confirmColor: 'red',
+					cancelColor: '#808080',
+					success: res => {
+						if (res.confirm) {
+							this.localSearchListDel = false;
+							this.localSearchList = [];
+							uni.removeStorageSync(localSearchListKey)
+						}
+					}
+				});
+			},
+			LocalSearchlistItemClick(word, index) {
+				if (this.localSearchListDel) {
+					this.localSearchList.splice(index, 1);
+					uni.setStorageSync(localSearchListKey, this.localSearchList);
+					if (!this.localSearchList.length) {
+						this.localSearchListDel = false;
+					}
+					return;
+				}
+				this.search(word);
+			},
+			searchHotRefresh() {
+				this.$refs.udb.refresh();
+			},
+			speech() {
+				// #ifdef APP-PLUS
+				plus.speech.startRecognize({
+					engine: this.speechEngine,
+					punctuation: false, // 标点符号 
+					timeout: 10000
+				}, word => {
+					word = word instanceof Array ? word[0] : word;
+					this.search(word)
+				}, err => {
+					console.error("语音识别错误: ", err);
+				});
+				// #endif
+			},
+			searchLogDbAdd(value) {
+				/*
+					在此处存搜索记录，如果登录则需要存 user_id，若未登录则存device_id
+				 */
+				this.getDeviceId().then(device_id => {
+					this.searchLogDb.add({
+						// user_id: device_id,
+						device_id,
+						content: value,
+						create_date: Date.now()
+					})
+				})
+			},
+			getDeviceId() {
+				return new Promise((resolve, reject) => {
+					const uniId = uni.getStorageSync('uni_id');
+					if (!uniId) {
+						// #ifdef APP-PLUS
+						plus.device.getInfo({
+							success: (deviceInfo) => {
+								resolve(deviceInfo.uuid)
+							},
+							fail: () => {
+								resolve(uni.getSystemInfoSync().system + '_' + Math.random().toString(36).substr(2))
+							}
+						});
+						// #endif
+						// #ifndef APP-PLUS
+						resolve(uni.getSystemInfoSync().system + '_' + Math.random().toString(36).substr(2))
+						// #endif
+					} else {
+						resolve(uniId)
+					}
+				})
+			},
+			associativeClick(item) {
+				/**
+				 * 注意：这里用户根据自己的业务需要，选择跳转的页面即可
+				 */
+				console.log("associativeClick: ", item);
+				this.loadList(item.title);
+			},
+			loadList(text = '') {
+				getApp().globalData.searchText = text;
+				uni.switchTab({
+					url:'/pages/list/list'
+				})
+			},
+			backPage(){
+				uni.navigateBack();
+			}
+		},
+		
+		watch: {
+			searchText: debounce(function(value) {
+				if (value) {
+					this.mallGoodsDb.where({
+						[associativeSearchField]: new RegExp(value, 'gi'),
+					}).field(associativeField).get().then(res => {
+						this.associativeList = res.result.data;
+					})
+				} else {
+					this.associativeList.length = 0;
+					getApp().globalData.searchText = '';
+				}
+			}, 100)
+		}
+	}
 </script>
 
 <style scoped lang="scss">

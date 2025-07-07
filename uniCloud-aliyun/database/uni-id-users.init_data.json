@@ -6,5 +6,7 @@
     "avatar": "https://unicloud.dcloud.net.cn/assets/logo.dca09351.png",
     "mobile": "18888888888",
     "mobile_confirmed": 1
-  }
+  },
+  {"_id":{"$oid":"68627a8d862066586ce32cbd"},"mobile":"18236562550","mobile_confirmed":1,"register_env":{"appid":"__UNI__6DC1CCA","uni_platform":"app","os_name":"android","app_name":"uni-starter","app_version":"14.66","app_version_code":1466,"channel":"1001","client_ip":"192.168.1.36"},"register_date":1751284365457,"dcloud_appid":["__UNI__6DC1CCA"],"last_login_date":1751452069363,"last_login_ip":"192.168.1.36","token":["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI2ODYyN2E4ZDg2MjA2NjU4NmNlMzJjYmQiLCJyb2xlIjpbXSwicGVybWlzc2lvbiI6W10sInVuaUlkVmVyc2lvbiI6IjEuMC4xOCIsImlhdCI6MTc1MTM2MTMwNiwiZXhwIjoxNzUzOTUzMzA2fQ.ok-5Wwr_ORBqI75UxadPGHogwe223V6uhqz3qc2bnJA","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI2ODYyN2E4ZDg2MjA2NjU4NmNlMzJjYmQiLCJyb2xlIjpbXSwicGVybWlzc2lvbiI6W10sInVuaUlkVmVyc2lvbiI6IjEuMC4xOCIsImlhdCI6MTc1MTQ1MjA2OSwiZXhwIjoxNzU0MDQ0MDY5fQ.n09txwXZWBJZrJH1rScXGmq0K2yaicjvzpl0IL2ccAw"],"avatar_file":{"extname":"jpg","name":"68627a8d862066586ce32cbd1751284794935","url":"https://mp-41f01fda-353a-49f0-b280-105f5bc23bfb.cdn.bspapp.com/cloudstorage/b65b10c1-0222-424a-96c8-c1b13a363314."},"nickname":"还是寿司好吃"}
+
 ]

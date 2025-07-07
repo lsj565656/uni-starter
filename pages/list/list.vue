@@ -9,28 +9,44 @@
 					<!-- #ifdef MP-WEIXIN -->
 		<view class="navbar-placeholder"></view>
 		<view class="navbar-search-mp">
-			<uni-search-bar
-				v-model="keyword"
-				ref="searchBar"
-				radius="100"
-				cancelButton="none"
-				disabled
-				:placeholder="inputPlaceholder"
-			/>
-			<view class="search-click-area" @click="goToSearch"></view>
+			<view style="position: relative; width: 90%;">
+				<uni-search-bar
+					v-model="keyword"
+					ref="searchBar"
+					radius="100"
+					cancelButton="auto"
+					clearButton="none"
+					disabled
+					:placeholder="inputPlaceholder"
+					@clear="resetKeyword"
+				/>
+				<view
+					class="search-click-area"
+					@click="goToSearch"
+					style="position: absolute; left: 0; top: 0; bottom: 0; right: 10%; z-index: 2;"
+				></view>
+			</view>
 		</view>
 		<!-- #endif -->
 					<!-- #ifndef MP-WEIXIN -->
 		<view class="navbar-search-app">
-			<uni-search-bar
-				v-model="keyword"
-				ref="searchBar"
-				radius="100"
-				cancelButton="none"
-				disabled
-				:placeholder="inputPlaceholder"
-			/>
-			<view class="search-click-area" @click="goToSearch"></view>
+			<view style="position: relative; width: 90%;">
+				<uni-search-bar
+					v-model="keyword"
+					ref="searchBar"
+					radius="100"
+					cancelButton="auto"
+					clearButton="none"
+					disabled
+					:placeholder="inputPlaceholder"
+					@clear="resetKeyword"
+				/>
+				<view
+					class="search-click-area"
+					@click="goToSearch"
+					style="position: absolute; left: 0; top: 0; bottom: 0; right: 10%; z-index: 2;"
+				></view>
+			</view>
 		</view>
 		<!-- #endif -->
 		</view>
@@ -135,12 +151,21 @@
 		</uni-drawer>
 
 		<unicloud-db ref='udb' v-slot:default="{data, pagination, hasMore, loading, error, options}" @error="onqueryerror"
-			collection="kl-food-products"
-			:where="where"
-			:orderby="orderBy"
-			field="image,name,description,like_count,category,stock,price,isActive"
+			:collection="colList"
+			:options="{
+				join: {
+					0: {
+						leftKey: 'user_id',
+						rightKey: '_id',
+						from: 1,
+						as: 'userInfo',
+						type: 'left'
+					}
+				}
+			}"
 			:page-size="10"
-			:getcount="true">
+			:getcount="true"
+			@data-change="onUdbDataChange">
 			<template v-if="setDataList(data)"></template>
 			<view class="masonry-scroll">
 				<view class="masonry-row">
@@ -162,6 +187,10 @@
 							</template>
 							<uni-list>
 								<uni-list-item :title="item.description || item.name || '暂无描述'" showArrow></uni-list-item>
+								<view class="user-info">
+									<image class="user-avatar" :src="item.user_id[0]?.avatar_file?.url || '/static/logo.png'" />
+									<text class="user-nickname">{{ item.user_id[0]?.nickname || '匿名用户' }}</text>
+								</view>
 							</uni-list>
 							<view slot="actions" class="card-actions no-border">
 								<view class="card-actions-item">
@@ -271,6 +300,20 @@
 			}
 		},
 		computed: {
+			colList() {
+				const db = uniCloud.database();
+				const result = [
+					db.collection('kl-food-products')
+						.where(this.where)
+						.field('image,name,description,like_count,category,stock,price,isActive,user_id,_id')
+						.orderBy(this.orderBy)
+						.getTemp(),
+					db.collection('uni-id-users')
+						.field('_id,nickname,avatar_file')
+						.getTemp()
+				];
+				return result;
+			},
 			inputPlaceholder(e) {
 				if (uni.getStorageSync('CURRENT_LANG') == "en") {
 					return 'Please enter the search content'
@@ -372,7 +415,8 @@
 		},
 		methods: {
 			goToSearch() {
-				uni.navigateTo({ url: '/pages/list/search/search' })
+				uni.hideKeyboard();
+				uni.navigateTo({ url: '/pages/list/search/search?keyword=' + encodeURIComponent(this.keyword),animationType: 'fade-in'})
 			},
 			onCategoryChange(e) {
 				this.currentCategory = e.currentIndex;
@@ -400,11 +444,13 @@
 			setDataList(data) {
 				if (Array.isArray(data)) {
 					this.dataList = data;
+					console.log('setDataList:',data);
+				} else {
+					console.log('setDataList: data is not an array:', typeof data);
 				}
 				return true;
 			},
 			toggleFilterDrawer() {
-				console.log('toggleFilterDrawer showFilterDrawer', this.showFilterDrawer)
 				if (this.showFilterDrawer) {
 					if (this.$refs.filterDrawer) this.$refs.filterDrawer.close();
 					this.showFilterDrawer = false;
@@ -440,7 +486,6 @@
 				this.selectedPriceSort = this.originalFilters.priceSort;
 				this.selectedLikeSort = this.originalFilters.likeSort;
 				this.selectedStockSort = this.originalFilters.stockSort;
-				console.log('onFilterDrawerClose showFilterDrawer', this.showFilterDrawer)
 			},
 			onDrawerContentClick() {
 				if (this.$refs.filterDrawer) {
@@ -471,6 +516,7 @@
 						where += ` && price >= ${min} && price <= ${max}`;
 					}
 				}
+				
 				
 				// 更新查询条件
 				this.where = where;
@@ -528,6 +574,19 @@
 				this.$nextTick(() => {
 					this.refresh();
 				});
+			},
+			onUdbDataChange(data) {
+				this.setDataList(data);
+			},
+			resetKeyword() {
+				this.keyword = '';
+				this.applyRealTimeFilter();
+			},
+			onSearchFocus() {
+				// 跳转到搜索页并带上当前 keyword
+				uni.navigateTo({
+					url: '/pages/list/search/search?keyword=' + encodeURIComponent(this.keyword)
+				});
 			}
 		},
 		mounted() {
@@ -535,7 +594,6 @@
 			this.statusBarHeight = uni.getSystemInfoSync().statusBarHeight || 0
 		},
 		onReachBottom() {
-			console.log('[onReachBottom] called');
 			this.loadMore();
 		},
 		onReady() {
@@ -836,5 +894,23 @@
 	
 	.filter-btn-disabled:active {
 		background-color: #f0f0f0 !important;
+	}
+	.user-info {
+		display: flex;
+		align-items: center;
+		flex-direction: row;
+		padding: 2px 8px;
+		border-top: 1px solid #f0f0f0;
+	}
+	.user-avatar {
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		margin-right: 8px;
+	}
+	.user-nickname {
+		max-width: 40vw !important;
+		font-size: 13px;
+		color: #666;
 	}
 </style>
