@@ -368,15 +368,12 @@
 			},
 			activeFilterCount() {
 				let count = 0;
-				if (this.mode === 'price') {
-					count++; // 仅看价格
-					if (this.selectedPriceRange && this.selectedPriceRange !== '') count++;
-					if (this.selectedPriceSort) count++;
-				} else if (this.mode === 'score') {
-					count++; // 仅看积分
-					if (this.selectedScoreRange && this.selectedScoreRange !== '') count++;
-					if (this.selectedScoreSort) count++;
+				if (this.mode === 'price' || this.mode === 'score') {
+					count++;
 				}
+				if (this.selectedScoreOrPriceSort) count++;
+				if (this.selectedLikeSort) count++;
+				if (this.selectedDateSort) count++;
 				if (this.selectedScaleSort) count++;
 				return count;
 			},
@@ -448,44 +445,21 @@
 				this.applyRealTimeFilter();
 			},
 			selectedScaleSort(newValue) {
-				if (newValue) {
-					this.selectedScoreOrPriceSort = '';
-					this.selectedLikeSort = '';
-					this.selectedDateSort = '';
-				}
 				this.applyRealTimeFilter();
 			},
 			mode(newValue) {
 				if (newValue) {
 					this.selectedScoreOrPriceSort = '';
-					this.selectedLikeSort = '';
-					this.selectedDateSort = '';
-					this.selectedScaleSort = '';
 					this.applyRealTimeFilter();
 				}
 			},
-			selectedScoreOrPriceSort(newValue) {
-				if (newValue) {
-					this.selectedLikeSort = '';
-					this.selectedDateSort = '';
-					this.selectedScaleSort = '';
-				}
+			selectedLikeSort() {
 				this.applyRealTimeFilter();
 			},
-			selectedLikeSort(newValue) {
-				if (newValue) {
-					this.selectedScoreOrPriceSort = '';
-					this.selectedDateSort = '';
-					this.selectedScaleSort = '';
-				}
+			selectedDateSort() {
 				this.applyRealTimeFilter();
 			},
-			selectedDateSort(newValue) {
-				if (newValue) {
-					this.selectedScoreOrPriceSort = '';
-					this.selectedLikeSort = '';
-					this.selectedScaleSort = '';
-				}
+			selectedScoreOrPriceSort() {
 				this.applyRealTimeFilter();
 			},
 		},
@@ -601,19 +575,26 @@
 					where += ` && mode == '${this.mode}'`;
 				}
 				this.where = where;
-				let orderBy = '';
+				// 积分/价格排序最高优先级，其次点赞、发布时间、最大参与人数
+				let orderByArr = [];
 				if (this.selectedScoreOrPriceSort) {
-					orderBy = (this.mode === 'score' ? 'score' : 'price') + ' ' + this.selectedScoreOrPriceSort;
-				} else if (this.selectedLikeSort) {
-					orderBy = 'like_count ' + this.selectedLikeSort;
-				} else if (this.selectedDateSort) {
-					orderBy = 'create_date ' + this.selectedDateSort;
-				} else if (this.selectedScaleSort) {
-					orderBy = 'max_participants ' + this.selectedScaleSort;
-				} else {
-					orderBy = 'create_date desc';
+					orderByArr.push((this.mode === 'score' ? 'score' : 'price') + ' ' + this.selectedScoreOrPriceSort);
 				}
-				this.orderBy = orderBy;
+				if (this.selectedLikeSort) {
+					orderByArr.push('like_count ' + this.selectedLikeSort);
+				}
+				if (this.selectedDateSort) {
+					orderByArr.push('create_date ' + this.selectedDateSort);
+				}
+				if (this.selectedScaleSort) {
+					orderByArr.push('max_participants ' + this.selectedScaleSort);
+				}
+				if (orderByArr.length === 0) {
+					orderByArr.push('create_date desc');
+				}
+				this.orderBy = orderByArr.join(', ');
+				// 打印最终where和orderBy
+				console.log('[applyRealTimeFilter] where:', where, '| orderBy:', this.orderBy);
 				this.dataList = [];
 				this.$nextTick(() => {
 					this.refresh();
@@ -623,11 +604,9 @@
 			resetFilter() {
 				// 重置所有筛选条件
 				this.mode = '';
-				this.selectedPriceRange = '';
-				this.selectedPriceSort = '';
+				this.selectedScoreOrPriceSort = '';
 				this.selectedLikeSort = '';
-				this.selectedScoreRange = '';
-				this.selectedScoreSort = '';
+				this.selectedDateSort = '';
 				this.selectedScaleSort = '';
 				// 重置查询条件，但保留当前分类和关键词
 				let where = 'isActive == true';
@@ -670,11 +649,8 @@
 			onModeSwitch(mode) {
 				if (this.mode === mode) return;
 				this.mode = mode;
-				this.selectedPriceRange = '';
-				this.selectedScoreRange = '';
 				this.selectedPriceSort = '';
 				this.selectedScoreSort = '';
-				this.selectedScaleSort = '';
 				this.$nextTick(() => {
 					this.applyRealTimeFilter();
 				});
