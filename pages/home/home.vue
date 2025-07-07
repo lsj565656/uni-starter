@@ -172,6 +172,59 @@
 				@image-click="handleMeatTimelineImageClick"
 			/>
 		</view>
+
+		<!-- 热门任务横向滚动区 -->
+		<view class="section hot-tasks-section">
+			<view class="section-header">
+				<text class="section-title">热门任务</text>
+			</view>
+			<scroll-view class="hot-tasks-scroll" scroll-x show-scrollbar="false">
+				<unicloud-db
+					collection="kl-food-products"
+					:where="'isActive == true && isHot == true'"
+					field="image,name,description,like_count,category,stock,price,isActive,user_id,userInfo.avatar,userInfo.nickname"
+					:options="{ lookup: [{ from: 'uni-id-users', localField: 'user_id', foreignField: '_id', as: 'userInfo' }] }"
+					:page-size="10"
+					v-slot:default="{data, loading, error}"
+				>
+					<view class="hot-tasks-container">
+						<uni-card
+							v-for="item in data"
+							:key="item._id"
+							padding="0"
+							spacing="0"
+							class="masonry-card"
+						>
+							<template v-slot:cover>
+								<view class="custom-cover">
+									<image class="cover-image" mode="aspectFill" :src="item.image"></image>
+									<view class="cover-content">
+										<text class="uni-subtitle uni-white">{{ item.name }}</text>
+									</view>
+								</view>
+							</template>
+							<uni-list>
+								<uni-list-item :title="item.description || item.name || '暂无描述'" showArrow></uni-list-item>
+							</uni-list>
+							<view slot="actions" class="card-actions no-border">
+								<view class="card-actions-item">
+									<uni-icons type="shop" size="18" color="#999"></uni-icons>
+									<text class="card-actions-item-text">库存: {{ item.stock ?? 0 }}</text>
+								</view>
+								<view class="card-actions-item" @click="likeTask(item._id)">
+									<uni-icons type="heart" size="18" color="#999"></uni-icons>
+									<text class="card-actions-item-text">点赞</text>
+								</view>
+								<view class="card-actions-item user-info" v-if="item.userInfo && item.userInfo[0]">
+									<image class="user-avatar" :src="item.userInfo[0].avatar" />
+									<text class="user-nickname">{{ item.userInfo[0].nickname }}</text>
+								</view>
+							</view>
+						</uni-card>
+					</view>
+				</unicloud-db>
+			</scroll-view>
+		</view>
 	</view>
 	
 	<!-- 食材详情弹窗 -->
@@ -691,6 +744,13 @@
 			}
 		}, 1000)
 	}
+
+	function goToTaskDetail(id) {
+		uni.navigateTo({ url: `/pages/list/detail?id=${id}` })
+	}
+	function likeTask(id) {
+		uni.showToast({ title: '点赞功能开发中', icon: 'none' })
+	}
 </script>
 
 <style>
@@ -1006,5 +1066,72 @@
 		overflow: hidden !important;
 		touch-action: none !important;
 		overscroll-behavior: none !important;
+	}
+
+	.hot-tasks-section {
+		margin-bottom: 16px;
+	}
+	.hot-tasks-scroll {
+		width: 100%;
+		white-space: nowrap;
+		padding-bottom: 8px;
+	}
+	.hot-tasks-container {
+		display: flex;
+		flex-direction: row;
+		gap: 12px;
+	}
+	.hot-task-item {
+		background: #fff;
+		border-radius: 10px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+		padding: 10px;
+		min-width: 180px;
+		max-width: 200px;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+	}
+	.hot-task-image {
+		width: 100%;
+		height: 80px;
+		object-fit: cover;
+		border-radius: 8px;
+		margin-bottom: 6px;
+	}
+	.hot-task-info {
+		width: 100%;
+	}
+	.hot-task-title {
+		font-size: 15px;
+		font-weight: bold;
+		color: #333;
+		margin-bottom: 2px;
+	}
+	.hot-task-desc {
+		font-size: 13px;
+		color: #666;
+		margin-bottom: 4px;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.hot-task-meta {
+		font-size: 12px;
+		color: #f56c6c;
+		margin-bottom: 4px;
+	}
+	.hot-task-actions {
+		display: flex;
+		gap: 8px;
+	}
+	.hot-task-btn {
+		background: #f5f5f5;
+		color: #1976d2;
+		border: none;
+		border-radius: 6px;
+		padding: 2px 10px;
+		font-size: 13px;
+		cursor: pointer;
 	}
 </style> 
