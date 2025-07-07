@@ -1,0 +1,14 @@
+[
+  {
+    "user_id": { "$oid": "68627a8d862066586ce32cbd" },
+    "task_id": { "$oid": "686b91bf89bd277b76ea2ca2" }
+  },
+  {
+    "user_id": { "$oid": "68627a8d862066586ce32cbd" },
+    "task_id": { "$oid": "686b91bf89bd277b76ea2ca3" }
+  },
+  {
+    "user_id": { "$oid": "68627a8d862066586ce32cbd" },
+    "task_id": { "$oid": "686b91bf89bd277b76ea2ca4" }
+  }
+] 

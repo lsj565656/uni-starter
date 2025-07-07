@@ -1,0 +1,33 @@
+{
+  "bsonType": "object",
+  "required": ["name", "description", "image", "type", "isActive", "mode"],
+  "permission": {
+    "read": true,
+    "create": "'CREATE_KL_TASKS' in auth.permission",
+    "update": "'UPDATE_KL_TASKS' in auth.permission",
+    "delete": "'DELETE_KL_TASKS' in auth.permission"
+  },
+  "properties": {
+    "_id": { "description": "任务ID，系统自动生成" },
+    "name": { "bsonType": "string", "title": "任务标题" },
+    "description": { "bsonType": "string", "title": "任务描述" },
+    "image": { "bsonType": "string", "title": "主图" },
+    "media": { "bsonType": "array", "items": { "bsonType": "string" }, "title": "图片/视频" },
+    "category": { "bsonType": "int", "title": "分类ID", "description": "任务分类ID" },
+    "category_name": { "bsonType": "string", "title": "分类名称", "description": "任务分类标签名称" },
+    "mode": { "bsonType": "string", "title": "奖励模式", "enum": ["score", "price"] },
+    "score": { "bsonType": "int", "title": "积分" },
+    "price": { "bsonType": "number", "title": "价格" },
+    "start_time": { "bsonType": "timestamp", "title": "开始时间" },
+    "end_time": { "bsonType": "timestamp", "title": "结束时间" },
+    "location": { "bsonType": "string", "title": "地区" },
+    "max_participants": { "bsonType": "int", "title": "最大参与人数" },
+    "joined_count": { "bsonType": "int", "title": "已加入人数", "defaultValue": 0 },
+    "isActive": { "bsonType": "bool", "title": "是否上架" },
+    "isHot": { "bsonType": "bool", "title": "是否热门任务", "defaultValue": false },
+    "like_count": { "bsonType": "int", "defaultValue": 0, "permission": { "write": false } },
+    "user_id": { "bsonType": "objectId", "title": "发布者ID", "foreignKey": "uni-id-users._id" },
+    "create_date": { "bsonType": "timestamp", "title": "创建时间", "defaultValue": { "$env": "now" } },
+    "is_publisher_joined": { "bsonType": "bool", "title": "发布者是否参与", "description": "任务发布者是否自动参与该任务", "defaultValue": false }
+  }
+} 
