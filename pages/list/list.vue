@@ -177,21 +177,21 @@
 			:key="colListKey"
 			v-slot:default="{data, pagination, hasMore, loading, error, options}"
 			@error="onqueryerror"
+			@data-change="onUdbDataChange"
 			:collection="colList"
 			:options="{ join: { 0: { leftKey: 'user_id', rightKey: '_id', from: 1, as: 'userInfo', type: 'left' }, 1: { leftKey: '_id', rightKey: 'task_id', from: 2, as: 'likes', type: 'left' } } }"
 			:page-size="10"
 			:getcount="true"
 			:where="where"
-			:orderby="orderBy"
-			@data-change="onUdbDataChange">
-			<template v-if="setDataList(data)"></template>
+			:orderby="orderBy">
+			<template v-if="handleUdbDataChange(data)"></template>
 			<view class="masonry-scroll">
 				<view class="masonry-row">
-					<view class="masonry-col" v-for="(col, colIdx) in columnsFiltered" :key="colIdx">
+					<view class="masonry-col" v-for="(col, colIdx) in getColumnsFiltered(useCache ? displayData : data)" :key="colIdx">
 						<task-card
 							v-for="item in col"
 							:key="item._id"
-							:task="item"
+							:task="withLikeStatus(item)"
 							:user="item.user_id[0]"
 							@favorite="actionsClick('收藏', $event)"
 							@comment="actionsClick('评论', $event)"
@@ -201,7 +201,7 @@
 					</view>
 				</view>
 				<!-- 空状态 -->
-				<view v-if="!filteredData || filteredData.length === 0" class="empty-state">
+				<view v-if="!data || data.length === 0" class="empty-state">
 					<text>暂无数据</text>
 				</view>
 				<!-- 加载更多/无更多/异常 -->
@@ -312,16 +312,18 @@
 				selectedScaleSort: '',
 				colListKey: 0,
 				inited: false,
+				useCache: false,
+				categoryCache: {},
+				cacheExpire: 60000,
+				displayData: [], // 新增：用于缓存命中时渲染
+				lastRequestedCategoryId: 0, // 新增：记录本次请求的分类id
+				lastCacheWriteScene: '', // 新增：记录本次缓存写入场景
 			}
 		},
 		computed: {
 			colList() {
 				const db = uniCloud.database();
 				let where = this.where;
-				// let where = "isActive == true";
-				if (this.currentCategory !== 0) {
-					where += ` && category == ${this.currentCategory}`;
-				}
 				if (this.keyword && this.keyword.trim()) {
 					where += ` && /${this.keyword.trim()}/.test(name)`;
 				}
@@ -459,8 +461,44 @@
 				uni.navigateTo({ url: '/pages/list/search/search?keyword=' + encodeURIComponent(this.keyword),animationType: 'fade-in'})
 			},
 			onCategoryChange(e) {
-				this.currentCategory = e.currentIndex;
-				this.applyRealTimeFilter();
+				console.log('[onCategoryChange] 当前所有缓存快照:', JSON.parse(JSON.stringify(this.categoryCache)));
+				const newCategoryIndex = e.currentIndex;
+				const newCategoryId = this.getCurrentCategoryId(newCategoryIndex);
+				const now = Date.now();
+				const cache = this.categoryCache[newCategoryId];
+				console.log('[onCategoryChange] 切换到分类:', newCategoryId, '缓存内容:', cache);
+				// 新增：如果有筛选条件，始终刷新
+				if (this.activeFilterCount > 0) {
+					this.displayData = [];
+					this.useCache = false;
+					this.currentCategory = newCategoryIndex;
+					this.lastCacheWriteScene = 'refresh';
+					this.applyRealTimeFilter(newCategoryId);
+					return;
+				}
+				if (
+					cache &&
+					cache.categoryId === newCategoryId &&
+					(now - cache.lastUpdate < this.cacheExpire) &&
+					Array.isArray(cache.dataList) && cache.dataList.length > 0
+				) {
+					const cacheDataStr = JSON.stringify(cache.dataList);
+					const displayDataStr = JSON.stringify(this.displayData);
+					if (displayDataStr !== cacheDataStr) {
+						console.log('替换 onCategoryChange dataList', this.displayData);
+						console.log('替换内容 onCategoryChange cache.dataList.map(item => ({ ...item }))', cache.dataList.map(item => ({ ...item })));
+						this.displayData = this.deepClone(cache.dataList);
+					}
+					this.useCache = true; // 命中缓存时只用缓存渲染
+					this.currentCategory = newCategoryIndex;
+					return;
+				}
+				// 没有缓存，自动刷新并写缓存
+				this.displayData = [];
+				this.useCache = false; // 未命中缓存时用 unicloud-db 渲染
+				this.currentCategory = newCategoryIndex;
+				this.lastCacheWriteScene = 'refresh';
+				this.applyRealTimeFilter(newCategoryId);
 			},
 			retry() { this.refresh() },
 			refresh() {
@@ -473,27 +511,19 @@
 				}
 			},
 			loadMore() {
-				if (this.$refs.udb) this.$refs.udb.loadMore();
+				this.useCache = false;
+				this.displayData = [];
+				this.lastCacheWriteScene = 'loadMore';
+				console.log('[loadMore] 设置 lastCacheWriteScene=loadMore');
+				if (this.$refs.udb) {
+					this.$refs.udb.loadMore();
+				}
 			},
 			onqueryerror(e) {
 				console.error('[onqueryerror] 类型:', typeof e);
 			},
 			actionsClick(type, item) {
 				uni.showToast({ title: `${type}功能开发中`, icon: 'none' });
-			},
-			setDataList(data) {
-				if (Array.isArray(data)) {
-					this.dataList = data.map(item => {
-						const idStr = (item._id && item._id.$oid) ? item._id.$oid : item._id;
-						return {
-							...item,
-							is_liked: this.likesTaskIds.includes(idStr)
-						};
-					});
-				} else {
-					console.log('setDataList: data is not an array:', typeof data);
-				}
-				return true;
 			},
 			toggleFilterDrawer() {
 				if (this.showFilterDrawer) {
@@ -551,8 +581,10 @@
 					.get();
 				this.likesTaskIds = (res.result.data || []).map(item => (item.task_id && item.task_id.$oid) ? item.task_id.$oid : item.task_id);
 			},
-			async applyRealTimeFilter() {
+			async applyRealTimeFilter(categoryId) {
 				this.isFiltering = true;
+				this.displayData = []; // 新增：拉取新数据前清空
+				this.lastRequestedCategoryId = categoryId !== undefined ? categoryId : this.getCurrentCategoryId(); // 新增：记录本次请求的分类id
 				await this.fetchLikesTaskIds();
 				let where = 'isActive == true';
 				if (this.currentCategory !== 0) {
@@ -623,20 +655,6 @@
 					this.refresh();
 				});
 			},
-			onUdbDataChange(data) {
-				console.log('onUdbDataChange:', data);
-				this.setDataList(data);
-			},
-			resetKeyword() {
-				this.keyword = '';
-				this.applyRealTimeFilter();
-			},
-			onSearchFocus() {
-				// 跳转到搜索页并带上当前 keyword
-				uni.navigateTo({
-					url: '/pages/list/search/search?keyword=' + encodeURIComponent(this.keyword)
-				});
-			},
 			onModeSwitch(mode) {
 				if (this.mode === mode) return;
 				this.mode = mode;
@@ -645,7 +663,103 @@
 				this.$nextTick(() => {
 					this.applyRealTimeFilter();
 				});
-			}
+			},
+			// 新增：获取当前分类 id
+			getCurrentCategoryId(categoryIndex = this.currentCategory) {
+				return this.categories[categoryIndex]?.id ?? 0;
+			},
+			getColumnsFiltered(data) {
+				const cols = [[], []];
+				(data || []).forEach((item, idx) => {
+					cols[idx % 2].push(item);
+				});
+				return cols;
+			},
+			// 新增：渲染 task-card 时直接判断 is_liked
+			withLikeStatus(item) {
+				const idStr = (item._id && item._id.$oid) ? item._id.$oid : item._id;
+				return {
+					...item,
+					is_liked: this.likesTaskIds.includes(idStr)
+				};
+			},
+			// 新增：slot 内部处理缓存写入
+			cacheDataForCategory(data) {
+				console.log('[cacheDataForCategory] 入参 data:', data);
+				if (Array.isArray(data) && data.length > 0) {
+					// 1. 先缓存"全部"分类（categoryId: 0）
+					const cacheAll = this.categoryCache[0];
+					const newAllDataStr = JSON.stringify(data);
+					const oldAllDataStr = cacheAll ? JSON.stringify(cacheAll.dataList) : null;
+					if (cacheAll && oldAllDataStr === newAllDataStr) {
+						cacheAll.lastUpdate = Date.now();
+						console.log('[categoryCache] 仅更新时间: 0', cacheAll);
+					} else {
+						this.categoryCache[0] = {
+							categoryId: 0,
+							dataList: this.deepClone(data),
+							lastUpdate: Date.now(),
+							filterKey: ''
+						};
+						console.log('[categoryCache] 写入缓存: 0', this.categoryCache[0]);
+					}
+
+					// 2. 再按 category 分组缓存
+					const grouped = {};
+					data.forEach(item => {
+						const cat = item.category;
+						if (!grouped[cat]) grouped[cat] = [];
+						grouped[cat].push(item);
+					});
+					Object.keys(grouped).forEach(catId => {
+						const catNum = Number(catId);
+						const groupData = grouped[catId];
+						const cache = this.categoryCache[catNum];
+						const newDataStr = JSON.stringify(groupData);
+						const oldDataStr = cache ? JSON.stringify(cache.dataList) : null;
+						if (cache && oldDataStr === newDataStr) {
+							cache.lastUpdate = Date.now();
+							console.log('[categoryCache] 仅更新时间:', catNum, cache);
+						} else {
+							this.categoryCache[catNum] = {
+								categoryId: catNum,
+								dataList: this.deepClone(groupData),
+								lastUpdate: Date.now(),
+								filterKey: ''
+							};
+							console.log('[categoryCache] 写入缓存:', catNum, this.categoryCache[catNum]);
+						}
+					});
+				} else {
+					console.log('[cacheDataForCategory] 未写入缓存，data 非数组或为空');
+				}
+				return '';
+			},
+			resetKeyword() {
+				this.keyword = '';
+			},
+			deepClone(obj) {
+				return JSON.parse(JSON.stringify(obj));
+			},
+			writeCurrentCategoryCache() {
+				const udb = this.$refs.udb;
+				console.log('writeCurrentCategoryCache udb: ', udb );
+				if (!udb) return;
+				const data = udb.data || [];
+				this.cacheDataForCategory(data);
+			},
+			onUdbDataChange({ data }) {
+				console.log('[onUdbDataChange] lastCacheWriteScene:', this.lastCacheWriteScene, 'data:', data, 'categoryId:', this.getCurrentCategoryId());
+				if (this.lastCacheWriteScene && Array.isArray(data) && data.length > 0) {
+					this.cacheDataForCategory(data);
+					this.lastCacheWriteScene = '';
+					console.log('[onUdbDataChange] 写入缓存后 categoryCache:', JSON.parse(JSON.stringify(this.categoryCache)));
+				}
+			},
+			handleUdbDataChange(data) {
+				this.onUdbDataChange({ data });
+				return false;
+			},
 		},
 		mounted() {
 			cdbRef = this.$refs.udb;
@@ -676,15 +790,24 @@
 			}
 		},
 		onPullDownRefresh() {
+			this.useCache = false;
+			this.displayData = []; 
+			this.lastCacheWriteScene = 'refresh';
+			console.log('[onPullDownRefresh] 设置 lastCacheWriteScene=refresh');
 			this.applyRealTimeFilter().then(() => {
 				uni.stopPullDownRefresh();
 			});
 		},
 		onLoad(options) {
-			// 首次进入页面，先拉取 likesTaskIds，再 colListKey++，保证 is_liked 正确
+			this.categoryCache = {};
+			this.useCache = false;
+			console.log('[categoryCache] 已清空缓存');
+			this.lastRequestedCategoryId = this.getCurrentCategoryId();
+			this.lastCacheWriteScene = 'init';
 			this.fetchLikesTaskIds().then(() => {
 				this.colListKey++;
 				this.inited = true;
+				console.log('[onLoad] colListKey++，准备首次加载');
 			});
 			console.log('onload: do')
 		},
