@@ -60,7 +60,7 @@ export default {
 .uni-subtitle.uni-white { color: #fff; font-size: 14px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card-actions { display: flex; flex-direction: row; justify-content: space-around; padding: 8px 0; }
 .card-actions-item { display: flex; align-items: center; }
-.card-actions-item-text { margin-left: 4px; font-size: 13px; color: #666; }
+.card-actions-item-text { margin-left: 4px; font-size: 16px; color: #666; }
 .user-info {
   display: flex;
   align-items: center;
@@ -70,8 +70,8 @@ export default {
   gap: 8px;
 }
 .user-avatar {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   margin-right: 8px;
 }

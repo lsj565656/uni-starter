@@ -173,28 +173,16 @@
 			</view>
 		</uni-drawer>
 
-		<unicloud-db ref='udb' v-slot:default="{data, pagination, hasMore, loading, error, options}" @error="onqueryerror"
+		<unicloud-db ref='udb'
+			:key="colListKey"
+			v-slot:default="{data, pagination, hasMore, loading, error, options}"
+			@error="onqueryerror"
 			:collection="colList"
-			:options="{
-				join: {
-					0: {
-						leftKey: 'user_id',
-						rightKey: '_id',
-						from: 1,
-						as: 'userInfo',
-						type: 'left'
-					},
-					1: {
-						leftKey: '_id',
-						rightKey: 'task_id',
-						from: 2,
-						as: 'likes',
-						type: 'left'
-					}
-				}
-			}"
+			:options="{ join: { 0: { leftKey: 'user_id', rightKey: '_id', from: 1, as: 'userInfo', type: 'left' }, 1: { leftKey: '_id', rightKey: 'task_id', from: 2, as: 'likes', type: 'left' } } }"
 			:page-size="10"
 			:getcount="true"
+			:where="where"
+			:orderby="orderBy"
 			@data-change="onUdbDataChange">
 			<template v-if="setDataList(data)"></template>
 			<view class="masonry-scroll">
@@ -322,6 +310,8 @@
 					{ value: 'desc', text: '发布时间降序' }
 				],
 				selectedScaleSort: '',
+				colListKey: 0,
+				inited: false,
 			}
 		},
 		computed: {
@@ -575,7 +565,6 @@
 					where += ` && mode == '${this.mode}'`;
 				}
 				this.where = where;
-				// 积分/价格排序最高优先级，其次点赞、发布时间、最大参与人数
 				let orderByArr = [];
 				if (this.selectedScoreOrPriceSort) {
 					orderByArr.push((this.mode === 'score' ? 'score' : 'price') + ' ' + this.selectedScoreOrPriceSort);
@@ -593,11 +582,11 @@
 					orderByArr.push('create_date desc');
 				}
 				this.orderBy = orderByArr.join(', ');
-				// 打印最终where和orderBy
-				console.log('[applyRealTimeFilter] where:', where, '| orderBy:', this.orderBy);
 				this.dataList = [];
+				if (this.inited) {
+					this.colListKey++;
+				}
 				this.$nextTick(() => {
-					this.refresh();
 					this.isFiltering = false;
 				});
 			},
@@ -627,6 +616,7 @@
 				};
 				// 清空数据并刷新
 				this.dataList = [];
+				this.colListKey++;
 				this.showFilterDrawer = false;
 				this.closeFilterDrawer();
 				this.$nextTick(() => {
@@ -634,6 +624,7 @@
 				});
 			},
 			onUdbDataChange(data) {
+				console.log('onUdbDataChange:', data);
 				this.setDataList(data);
 			},
 			resetKeyword() {
@@ -673,22 +664,30 @@
 			// #endif
 		},
 		onShow() {
-			this.keyword = getApp().globalData.searchText
-			getApp().globalData.searchText = ''
-			// 新增：处理外部跳转指定分类
+			// 只处理外部跳转指定分类
 			const tabCategory = uni.getStorageSync('listTabCategory')
 			if (tabCategory) {
 				const idx = this.categories.findIndex(c => c.name === tabCategory)
 				if (idx !== -1) {
 					this.currentCategory = idx
-					this.applyRealTimeFilter()
+					this.applyRealTimeFilter();
 				}
 				uni.removeStorageSync('listTabCategory')
 			}
 		},
 		onPullDownRefresh() {
-			this.refresh();
-		}
+			this.applyRealTimeFilter().then(() => {
+				uni.stopPullDownRefresh();
+			});
+		},
+		onLoad(options) {
+			// 首次进入页面，先拉取 likesTaskIds，再 colListKey++，保证 is_liked 正确
+			this.fetchLikesTaskIds().then(() => {
+				this.colListKey++;
+				this.inited = true;
+			});
+			console.log('onload: do')
+		},
 	}
 </script>
 
