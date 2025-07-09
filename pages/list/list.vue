@@ -318,6 +318,7 @@
 				displayData: [], // 新增：用于缓存命中时渲染
 				lastRequestedCategoryId: 0, // 新增：记录本次请求的分类id
 				lastCacheWriteScene: '', // 新增：记录本次缓存写入场景
+				likesCountDelta: {}, // 新增：用于存储点赞数的变化量
 			}
 		},
 		computed: {
@@ -519,7 +520,53 @@
 				console.error('[onqueryerror] 类型:', typeof e);
 			},
 			actionsClick(type, item) {
-				uni.showToast({ title: `${type}功能开发中`, icon: 'none' });
+				if (type === '点赞') {
+					if (!item._id) return;
+					const taskId = (item._id && item._id.$oid) ? item._id.$oid : item._id;
+					const isLiked = this.likesTaskIds.includes(taskId);
+					// 维护本地 likesTaskIds 和 likesCountDelta
+					if (!this.likesCountDelta) this.likesCountDelta = {};
+					if (isLiked) {
+						this.likesTaskIds = this.likesTaskIds.filter(id => id !== taskId);
+						this.likesCountDelta[taskId] = (this.likesCountDelta[taskId] || 0) - 1;
+					} else {
+						this.likesTaskIds.push(taskId);
+						this.likesCountDelta[taskId] = (this.likesCountDelta[taskId] || 0) + 1;
+					}
+					// 后台请求
+					uniCloud.callFunction({
+						name: 'likeTask',
+						data: { task_id: taskId }
+					}).then(res => {
+						const result = res.result;
+						if (result.code === 0) {
+							console.log('likeTask result:', result);
+							// 成功后不做额外处理，UI已响应
+						} else {
+							// 回滚本地 likesTaskIds 和 likesCountDelta
+							if (isLiked) {
+								this.likesTaskIds.push(taskId);
+								this.likesCountDelta[taskId] = (this.likesCountDelta[taskId] || 0) + 1;
+							} else {
+								this.likesTaskIds = this.likesTaskIds.filter(id => id !== taskId);
+								this.likesCountDelta[taskId] = (this.likesCountDelta[taskId] || 0) - 1;
+							}
+							console.log('likeTask failed:', result.msg || '操作失败');
+						}
+					}).catch(() => {
+						// 回滚本地 likesTaskIds 和 likesCountDelta
+						if (isLiked) {
+							this.likesTaskIds.push(taskId);
+							this.likesCountDelta[taskId] = (this.likesCountDelta[taskId] || 0) + 1;
+						} else {
+							this.likesTaskIds = this.likesTaskIds.filter(id => id !== taskId);
+							this.likesCountDelta[taskId] = (this.likesCountDelta[taskId] || 0) - 1;
+						}
+						console.log('likeTask 网络异常');
+					});
+				} else {
+					uni.showToast({ title: `${type}功能开发中`, icon: 'none' });
+				}
 			},
 			toggleFilterDrawer() {
 				if (this.showFilterDrawer) {
@@ -671,12 +718,15 @@
 				});
 				return cols;
 			},
-			// 新增：渲染 task-card 时直接判断 is_liked
+			// 新增：渲染 task-card 时直接判断 is_liked 和 like_count
 			withLikeStatus(item) {
 				const idStr = (item._id && item._id.$oid) ? item._id.$oid : item._id;
+				const isLiked = this.likesTaskIds.includes(idStr);
+				const delta = this.likesCountDelta && this.likesCountDelta[idStr] ? this.likesCountDelta[idStr] : 0;
 				return {
 					...item,
-					is_liked: this.likesTaskIds.includes(idStr)
+					is_liked: isLiked,
+					like_count: Math.max((typeof item.like_count === 'number' ? item.like_count : 0) + delta, 0)
 				};
 			},
 			// 新增：slot 内部处理缓存写入
@@ -795,6 +845,7 @@
 				this.colListKey++;
 				this.inited = true;
 			});
+			 console.log('登录后token:', uni.getStorageSync('uni_id_token'));
 		},
 	}
 </script>

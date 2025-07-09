@@ -24,9 +24,10 @@
         <uni-icons :type="task.is_liked ? 'heart-filled' : 'heart'" size="18" :color="task.is_liked ? 'red' : '#999'" />
         <text class="card-actions-item-text">{{ task.like_count || 0 }}</text>
       </view>
-      <view class="card-actions-item" @click.stop="$emit('join', task)">
-        <uni-icons type="cart" size="18" color="#999" />
-        <text class="card-actions-item-text">加入</text>
+      <view class="card-actions-item">
+        <text class="card-actions-item-text">
+          {{ (typeof task.joined_count === 'number' ? task.joined_count : 0) }}/{{ (typeof task.max_participants === 'number' && task.max_participants > 0 ? task.max_participants : 1) }}
+        </text>
       </view>
     </view>
   </view>
@@ -37,7 +38,38 @@ export default {
   props: { task: Object, user: Object },
   methods: {
     goDetail() {
-      uni.navigateTo({ url: '/pages/list/detail?id=' + this.task._id });
+      // 合并任务和用户的所有核心字段
+      const { _id, name, image, description, like_count, is_liked, joined_count, max_participants, score, price, mode, location, start_time, end_time, category_name, create_date } = this.task;
+      const nickname = this.user?.nickname || '';
+      const avatar_url = this.user?.avatar_file?.url || '';
+      // 构建参数对象
+      const params = {
+        id: _id,
+        name,
+        image,
+        description,
+        like_count,
+        is_liked: is_liked ? 1 : 0,
+        joined_count,
+        max_participants,
+        score,
+        price,
+        mode,
+        location,
+        start_time,
+        end_time,
+        category_name,
+        nickname,
+        avatar_url,
+        create_date
+      };
+      // 构建 url 查询字符串
+      const query = Object.keys(params)
+        .map(key => `${key}=${encodeURIComponent(params[key] == null ? '' : params[key])}`)
+        .join('&');
+      uni.navigateTo({
+        url: `/pages/list/detail?${query}`
+      });
     }
   }
 }
