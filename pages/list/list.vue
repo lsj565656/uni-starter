@@ -466,7 +466,6 @@
 				const newCategoryId = this.getCurrentCategoryId(newCategoryIndex);
 				const now = Date.now();
 				const cache = this.categoryCache[newCategoryId];
-				console.log('[onCategoryChange] 切换到分类:', newCategoryId, '缓存内容:', cache);
 				// 新增：如果有筛选条件，始终刷新
 				if (this.activeFilterCount > 0) {
 					this.displayData = [];
@@ -485,8 +484,6 @@
 					const cacheDataStr = JSON.stringify(cache.dataList);
 					const displayDataStr = JSON.stringify(this.displayData);
 					if (displayDataStr !== cacheDataStr) {
-						console.log('替换 onCategoryChange dataList', this.displayData);
-						console.log('替换内容 onCategoryChange cache.dataList.map(item => ({ ...item }))', cache.dataList.map(item => ({ ...item })));
 						this.displayData = this.deepClone(cache.dataList);
 					}
 					this.useCache = true; // 命中缓存时只用缓存渲染
@@ -514,7 +511,6 @@
 				this.useCache = false;
 				this.displayData = [];
 				this.lastCacheWriteScene = 'loadMore';
-				console.log('[loadMore] 设置 lastCacheWriteScene=loadMore');
 				if (this.$refs.udb) {
 					this.$refs.udb.loadMore();
 				}
@@ -685,7 +681,6 @@
 			},
 			// 新增：slot 内部处理缓存写入
 			cacheDataForCategory(data) {
-				console.log('[cacheDataForCategory] 入参 data:', data);
 				if (Array.isArray(data) && data.length > 0) {
 					// 1. 先缓存"全部"分类（categoryId: 0）
 					const cacheAll = this.categoryCache[0];
@@ -693,7 +688,6 @@
 					const oldAllDataStr = cacheAll ? JSON.stringify(cacheAll.dataList) : null;
 					if (cacheAll && oldAllDataStr === newAllDataStr) {
 						cacheAll.lastUpdate = Date.now();
-						console.log('[categoryCache] 仅更新时间: 0', cacheAll);
 					} else {
 						this.categoryCache[0] = {
 							categoryId: 0,
@@ -701,7 +695,6 @@
 							lastUpdate: Date.now(),
 							filterKey: ''
 						};
-						console.log('[categoryCache] 写入缓存: 0', this.categoryCache[0]);
 					}
 
 					// 2. 再按 category 分组缓存
@@ -719,7 +712,6 @@
 						const oldDataStr = cache ? JSON.stringify(cache.dataList) : null;
 						if (cache && oldDataStr === newDataStr) {
 							cache.lastUpdate = Date.now();
-							console.log('[categoryCache] 仅更新时间:', catNum, cache);
 						} else {
 							this.categoryCache[catNum] = {
 								categoryId: catNum,
@@ -743,17 +735,14 @@
 			},
 			writeCurrentCategoryCache() {
 				const udb = this.$refs.udb;
-				console.log('writeCurrentCategoryCache udb: ', udb );
 				if (!udb) return;
 				const data = udb.data || [];
 				this.cacheDataForCategory(data);
 			},
 			onUdbDataChange({ data }) {
-				console.log('[onUdbDataChange] lastCacheWriteScene:', this.lastCacheWriteScene, 'data:', data, 'categoryId:', this.getCurrentCategoryId());
 				if (this.lastCacheWriteScene && Array.isArray(data) && data.length > 0) {
 					this.cacheDataForCategory(data);
 					this.lastCacheWriteScene = '';
-					console.log('[onUdbDataChange] 写入缓存后 categoryCache:', JSON.parse(JSON.stringify(this.categoryCache)));
 				}
 			},
 			handleUdbDataChange(data) {
@@ -793,7 +782,6 @@
 			this.useCache = false;
 			this.displayData = []; 
 			this.lastCacheWriteScene = 'refresh';
-			console.log('[onPullDownRefresh] 设置 lastCacheWriteScene=refresh');
 			this.applyRealTimeFilter().then(() => {
 				uni.stopPullDownRefresh();
 			});
@@ -801,15 +789,12 @@
 		onLoad(options) {
 			this.categoryCache = {};
 			this.useCache = false;
-			console.log('[categoryCache] 已清空缓存');
 			this.lastRequestedCategoryId = this.getCurrentCategoryId();
 			this.lastCacheWriteScene = 'init';
 			this.fetchLikesTaskIds().then(() => {
 				this.colListKey++;
 				this.inited = true;
-				console.log('[onLoad] colListKey++，准备首次加载');
 			});
-			console.log('onload: do')
 		},
 	}
 </script>
