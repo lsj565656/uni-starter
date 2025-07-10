@@ -1,0 +1,290 @@
+<view class="tasks-detail-page">
+  <!-- 计时器和返回按钮显示 -->
+  <view wx:if="{{showTaskTimer}}" class="task-timer">
+    <block wx:if="{{taskTimeLeft > 0}}">
+      <t-icon name="alarm" size="32rpx" />
+      <text>{{taskTimeLeft}}s</text>
+    </block>
+  </view>
+  <!-- 任务详情页面的整体容器 -->
+  <view class="tasks-head">
+    <!-- 任务详情顶部轮播图 -->
+    <swiper 
+      current="{{currentIndex}}" 
+      duration="300" 
+      interval="5000" 
+      autoplay="{{false}}" 
+      circular="{{true}}" 
+      indicator-dots="{{true}}" 
+      class="custom-swiper"
+      bindchange="onSwiperChange"
+    >
+      <!-- 视频项 -->
+      <block wx:if="{{primaryVideo && primaryVideo !== ''}}">
+        <swiper-item>
+          <view class="video-container">
+            <video 
+              id="videoPlayer"
+              src="{{primaryVideo}}"
+              controls="{{true}}"
+              show-center-play-btn="{{false}}"
+              autoplay="{{false}}"
+              loop="{{false}}"
+              muted="{{true}}"
+              show-mute-btn="{{true}}"
+              play-btn-position="bottom"
+              class="media-item"
+              initial-time="{{videoInitialTime}}"
+              bindended="onVideoEnded"
+              bindplay="onVideoPlay"
+              bindpause="onVideoPause"
+            ></video>
+            <!-- 中央播放按钮 -->
+            <view 
+              wx:if="{{showPlayButton}}" 
+              class="play-button" 
+              bindtap="onPlayButtonClick">
+            </view>
+          </view>
+        </swiper-item>
+      </block>
+      <!-- 图片项 -->
+      <block wx:if="{{allImages.length > 0}}" wx:for="{{allImages}}" wx:key="index">
+        <swiper-item>
+          <image 
+            src="{{item}}" 
+            mode="aspectFill" 
+            class="media-item">
+          </image>
+        </swiper-item>
+      </block>
+    </swiper>
+    <view class="tasks-info">
+      <!-- 任务基本信息 -->
+      <view class="tasks-number">
+        <!-- 任务价格与销量 -->
+        <view class="tasks-price">
+          <!-- 当前价格 -->
+          <t-icon name="{{details.price ? 'yuan2' : (details.points ? 'point2' : '')}}" prefix="wr" size="40rpx" color="#fa4126" t-class="noteIconSyl">
+          </t-icon>
+          <text class="priceTextSyl">{{details.price || details.points || '暂无信息'}}</text>
+          <text class="unitTextSyl">{{details.pay_type === '积分' ? '积分':'元'}}</text>
+        </view>
+        <!-- 已加入人数 -->
+        <view class="join-num">已加入 <text style="color: red; font-weight: 500; font-size: larger; margin: 0 6rpx;">{{details.joiner_ids.length > 0 ? details.joiner_ids.length : 0 || 0}}</text>  / {{details.joiners_max}} 人</view>
+      </view>
+      <view class="tasks-activity">
+        <!-- 任务活动标签 -->
+        <view class="tags-container">
+          <view class="tasks-activity-tag">{{details.task_type}}</view>
+        </view>
+      </view>
+      <view class="tasks-title">
+        <!-- 任务标题 -->
+        <view class="tasks-name">{{details.title}}</view>
+        <view class="tasks-tag">
+          <!-- 分享按钮 -->
+          <t-button open-type="share" t-class="shareBtn" variant="text">
+            <view class="btn-icon">
+              <t-icon name="share" size="40rpx" color="#000" />
+              <view class="share-text">分享</view>
+            </view>
+          </t-button>
+        </view>
+      </view>
+      <!-- 任务时间地点 -->
+      <view class="tasks-time">
+        <t-icon t-class="task-icon" name="location3" prefix="wr" size="30rpx"/>
+        <text>{{details.area_text}}</text>
+      </view>
+      <view class="tasks-addr" bind:tap="showCalendar">
+        <t-icon t-class="task-icon" name="time1" prefix="wr" size="30rpx"/>
+        <text>{{details.start_time}} — {{details.end_time}}</text>
+        <view class="icon-calendar"><text class="day">{{currentDay}}</text></view>
+      </view>
+      <!-- 作者 基本信息 -->
+      <view class="publish-item-head">
+        由 
+        <t-image t-class="publish-card__img" src="{{publisherInfo.publisherAvatarUrl}}" />
+        <view class="publish-head-right">
+          <view class="publish-username">
+            <text>{{publisherInfo.publisherName}}</text>
+          </view>
+          <t-icon name="{{publisherInfo.publisherGender === '0' ? 'genderUnknow' : (publisherInfo.publisherGender === '1' ? 'sexMan' : 'sexWoman') }}" prefix="wr" size="28rpx"/>
+        </view>
+        发布于<text>{{formattedCreatedDate}}</text>
+      </view>
+      <view class="joiner-section" wx:if="{{avatars.length > 0}}">
+        <text class="joiner-title">已加入人员</text>
+        <t-avatar-group max="3" t-class="avatarStyle" collapseAvatar="+{{avatars.length - 3}}">
+          <t-avatar 
+            wx:for="{{avatars}}" 
+            wx:key="index" 
+            image="{{item}}"
+            size="medium"
+          />
+        </t-avatar-group>
+      </view>
+    </view>
+    <view class="comments-wrap">
+      <!-- 任务评论模块 -->
+      <view class="comments-head" bindtap="openCommentPop">
+        <view class="comments-title-wrap">
+          <view class="comments-title-label">评论</view>
+          <view class="comments-title-count"> ({{ commentsCount }}) </view>
+        </view>
+        <view class="comments-rate-wrap">
+          <text style="color: #BBBBBB;">更多</text><t-icon name="chevron-right" size="40rpx" color="#BBBBBB" />
+        </view>
+      </view>
+      <view wx:if="{{ commentsCount > 0 }}" class="comment-item-wrap">
+        <!-- 评论列表-首评 -->
+        <t-cell t-class="firstCommentSyl" description="{{commentsList[0].content}}" bordered="{{true}}">
+          <image src="{{commentsList[0].avatar_url}}" mode="aspectFill" slot="image" class="commentsImageSyl" lazy-load="true"></image>
+          <view slot="title" class="titleSyl">
+            <view class="commenterSyl">{{commentsList[0].commenter_name}}</view>
+            <text class="authorSyl" wx:if="{{commentsList[0].commenter_id === commentsList[0].task_owner_id}}">作者</text>
+            <text class="createdAtSyl2">{{commentsList[0].createdAtText}}</text>
+          </view>
+          <view slot="note" class="createdAtSyl">
+            <!-- {{commentsList[0].createdAtText}} -->
+          </view>
+        </t-cell>
+      </view>
+      <view wx:if="{{ commentsCount === 0 }}">
+        <text>留下你的首评吧~</text>
+        <t-icon t-class="comment-btn2" name="daipingjia" prefix="wr" size="28rpx" bind:tap="openCommentPop" />
+      </view>
+    </view>
+  </view>
+  <view class="desc-content">
+    <!-- 任务详情介绍 -->
+    <view class="desc-content__title" wx:if="{{details.description.length > 0}}">
+      <span class="desc-content__title--text">详情介绍</span>
+    </view>
+    <!-- 任务简介 -->
+    <view class="tasks-intro">{{details.description}}</view>
+    <view wx:if="{{allImages.length > 0}}" wx:for="{{allImages}}" wx:key="index">
+      <t-calendar
+        visible="{{ifShowCalendar}}"
+        bind:select="calendarSelect"
+        title="日程表"
+        confirm-btn="{{null}}"
+        value="{{calendarValue}}"
+        minDate="{{calendarMinDate}}"
+        maxDate="{{calendarMaxDate}}"
+        type="range"
+        format="{{calendarFormat}}"
+      />
+    </view>
+    <t-divider content="到底了" />
+  </view>
+  <view class="tasks-bottom-operation">
+    <!-- 页面底部操作栏 -->
+    <view class="buy-buttons" style="bottom: {{safeAreaBottom}}px;">
+      <view class="bar-separately" bindtap="{{isFocused ? 'cancelFocusDialogOn' : 'toFocusNow'}}">{{isFocused ? '已关注' : '关注'}}</view>
+      <!-- <view class="bar-join {{(details.joiner_ids.length >= details.joiners_max || isJoined) ? 'bar-joinNow-disabled' : ''}}" 
+            bindtap="{{(details.joiner_ids.length >= details.joiners_max || isJoined) ? '' : 'toJoinNow'}}"> 
+        {{isJoined ? '已加入' : (details.joiner_ids.length >= details.joiners_max ? '已满员' : '立即加入')}}
+      </view> -->
+      <view class="bar-join {{details.joiner_ids.length >= details.joiners_max ? 'bar-joinNow-disabled' : ''}}" bindtap="toJoinNow"> 立即加入</view> 
+      <t-icon t-class="comment-btn" name="daipingjia" prefix="wr" size="36rpx" bind:tap="openCommentPop" />
+    </view>
+  </view>
+
+  <!-- 评论列表弹窗 -->
+  <t-popup 
+    visible="{{showCommentPop}}" 
+    t-class="popup-cus-style" 
+    duration="10"
+    placement="bottom" 
+    bind:visible-change="closeCommentPop" 
+    prevent-scroll-through="{{true}}"
+    close-btn="{{true}}"
+    custom-style="transform: translateY({{translateY}}px);"
+    style="bottom: {{safeAreaBottom}}px;"
+  >
+  <view 
+    class="popup-container" 
+    bindtouchstart="onTouchStartPop" 
+    bindtouchmove="onTouchMovePop" 
+    bindtouchend="onTouchEndPop"
+  >
+    <view class="title">{{commentsCount}} 条评论</view>
+    <!-- 评论列表 -->
+    <scroll-view wx:if="{{ commentsCount > 0 }}" class="comment-list" scroll-y="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" bindscroll="onCommentScroll" bindscrolltoupper="onCommentScrollTop" scroll-top="{{scrollTopComment}}"
+    bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
+      <block wx:for="{{commentsList}}" wx:for-item="item" wx:key="index">
+        <!-- 顶层评论 -->
+        <t-cell t-class="firstCommentSyl" description="{{item.content}}" bordered="{{true}}" hover="{{true}}" bindtap="openReplyPop" data-id="{{item._id}}" data-taskownerid="{{item.task_owner_id}}" data-replytargetid="{{item.commenter_id}}" data-replytargetname="{{item.commenter_name}}">
+          <image src="{{item.avatar_url}}" mode="aspectFill" slot="image" class="commentsImageSyl" lazy-load="true"></image>
+          <view slot="title" class="titleSyl">
+            <view class="commenterSyl">{{item.commenter_name}}</view>
+            <text class="authorSyl" wx:if="{{item.commenter_id === item.task_owner_id}}">作者</text>
+            <text class="createdAtSyl2">{{item.createdAtText}}</text>
+          </view>
+          <view slot="note" class="createdAtSyl">
+            <!-- {{item.createdAtText}} -->
+          </view>
+          <view slot="right-icon" class="replyTextSyl" wx:if="{{ currentUserId !== item.commenter_id }}">
+          <!-- <text>rightIcon1</text> -->
+          </view>
+        </t-cell>
+        <!-- 递归展示子评论（包括更深层次的评论） -->
+        <block wx:for="{{item.children}}" wx:for-item="child" wx:key="index">
+          <view style="padding-left: 64rpx;">
+            <!-- 二级评论 （一级评论的评论 顺序展示 可考虑不加回复） -->
+            <t-cell t-class="secondCommentSyl" description="{{child.content}}" bordered="{{true}}" hover="{{true}}" bindtap="openReplyPop" data-id="{{child._id}}" data-taskownerid="{{child.task_owner_id}}" data-replytargetid="{{child.commenter_id}}" data-replytargetname="{{child.commenter_name}}">
+              <image src="{{child.avatar_url}}" mode="aspectFill" slot="image" class="commentsImageSyl" lazy-load="true"></image>
+              <view slot="title" class="titleSyl">
+                <view class="commenterSyl">{{child.commenter_name}}</view>
+                <text class="authorSyl" wx:if="{{child.commenter_id === child.task_owner_id}}">作者</text>
+                <text class="createdAtSyl2">{{child.createdAtText}}</text>
+              </view>
+              <view slot="note" class="createdAtSyl">
+                <!-- {{child.createdAtText}} -->
+              </view>
+              <view slot="right-icon" class="replyTextSyl" wx:if="{{ currentUserId !== child.commenter_id }}">
+              <!-- <text>rightIcon2</text> -->
+              </view>
+            </t-cell>
+
+            <!-- 递归展示子评论（如三级评论及其子评论） -->
+            <block wx:for="{{child.children}}" wx:for-item="subChilds" wx:key="index">
+              <recursive-comment comment="{{subChilds}}" currentUserId="{{currentUserId}}" bind:subOpenFatherReplyPop="subOpenFatherReplyPop"></recursive-comment>
+            </block>
+          </view>
+        </block>
+      </block>
+      <t-divider style="font-size: 36rpx;" content="超过90天或涉嫌违规的留言将被隐藏" />
+    </scroll-view>
+    <view wx:if="{{ !commentsCount > 0 }}" style="text-align: center; font-size: 30rpx; padding: 20rpx 2rpx;">暂无评论</view>
+    <!-- 输入框 -->
+    <view class="comment-input-section" style="bottom: {{keyboardHeight}}px;">
+      <t-textarea t-class="textareaSyl" placeholder="输入您的评论..." bind:change="onCommentInput" show-confirm-bar="{{true}}" fixed="{{true}}" adjust-position="{{false}}" autofocus="{{true}}" autosize="{{autosize}}" bordered="{{true}}" maxlength="80" type='text' confirm-type="search" cursor-spacing="10" disableDefaultPadding="{{true}}"
+      >
+        <view wx:if="{{replyTargetId !== ''}}" slot="label">
+          <t-tag bind:close="replyHandleClosed" closable variant="outline">回复：{{replyTargetName}}</t-tag>
+        </view>
+      </t-textarea>
+      <!-- 评论输入的发送按钮 -->
+      <t-button ghost="{{false}}" theme="primary" t-class="commentSubmitBtn" content="发送" loading="{{isloading}}" bind:tap="doCommentSumit" data-towho="{{commentToWho}}" />
+    </view>
+  </view>
+</t-popup>
+  
+</view>
+<!-- 全局提示 -->
+<t-toast id="t-toast" />
+
+<t-dialog
+  visible="{{showConfirm}}"
+  close-on-overlay-click="true"
+  content="确认取消对该任务的关注么?"
+  bind:confirm="toCancelFocusNow"
+  bind:cancel="cancelFocusDialogOff"
+  confirm-btn="确定"
+  cancel-btn="取消"
+  t-class-confirm="dialog__button-confirm"
+  t-class-cancel="dialog__button-cancel"
+/>

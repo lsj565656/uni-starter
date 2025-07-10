@@ -7,7 +7,7 @@
       </view>
     </view>
     <uni-list>
-      <uni-list-item :title="task.description || task.name || '暂无描述'" showArrow></uni-list-item>
+      <uni-list-item :title="task.description || task.name || '暂无描述'" showArrow link @click="goDetail"></uni-list-item>
       <view class="user-info">
         <image class="user-avatar" :src="user?.avatar_file?.url || '/static/logo.png'" />
         <!-- <text class="user-nickname">{{ user?.nickname || '匿名用户' }}</text> -->

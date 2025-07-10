@@ -1,0 +1,704 @@
+@import '../../../style/global.wxss';
+page {
+  width: 100vw;
+}
+
+.tasks-detail-page .tasks-info {
+  margin: 0 auto;
+  padding: 26rpx 24rpx 28rpx 34rpx;
+  background-color: #fff;
+}
+
+.tasks-detail-page .tasks-info .tasks-price {
+  display: flex;
+  align-items: baseline;
+}
+
+.tasks-detail-page .tasks-info .tasks-number {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tasks-detail-page .tasks-info .tasks-number .join-num {
+  font-size: 34rpx;
+  color: #999999;
+  display: flex;
+  align-items: flex-end;
+  margin-right: 32rpx;
+}
+
+.tasks-detail-page .tasks-info .tasks-activity {
+  display: flex;
+  margin-top: 16rpx;
+  justify-content: space-between;
+}
+
+.tasks-detail-page .tasks-info .tasks-activity .tags-container {
+  display: flex;
+}
+
+.tasks-detail-page .tasks-info .tasks-activity .tags-container .tasks-activity-tag {
+  background: #ffece9;
+  color: #fa4126;
+  font-size: 24rpx;
+  margin-right: 16rpx;
+  padding: 4rpx 8rpx;
+  border-radius: 4rpx;
+}
+
+.tasks-detail-page .tasks-info .tasks-activity .activity-show {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fa4126;
+  font-size: 24rpx;
+  padding-right: 32rpx;
+}
+
+.tasks-detail-page .tasks-info .tasks-activity .activity-show-text {
+  line-height: 42rpx;
+}
+
+.tasks-detail-page .tasks-info .tasks-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20rpx;
+}
+
+.tasks-detail-page .tasks-info .tasks-title .tasks-name {
+  width: 600rpx;
+  font-weight: 500;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 32rpx;
+  word-break: break-all;
+  color: #333333;
+}
+
+.tasks-detail-page .tasks-info .tasks-title .tasks-tag {
+  width: 104rpx;
+  margin-left: 26rpx;
+}
+
+.tasks-detail-page .tasks-info .tasks-title .tasks-tag .shareBtn {
+  border-radius: 200rpx 0px 0px 200rpx;
+  width: 100rpx;
+  height: 96rpx;
+  border: none;
+  padding-right: 36rpx !important;
+}
+
+.tasks-detail-page .tasks-info .tasks-title .tasks-tag .shareBtn::after {
+  border: none;
+}
+
+.tasks-detail-page .tasks-info .tasks-title .tasks-tag .btn-icon {
+  font-size: 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 96rpx;
+  color: #999;
+}
+
+.tasks-detail-page .tasks-info .tasks-title .tasks-tag .btn-icon .share-text {
+  padding-top: 8rpx;
+  font-size: 20rpx;
+  line-height: 24rpx;
+}
+
+.tasks-detail-page .tasks-intro {
+  font-size: 26rpx;
+  color: #888;
+  line-height: 36rpx;
+  word-break: break-all;
+  padding-left: 60rpx;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  overflow: hidden;
+  margin: 4rpx 0 20rpx 0;
+}
+
+/* 任务时间地点样式 */
+.tasks-detail-page .tasks-info .tasks-time,
+.tasks-detail-page .tasks-info .tasks-addr {
+  font-size: 28rpx;
+  background: #ffece9;
+  color: #fa4126;
+  border-radius: 4rpx;
+  line-height: 1.5;
+  word-break: break-all;
+  padding-right: 30rpx;
+  overflow: hidden;
+}
+
+.tasks-detail-page .tasks-info .task-icon {
+  display: inline-block;
+  margin-right: 12rpx;
+}
+
+/* 动态日历样式 */
+.icon-calendar {
+  margin-left: 8rpx;
+  position: relative;
+  width: 1.2em;
+  height: 1.2em;
+  font-size: 32rpx; /* 基准字体大小 */
+  display: inline-flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.icon-calendar::before {
+  content: '\e031';
+  font-family: 'wr';
+  color: inherit;
+  position: absolute;
+  top: 0;
+  left: 0.1em; /* 相对于 .icon-calendar 的 font-size */
+  right: 0;
+  bottom: 0;
+}
+
+.day {
+  font-size: 0.4em; /* 相对于 .icon-calendar 的 font-size */
+  font-weight: bold;
+  color: inherit;
+  z-index: 1;
+}
+
+.tasks-detail-page .desc-content {
+  background-color: #fff;
+  padding-bottom: 120rpx;
+}
+
+.tasks-detail-page .desc-content__title {
+  text-align: center;
+  display: flex;
+  justify-content: left;
+  align-items: center;
+  padding: 30rpx 20rpx;
+}
+
+.tasks-detail-page .desc-content__title .img {
+  width: 240rpx;
+  height: 12rpx;
+}
+
+.tasks-detail-page .desc-content__title--text {
+  margin: 0 24rpx;
+  font-weight: 600;
+  font-size: 32rpx;
+  line-height: 48rpx;
+}
+
+.tasks-detail-page .desc-content__img {
+  width: 100%;
+  height: auto;
+}
+
+/* 页面底部操作栏样式 */
+.tasks-bottom-operation {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background-color: #fff;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 评论列表弹窗 */
+.t-popup--bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 20rpx) !important;
+}
+
+/* 任务评论模块样式 */
+.comments-wrap {
+  margin-top: 20rpx;
+  padding: 32rpx;
+  background-color: #fff;
+}
+
+.comments-wrap .comments-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.comments-wrap .comments-head .comments-title-wrap {
+  display: flex;
+}
+
+.comments-title-label,
+.comments-title-count {
+  color: #333333;
+  font-size: 32rpx;
+  font-weight: 600;
+  line-height: 48rpx;
+}
+.comments-title-count {
+  font-weight: 500;
+}
+
+.comments-rate-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24rpx;
+}
+
+.comments-rate-wrap .comments-good-rate {
+  color: #999999;
+  font-size: 26rpx;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 36rpx;
+}
+
+.comment-item-wrap .comment-item-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 32rpx;
+}
+
+.comment-item-wrap .comment-item-head .comment-head-right {
+  margin-left: 24rpx;
+}
+
+.comment-item-wrap .comment-item-content {
+  margin-top: 20rpx;
+  color: #333333;
+  line-height: 40rpx;
+  font-size: 28rpx;
+  font-weight: 400;
+}
+
+/* 首评 评论人头像样式 */
+.comment-item-wrap .comment-item-avatar,
+.comment-item-wrap .t-image--shape-square {
+  width: 46rpx;
+  height: 46rpx;
+  border-radius: 50% !important;
+}
+
+.comment-item-wrap .t-cell,
+.comment-list .t-cell {
+  display: flex !important;
+  align-items: start;
+}
+
+/* 轮播子项样式 */
+.custom-swiper {
+  height: 340px;
+}
+
+/* 轮播中视频及图片项样式 */
+.media-item {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.play-button {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-button::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 10px 0 10px 20px;
+  border-color: transparent transparent transparent white;
+}
+
+/* 价格图标样式 */
+.noteIconSyl {
+  margin-right: 1vw;
+}
+
+.noteIconSyl .t-icon-base {
+  font-weight: bold !important;
+}
+
+/* 价格文本样式 */
+.priceTextSyl {
+  color: #fa4126;
+  font-weight: 600;
+  font-size: 56rpx;
+}
+
+/* 价格单位文本样式 */
+.unitTextSyl {
+  margin-left: 10rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: rgb(207, 24, 24);
+}
+
+/* 任务发布人样式 */
+.publish-item-head {
+  font-size: 26rpx;
+  color: #999999;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 32rpx;
+}
+
+/* 任务发布人头像样式 */
+.publish-item-head .publish-card__img {
+  width: 38rpx !important;
+  height: 38rpx !important;
+  display: flex !important;
+  margin-left: 10rpx;
+}
+
+.publish-item-head .t-image--shape-square {
+  border-radius: 50% !important;
+}
+
+.publish-item-head .publish-head-right {
+  margin: 0 10rpx;
+  display: flex;
+  align-items: center;
+}
+
+.publish-head-right .publish-username {
+  margin-right: 6rpx;
+  font-size: 26rpx;
+  color: #333333;
+  font-weight: 400;
+  max-width: 200rpx; /* 省略号显示超出部分 */
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.bar-joinNow-disabled {
+  background: rgba(198, 198, 198, 1) !important;
+  color: #fff !important;
+  font-size: 28rpx;
+}
+
+.bar-separately,
+.bar-join {
+  width: 30%;
+  height: 80rpx;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fa4126;
+  border-radius: 0rpx 40rpx 40rpx 0rpx;
+}
+
+/* 页面底部操作栏样式 */
+.buy-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15rpx 0;
+}
+
+.addCart-disabled,
+.bar-addCart-disabled {
+  background: rgba(221, 221, 221, 1) !important;
+  color: #fff !important;
+  font-size: 28rpx;
+}
+
+.bar-separately {
+  background: #ffece9;
+  color: #fa4126;
+  border-radius: 40rpx 0 0 40rpx;
+}
+
+/* 底部发布评论样式 */
+.comment-btn {
+  background: #ffece9;
+  color: #ff2c0b;
+  position: absolute;
+  padding: 10rpx;
+  right: 32rpx;
+}
+
+/* 首评论图标 */
+.comment-btn2 {
+  display: inline-flex;
+  color: #000;
+  font-weight: 600;
+  position: relative;
+  left: 22rpx;
+}
+
+/* 发布评论弹窗标题样式 */
+.t-popup__content {
+  padding: 0;
+}
+.title {
+  text-align: center;
+  font-weight: 600;
+  font-size: 36rpx;
+  line-height: 50rpx;
+  color: var(--td-text-color-primary);
+  margin: 20rpx 0;
+}
+
+/* 发布评论弹窗关闭样式 */
+.t-popup__close {
+  padding: 10rpx !important;
+}
+.t-popup__close .t-icon {
+  font-size: 40rpx !important;
+}
+
+/* 输入框样式 */
+.comment-input-section {
+  position: absolute;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* 输入框文字样式 */
+.textareaSyl {
+  width: 100vw;
+  padding: 32rpx 16rpx !important;
+}
+
+/* 任务详情 到底分割线 样式 */
+.t-divider--horizontal {
+  padding-bottom: 32rpx !important;
+  margin-bottom: 32rpx !important;
+}
+
+/* 评论列表 到底分割线 样式 */
+.comment-list .t-divider--horizontal {
+  padding-bottom: 76rpx !important;
+  margin-bottom: 76rpx !important;
+}
+
+/* 输入框输入文字计数器 */
+.comment-input-section .t-textarea__indicator {
+  display: inline-flex !important;
+  position: absolute;
+  bottom: 2rpx;
+  right: 20vw;
+}
+
+/* 评论发送按钮样式 */
+.commentSubmitBtn {
+  width: 12vw !important;
+  position: absolute !important;
+  right: 16rpx !important;
+  border-radius: 10% !important;
+  background-color: #22c36a !important;
+}
+
+/* 评论发送按钮文本样式 */
+.comment-input-section .t-button__content {
+  position: absolute;
+  color: #fff !important;
+  font-size: 28rpx;
+}
+
+/* 评论列表弹窗主体样式 */
+.popup-cus-style {
+  position: fixed;
+}
+
+/* 滑动弹层内容样式 */
+.popup-container {
+  height: 70vh;
+  background-color: #fff;
+  border-radius: 18rpx 18rpx 0 0;
+  transition: transform 0.01s;
+}
+
+.comment-list {
+  padding: 0 24rpx !important;
+  max-height: 60vh !important;
+  overflow-y: scroll !important;
+  /* padding-bottom: 62px !important; */
+}
+
+.comment-author {
+  font-weight: bold;
+}
+
+/* 评论列表样式 */
+.commentsImageSyl {
+  width: 64rpx !important;
+  height: 64rpx !important;
+  border-radius: 50%;
+  position: relative;
+  display: inline-block;
+}
+
+/* 评论时间样式 */
+.createdAtSyl {
+  font-size: 24rpx;
+  position: absolute;
+  bottom: 2rpx !important;
+  right: -4rpx !important;
+}
+
+/* 回复文本样式 */
+.replyTextSyl {
+  position: absolute;
+  right: -4rpx !important;
+}
+
+/* 评论卡统一样式 */
+.t-cell {
+  padding-left: 12rpx !important;
+}
+
+/* 顶层评论卡评论名称样式 */
+.firstCommentSyl .titleSyl,
+.secondCommentSyl .titleSyl {
+  display: flex;
+  align-items: center;
+}
+
+/* 顶层评论卡评论人名称样式 */
+.firstCommentSyl .commenterSyl,
+.secondCommentSyl .commenterSyl {
+  color: rgb(100, 156, 156);
+  max-width: 28vw;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  display: inline-block;
+}
+
+/* 顶层评论卡作者标签样式 */
+.firstCommentSyl .authorSyl,
+.secondCommentSyl .authorSyl {
+  margin: 0 4rpx;
+  font-size: 28rpx !important;
+  color: #22c36a;
+}
+
+.firstCommentSyl .createdAtSyl2,
+.secondCommentSyl .createdAtSyl2 {
+  margin: 0 4rpx;
+  font-size: 26rpx;
+  color: rgba(0, 0, 0, 0.4) !important;
+}
+
+.firstCommentSyl .t-cell__description-text,
+.secondCommentSyl .t-cell__description-text {
+  font-size: 30rpx;
+  color: rgba(0, 0, 0, 0.9);
+  font-weight: 500;
+  margin-top: 2rpx !important; /* 评论内容和评论者信息行间距 */
+}
+
+/* 二级评论卡自定义样式 */
+.secondCommentSyl {
+  align-items: flex-start !important;
+  padding: 10rpx 16rpx !important;
+}
+
+/* 二级评论卡评论者头像样式 */
+.secondCommentSyl .commentsImageSyl {
+  width: 48rpx !important;
+  height: 48rpx !important;
+  border-radius: 50%;
+  position: relative;
+  display: inline-block;
+  margin-top: 8rpx;
+}
+
+/* 二级评论卡右侧回复按钮样式 */
+.secondCommentSyl .replyTextSyl {
+  position: absolute;
+  right: 0rpx !important;
+  top: 10rpx !important;
+}
+
+/* 评论卡内容部分样式 */
+.descriptionSyl {
+  font-size: 30rpx;
+}
+
+/* 日历表样式 */
+.t-calendar__dates-item-prefix {
+  font-weight: 600 !important;
+  font-size: 24rpx !important;
+  color: red;
+}
+
+/* 弹窗 取消按钮样式 */
+.dialog__button-cancel {
+  color: #333333 !important;
+}
+
+/* 弹窗 确认按钮样式 */
+.dialog__button-confirm {
+  color: red !important;
+}
+
+/* 添加计时器样式 */
+.task-timer {
+  position: fixed;
+  top: 5vw !important;
+  left: 10vw;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 10%;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  z-index: 1000;
+}
+
+.joiner-section {
+  background: #fff;
+  padding: 0 12rpx;
+  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  justify-content: left;
+}
+
+.joiner-title {
+  font-size: 28rpx;
+  color: #333;
+}
+
+/* 参与者头像组样式 */
+.avatarStyle {
+  margin-left: 30rpx !important;
+}
+
+.avatarStyle .t-avatar {
+  width: 60rpx !important;
+  height: 60rpx !important;
+}
