@@ -62,7 +62,11 @@
     },
     methods: {
       onReply(comment) {
-        console.log(' onReply do !');
+        // 禁止回复自己的评论
+        if (comment.commenter_id === this.authorId) {
+          uni.showToast({ title: '不能评论自己的评论', icon: 'none' });
+          return;
+        }
         this.replyTo = { commentId: comment.id, nickname: comment.commenter_name }
         this.showInputBar = true
         this.$nextTick(() => {
@@ -76,8 +80,8 @@
         })
       },
       onInputBarClear() {
-        // 输入内容被清空，退出回复状态
-        this.replyTo = null
+        // 输入内容被清空，不退出回复状态
+        // this.replyTo = null // 移除这行，保持回复状态
       },
       onInputBlur() {
         console.log(' section onInputBlur do !');
@@ -102,6 +106,7 @@
         this.inputValue = ''
         this.replyTo = null
         this.showInputBar = false
+        this.$emit('update') // 新增：通知父组件刷新评论列表
       },
       onLike(commentId) {
         this.$emit('like', commentId)

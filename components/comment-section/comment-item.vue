@@ -1,5 +1,5 @@
 <template>
-    <view :class="['comment-item', { 'is-reply': level > 1 }]" :style="{ marginLeft: `${(level-1)*36}px` }">
+    <view class="comment-item" :style="{ marginLeft: (level > 1 ? '24px' : '0') }">
       <image class="comment-avatar" :src="comment.commenter_avatar" :style="{ width: avatarSize+'px', height: avatarSize+'px' }" />
       <view class="comment-main">
         <view class="comment-header">
@@ -8,10 +8,14 @@
           <text class="comment-date">{{ formatDate(comment.createdAt) }}</text>
         </view>
         <view class="comment-content">
-          <template v-if="comment.target_name">
-            <text class="reply-to">@{{ comment.target_name }}：</text>
+          <template v-if="level > 2 && comment.target_name">
+            <text class="reply-prefix">回复 </text>
+            <text class="reply-to">{{ comment.target_name }}：</text>
+            <text>{{ comment.content }}</text>
           </template>
-          <text>{{ comment.content }}</text>
+          <template v-else>
+            <text>{{ comment.content }}</text>
+          </template>
         </view>
         <view class="comment-actions">
           <text class="action-btn" @click="$emit('reply', comment)">回复</text>
@@ -20,7 +24,7 @@
             <text>{{ comment.like_count || '' }}</text>
           </view>
         </view>
-        <!-- 二级回复 -->
+        <!-- 二级及以上回复 -->
         <view v-if="comment.replies && comment.replies.length > 0" class="replies">
           <comment-item
             v-for="reply in comment.replies"
@@ -70,11 +74,11 @@
   .comment-item {
     display: flex;
     align-items: flex-start;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
   }
   .comment-avatar {
     border-radius: 50%;
-    margin-right: 10px;
+    margin-right: 8px;
     flex-shrink: 0;
     background: #f5f5f5;
   }
@@ -84,14 +88,15 @@
   .comment-header {
     display: flex;
     align-items: center;
-    font-size: 13px;
+    font-size: 14px;
     color: #888;
     margin-bottom: 2px;
   }
   .comment-nickname {
     font-weight: 500;
     margin-right: 6px;
-    color: #333;
+    color: #222;
+    font-size: 15px;
   }
   .author-tag {
     background: #ffe0b2;
@@ -108,11 +113,19 @@
   .comment-content {
     font-size: 15px;
     color: #333;
-    line-height: 1.6;
+    line-height: 1.7;
     margin-bottom: 2px;
+    word-break: break-all;
+    display: block;
+    margin-top: 2px;
   }
   .reply-to {
     color: #1976d2;
+    margin-right: 2px;
+    font-weight: 500;
+  }
+  .reply-prefix {
+    color: #888;
     margin-right: 2px;
   }
   .comment-actions {

@@ -239,7 +239,7 @@ import { formatTime } from '@/utils/tools.js';
       const now = Date.now()
       const newComment = {
         id: 'c' + now,
-        pid: '0',
+        pid: replyTo && replyTo.commentId ? replyTo.commentId : '0',
         task_id: this.id,
         content,
         createdAt: now,
@@ -251,15 +251,14 @@ import { formatTime } from '@/utils/tools.js';
         replies: [],
         reply_count: 0
       }
-      if (!replyTo) {
+      if (!replyTo || !replyTo.commentId) {
         // 一级评论
         this.comments.unshift(newComment)
       } else {
-        // 回复
+        // 二级评论
         const parentIdx = this.comments.findIndex(c => c.id === replyTo.commentId)
         if (parentIdx !== -1) {
           // 回复主评论
-          newComment.pid = this.comments[parentIdx].id
           if (!this.comments[parentIdx].replies) this.$set(this.comments[parentIdx], 'replies', [])
           this.comments[parentIdx].replies.push(newComment)
           this.comments[parentIdx].reply_count += 1
@@ -279,6 +278,7 @@ import { formatTime } from '@/utils/tools.js';
           }
         }
       }
+      this.barInputValue = ''
     },
     handleCommentLike(commentId) {
       // 先找主评论
@@ -315,25 +315,63 @@ import { formatTime } from '@/utils/tools.js';
       this.barInputValue = val && val.trim() ? val : ''
     },
     onCommentSubmit({ content, replyTo }) {
-      // 只处理一级评论
+      const now = Date.now();
+      const newComment = {
+        id: 'c' + now,
+        pid: replyTo && replyTo.commentId ? replyTo.commentId : '0',
+        task_id: this.id,
+        content,
+        createdAt: now,
+        commenter_id: this.currentUserId,
+        commenter_name: '我', // 实际应取当前用户昵称
+        commenter_avatar: '/static/avatar_me.png', // 实际应取当前用户头像
+        like_count: 0,
+        is_liked: false,
+        replies: [],
+        reply_count: 0
+      };
       if (!replyTo || !replyTo.commentId) {
-        const now = Date.now()
-        const newComment = {
-          id: 'c' + now,
-          pid: '0',
-          task_id: this.id,
-          content,
-          createdAt: now,
-          commenter_id: this.currentUserId,
-          commenter_name: '我', // 实际应取当前用户昵称
-          commenter_avatar: '/static/avatar_me.png', // 实际应取当前用户头像
-          like_count: 0,
-          is_liked: false,
-          replies: [],
-          reply_count: 0
+        // 一级评论
+        this.comments.unshift(newComment);
+        this.barInputValue = '';
+      } else {
+        // 二级或三级评论，插入到被回复评论的后面
+        let inserted = false;
+        // 先查找一级评论
+        for (let i = 0; i < this.comments.length; i++) {
+          const c = this.comments[i];
+          if (c.id === replyTo.commentId) {
+            // 回复主评论，插入到replies开头
+            if (!c.replies) this.$set(c, 'replies', []);
+            c.replies.unshift(newComment);
+            c.reply_count += 1;
+            inserted = true;
+            break;
+          }
+          // 查找二级评论
+          if (c.replies && c.replies.length) {
+            const idx = c.replies.findIndex(r => r.id === replyTo.commentId);
+            if (idx !== -1) {
+              newComment.pid = c.id;
+              newComment.target_id = c.replies[idx].commenter_id;
+              newComment.target_name = c.replies[idx].commenter_name;
+              newComment.target_avatar = c.replies[idx].commenter_avatar;
+              c.replies.splice(idx + 1, 0, newComment); // 插入到被回复评论后面
+              c.reply_count += 1;
+              inserted = true;
+              break;
+            }
+          }
         }
-        this.comments.unshift(newComment)
-        this.barInputValue = ''
+        if (!inserted) {
+          // fallback: 没找到就push到第一个主评论下
+          if (this.comments.length) {
+            if (!this.comments[0].replies) this.$set(this.comments[0], 'replies', []);
+            this.comments[0].replies.push(newComment);
+            this.comments[0].reply_count += 1;
+          }
+        }
+        this.barInputValue = '';
       }
     },
     submitComment() {
@@ -379,14 +417,21 @@ import { formatTime } from '@/utils/tools.js';
         replies: [
           {
             id: 'c2', pid: 'c1', task_id: 't1', content: '谢谢支持！', createdAt: 1720000001000,
-            commenter_id: 'u2', commenter_name: '作者猫', commenter_avatar: '/static/avatar2.png', target_id: 'u1', target_name: '小明', target_avatar: '/static/avatar1.png', like_count: 1, is_liked: true
+            commenter_id: 'u2', commenter_name: '作者猫', commenter_avatar: '/static/avatar2.png', target_id: 'u1', target_name: '小明', target_avatar: '/static/avatar1.png', like_count: 1, is_liked: true,
+            replies: [
+              {
+                id: 'c6', pid: 'c2', task_id: 't1', content: '我也来回复一下作者猫', createdAt: 1720000005000,
+                commenter_id: 'u10', commenter_name: '小王', commenter_avatar: '/static/avatar10.png',
+                target_id: 'u2', target_name: '作者猫', target_avatar: '/static/avatar2.png', like_count: 0, is_liked: false
+              }
+            ]
           },
           {
             id: 'c3', pid: 'c1', task_id: 't1', content: '我也加入了！', createdAt: 1720000002000,
             commenter_id: 'u3', commenter_name: '小红', commenter_avatar: '/static/avatar3.png', target_id: 'u1', target_name: '小明', target_avatar: '/static/avatar1.png', like_count: 0, is_liked: false
           }
         ],
-        reply_count: 2
+        reply_count: 3
       },
       {
         id: 'c4', pid: '0', task_id: 't1', content: '请问几点开始？', createdAt: 1720000003000,
