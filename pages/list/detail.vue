@@ -59,24 +59,25 @@
     <view class="bottom-bar">
       <view class="input-area" @click="showCommentInputBar">
         <text class="bar-input-text">{{ barInputValue || '说点什么吧...' }}</text>
-      </view>
+				</view>
       <view class="bar-btns">
         <view class="bar-btn" @click="onLike">
           <uni-icons :type="task.is_liked ? 'heart-filled' : 'heart'" size="22" :color="task.is_liked ? 'red' : '#888'" />
           <text>{{ task.like_count }}</text>
-        </view>
+				</view>
         <!-- <view class="bar-btn" @click="onComment">
           <uni-icons type="chat" size="22" color="#888" />
           <text>{{ totalCommentCount }}</text>
         </view> -->
         <button class="join-btn" @click="onJoin">加入</button>
-      </view>
-    </view>
+			</view>
+		</view>
 	</view>
 </template>
 
 <script>
 import { formatTime } from '@/utils/tools.js';
+import { mockComments } from '@/utils/comments.js'
 
 	export default {
 		data() {
@@ -103,53 +104,9 @@ import { formatTime } from '@/utils/tools.js';
         is_liked: false,
         like_count: 0
       },
-      comments: [],
+      comments: mockComments,
       currentUserId: 'u1',
       taskOwnerId: 'u2',
-      allRepliesMap: {
-        c100: [
-          {
-            id: 'c101', pid: 'c100', task_id: 't1', content: '确实有点难，不过有挑战才有收获！', createdAt: 1720000011000,
-            commenter_id: 'u5', commenter_name: '小刚', commenter_avatar: '/static/avatar5.png',
-            target_id: 'u4', target_name: '大壮', target_avatar: '/static/avatar4.png', like_count: 1, is_liked: false
-          },
-          {
-            id: 'c102', pid: 'c100', task_id: 't1', content: '我觉得还好，大家一起加油！', createdAt: 1720000012000,
-            commenter_id: 'u6', commenter_name: '小雨', commenter_avatar: '/static/avatar6.png',
-            target_id: 'u4', target_name: '大壮', target_avatar: '/static/avatar4.png', like_count: 0, is_liked: false
-          },
-          {
-            id: 'c103', pid: 'c100', task_id: 't1', content: '我来围观一下，哈哈！', createdAt: 1720000013000,
-            commenter_id: 'u7', commenter_name: '小王', commenter_avatar: '/static/avatar7.png',
-            target_id: 'u4', target_name: '大壮', target_avatar: '/static/avatar4.png', like_count: 0, is_liked: false
-          },
-          {
-            id: 'c104', pid: 'c100', task_id: 't1', content: '有难度才有意思！', createdAt: 1720000014000,
-            commenter_id: 'u8', commenter_name: '小美', commenter_avatar: '/static/avatar8.png',
-            target_id: 'u4', target_name: '大壮', target_avatar: '/static/avatar4.png', like_count: 0, is_liked: false
-          },
-          {
-            id: 'c105', pid: 'c100', task_id: 't1', content: '我支持你！', createdAt: 1720000015000,
-            commenter_id: 'u9', commenter_name: '小志', commenter_avatar: '/static/avatar9.png',
-            target_id: 'u4', target_name: '大壮', target_avatar: '/static/avatar4.png', like_count: 0, is_liked: false
-          },
-          {
-            id: 'c106', pid: 'c100', task_id: 't1', content: '加油加油！', createdAt: 1720000016000,
-            commenter_id: 'u10', commenter_name: '小芳', commenter_avatar: '/static/avatar10.png',
-            target_id: 'u4', target_name: '大壮', target_avatar: '/static/avatar4.png', like_count: 0, is_liked: false
-          },
-          {
-            id: 'c107', pid: 'c100', task_id: 't1', content: '我也来试试！', createdAt: 1720000017000,
-            commenter_id: 'u11', commenter_name: '小亮', commenter_avatar: '/static/avatar11.png',
-            target_id: 'u4', target_name: '大壮', target_avatar: '/static/avatar4.png', like_count: 0, is_liked: false
-          },
-          {
-            id: 'c108', pid: 'c100', task_id: 't1', content: '大家一起努力！', createdAt: 1720000018000,
-            commenter_id: 'u12', commenter_name: '小翠', commenter_avatar: '/static/avatar12.png',
-            target_id: 'u4', target_name: '大壮', target_avatar: '/static/avatar4.png', like_count: 0, is_liked: false
-          }
-        ]
-      },
       totalCommentCount: 0,
       barInputValue: '',
     }
@@ -162,6 +119,10 @@ import { formatTime } from '@/utils/tools.js';
       deep: true,
       immediate: true
 			}
+		},
+		mounted() {
+    // 对评论树做排序和重排
+    this.comments = this.reorderReplies(this.comments)
 		},
 		methods: {
     formatTime,
@@ -234,52 +195,6 @@ import { formatTime } from '@/utils/tools.js';
       }
       return count
     },
-    handleCommentSubmit({ content, replyTo }) {
-      if (!content.trim()) return
-      const now = Date.now()
-      const newComment = {
-        id: 'c' + now,
-        pid: replyTo && replyTo.commentId ? replyTo.commentId : '0',
-        task_id: this.id,
-        content,
-        createdAt: now,
-        commenter_id: this.currentUserId,
-        commenter_name: '我', // 实际应取当前用户昵称
-        commenter_avatar: '/static/avatar_me.png', // 实际应取当前用户头像
-        like_count: 0,
-        is_liked: false,
-        replies: [],
-        reply_count: 0
-      }
-      if (!replyTo || !replyTo.commentId) {
-        // 一级评论
-        this.comments.unshift(newComment)
-      } else {
-        // 二级评论
-        const parentIdx = this.comments.findIndex(c => c.id === replyTo.commentId)
-        if (parentIdx !== -1) {
-          // 回复主评论
-          if (!this.comments[parentIdx].replies) this.$set(this.comments[parentIdx], 'replies', [])
-          this.comments[parentIdx].replies.push(newComment)
-          this.comments[parentIdx].reply_count += 1
-				} else {
-          // 回复子评论（只支持2级，主流App做法）
-          for (const c of this.comments) {
-            const replyIdx = c.replies?.findIndex(r => r.id === replyTo.commentId)
-            if (replyIdx !== -1) {
-              newComment.pid = c.id
-              newComment.target_id = c.replies[replyIdx].commenter_id
-              newComment.target_name = c.replies[replyIdx].commenter_name
-              newComment.target_avatar = c.replies[replyIdx].commenter_avatar
-              c.replies.push(newComment)
-              c.reply_count += 1
-              break
-            }
-          }
-        }
-      }
-      this.barInputValue = ''
-    },
     handleCommentLike(commentId) {
       // 先找主评论
       let found = false
@@ -311,7 +226,6 @@ import { formatTime } from '@/utils/tools.js';
       }
     },
     onCommentInputBlur(val) {
-      console.log('onCommentInputBlur val :',val);
       this.barInputValue = val && val.trim() ? val : ''
     },
     onCommentSubmit({ content, replyTo }) {
@@ -334,24 +248,31 @@ import { formatTime } from '@/utils/tools.js';
         // 一级评论
         this.comments.unshift(newComment);
         this.barInputValue = '';
-      } else {
-        // 二级或三级评论，插入到被回复评论的后面
+					} else {
         let inserted = false;
-        // 先查找一级评论
         for (let i = 0; i < this.comments.length; i++) {
           const c = this.comments[i];
           if (c.id === replyTo.commentId) {
-            // 回复主评论，插入到replies开头
+            // 回复主评论，插入到replies数组的第一个（即父评论后面）
             if (!c.replies) this.$set(c, 'replies', []);
-            c.replies.unshift(newComment);
+            newComment.target_id = c.commenter_id;
+            newComment.target_name = c.commenter_name;
+            newComment.target_avatar = c.commenter_avatar;
+            c.replies.splice(0, 0, newComment); // 插入到replies最前面
             c.reply_count += 1;
             inserted = true;
             break;
           }
-          // 查找二级评论
           if (c.replies && c.replies.length) {
             const idx = c.replies.findIndex(r => r.id === replyTo.commentId);
             if (idx !== -1) {
+              // 判断pid是否等于当前父评论id，不等于则加前缀
+              let actualParentId = c.id;
+              let prefix = '';
+              if (newComment.pid !== actualParentId) {
+                prefix = `回复 ${c.replies[idx].commenter_name}：`;
+              }
+              newComment.content = prefix + newComment.content;
               newComment.pid = c.id;
               newComment.target_id = c.replies[idx].commenter_id;
               newComment.target_name = c.replies[idx].commenter_name;
@@ -374,13 +295,31 @@ import { formatTime } from '@/utils/tools.js';
         this.barInputValue = '';
       }
     },
-    submitComment() {
-      if (!this.inputValue.trim()) return
-      // 提交评论逻辑
-      // 你可以在这里调用 handleCommentSubmit 或自定义逻辑
-      this.inputValue = ''
-      this.inputActive = false
-      this.replyTo = null
+    reorderReplies(comments) {
+      if (!Array.isArray(comments)) return [];
+      // 一级评论按时间倒序
+      const roots = comments.slice().sort((a, b) => b.createdAt - a.createdAt);
+      for (const root of roots) {
+        if (Array.isArray(root.replies) && root.replies.length > 0) {
+          root.replies = root.replies.slice().sort((a, b) => b.createdAt - a.createdAt);
+        }
+      }
+      return roots;
+    },
+    // 辅助递归：父评论parent，子评论数组replies
+    _reorderRepliesRecursive(parent, replies) {
+      // 只找直接回复parent的，按时间倒序
+      const directReplies = replies.filter(r => r.pid === parent.id).sort((a, b) => b.createdAt - a.createdAt);
+      const result = [];
+      for (const reply of directReplies) {
+        result.push(reply);
+        if (Array.isArray(replies) && replies.length > 0) {
+          // 递归插入reply的所有子评论
+          const children = this._reorderRepliesRecursive(reply, replies);
+          result.push(...children);
+        }
+      }
+      return result;
     }
   },
   onLoad(options) {
@@ -409,48 +348,6 @@ import { formatTime } from '@/utils/tools.js';
       category_name: options.category_name ? decodeURIComponent(options.category_name) : '',
       // 可继续加其它字段
     };
-    // 初始化评论，只给前2条replies
-    this.comments = [
-      {
-        id: 'c1', pid: '0', task_id: 't1', content: '任务很棒，已加入！', createdAt: 1720000000000,
-        commenter_id: 'u1', commenter_name: '小明', commenter_avatar: '/static/avatar1.png', like_count: 2, is_liked: false,
-        replies: [
-          {
-            id: 'c2', pid: 'c1', task_id: 't1', content: '谢谢支持！', createdAt: 1720000001000,
-            commenter_id: 'u2', commenter_name: '作者猫', commenter_avatar: '/static/avatar2.png', target_id: 'u1', target_name: '小明', target_avatar: '/static/avatar1.png', like_count: 1, is_liked: true,
-            replies: [
-              {
-                id: 'c6', pid: 'c2', task_id: 't1', content: '我也来回复一下作者猫', createdAt: 1720000005000,
-                commenter_id: 'u10', commenter_name: '小王', commenter_avatar: '/static/avatar10.png',
-                target_id: 'u2', target_name: '作者猫', target_avatar: '/static/avatar2.png', like_count: 0, is_liked: false
-              }
-            ]
-          },
-          {
-            id: 'c3', pid: 'c1', task_id: 't1', content: '我也加入了！', createdAt: 1720000002000,
-            commenter_id: 'u3', commenter_name: '小红', commenter_avatar: '/static/avatar3.png', target_id: 'u1', target_name: '小明', target_avatar: '/static/avatar1.png', like_count: 0, is_liked: false
-          }
-        ],
-        reply_count: 3
-      },
-      {
-        id: 'c4', pid: '0', task_id: 't1', content: '请问几点开始？', createdAt: 1720000003000,
-        commenter_id: 'u3', commenter_name: '小红', commenter_avatar: '/static/avatar3.png', like_count: 0, is_liked: false,
-        replies: [
-          {
-            id: 'c5', pid: 'c4', task_id: 't1', content: '明天早上8点哦', createdAt: 1720000004000,
-            commenter_id: 'u2', commenter_name: '作者猫', commenter_avatar: '/static/avatar2.png', target_id: 'u3', target_name: '小红', target_avatar: '/static/avatar3.png', like_count: 0, is_liked: false
-          }
-        ],
-        reply_count: 1
-      },
-      {
-        id: 'c100', pid: '0', task_id: 't1', content: '这个任务有点难度，大家怎么看？', createdAt: 1720000010000,
-        commenter_id: 'u4', commenter_name: '大壮', commenter_avatar: '/static/avatar4.png', like_count: 5, is_liked: false,
-        replies: this.allRepliesMap.c100.slice(0, 2),
-        reply_count: 8
-      }
-    ]
   },
   onPullDownRefresh() {
     if (!this.id) return;
@@ -467,140 +364,14 @@ import { formatTime } from '@/utils/tools.js';
     }).catch(() => {
       uni.stopPullDownRefresh();
     });
-  }
-}
-
-// 假设 task_owner_id = 'u2'（作者猫）
-export const mockComments = [
-  {
-    id: 'c1',
-    pid: '0',
-    task_id: 't1',
-    content: '任务很棒，已加入！',
-    createdAt: 1720000000000,
-    commenter_id: 'u1',
-    commenter_name: '小明',
-    commenter_avatar: '/static/avatar1.png',
-    like_count: 2,
-    is_liked: false,
-    replies: [
-      {
-        id: 'c2',
-        pid: 'c1',
-        task_id: 't1',
-        content: '谢谢支持！',
-        createdAt: 1720000001000,
-        commenter_id: 'u2',
-        commenter_name: '作者猫',
-        commenter_avatar: '/static/avatar2.png',
-        target_id: 'u1',
-        target_name: '小明',
-        target_avatar: '/static/avatar1.png',
-        like_count: 1,
-        is_liked: true
-      },
-      {
-        id: 'c3',
-        pid: 'c1',
-        task_id: 't1',
-        content: '我也加入了！',
-        createdAt: 1720000002000,
-        commenter_id: 'u3',
-        commenter_name: '小红',
-        commenter_avatar: '/static/avatar3.png',
-        target_id: 'u1',
-        target_name: '小明',
-        target_avatar: '/static/avatar1.png',
-        like_count: 0,
-        is_liked: false
-      }
-    ],
-    reply_count: 2
-  },
-  {
-    id: 'c4',
-    pid: '0',
-    task_id: 't1',
-    content: '请问几点开始？',
-    createdAt: 1720000003000,
-    commenter_id: 'u3',
-    commenter_name: '小红',
-    commenter_avatar: '/static/avatar3.png',
-    like_count: 0,
-    is_liked: false,
-    replies: [
-      {
-        id: 'c5',
-        pid: 'c4',
-        task_id: 't1',
-        content: '明天早上8点哦',
-        createdAt: 1720000004000,
-        commenter_id: 'u2',
-        commenter_name: '作者猫',
-        commenter_avatar: '/static/avatar2.png',
-        target_id: 'u3',
-        target_name: '小红',
-        target_avatar: '/static/avatar3.png',
-        like_count: 0,
-        is_liked: false
-      }
-    ],
-    reply_count: 1
-  },
-  // 重点：一条有很多子评论的主评论
-  {
-    id: 'c100',
-    pid: '0',
-    task_id: 't1',
-    content: '这个任务有点难度，大家怎么看？',
-    createdAt: 1720000010000,
-    commenter_id: 'u4',
-    commenter_name: '大壮',
-    commenter_avatar: '/static/avatar4.png',
-    like_count: 5,
-    is_liked: false,
-    replies: [
-      {
-        id: 'c101',
-        pid: 'c100',
-        task_id: 't1',
-        content: '确实有点难，不过有挑战才有收获！',
-        createdAt: 1720000011000,
-        commenter_id: 'u5',
-        commenter_name: '小刚',
-        commenter_avatar: '/static/avatar5.png',
-        target_id: 'u4',
-        target_name: '大壮',
-        target_avatar: '/static/avatar4.png',
-        like_count: 1,
-        is_liked: false
-      },
-      {
-        id: 'c102',
-        pid: 'c100',
-        task_id: 't1',
-        content: '我觉得还好，大家一起加油！',
-        createdAt: 1720000012000,
-        commenter_id: 'u6',
-        commenter_name: '小雨',
-        commenter_avatar: '/static/avatar6.png',
-        target_id: 'u4',
-        target_name: '大壮',
-        target_avatar: '/static/avatar4.png',
-        like_count: 0,
-        is_liked: false
-      }
-      // ...假设后端只返回2条，实际有8条
-    ],
-    reply_count: 8 // 实际有8条回复
-  }
-]
+		}
+	}
 </script>
 
 <style scoped>
 .detail-container {
-  min-height: 100vh;
-  background-color: #fff;
+	min-height: 100vh;
+	background-color: #fff;
   padding-bottom: 70px;
 }
 .detail-image {
@@ -611,12 +382,12 @@ export const mockComments = [
 .detail-header-row {
 			display: flex;
   justify-content: space-between;
-  align-items: center;
+			align-items: center;
   padding: 16px 16px 0 16px;
 }
 .score {
-  display: flex;
-  align-items: center;
+		display: flex;
+		align-items: center;
   color: #ff6600;
   font-size: 20px;
 }
@@ -625,7 +396,7 @@ export const mockComments = [
   font-weight: bold;
 }
 .joined {
-  color: #666;
+				color: #666;
   font-size: 16px;
 }
 .joined-num {
@@ -697,9 +468,9 @@ export const mockComments = [
   z-index: 100;
 }
 .input-area {
-  flex: 1;
-  display: flex;
-  align-items: center;
+		flex: 1;
+			display: flex;
+			align-items: center;
   background: #f5f5f5;
   border-radius: 18px;
   padding: 4px 12px;
@@ -728,8 +499,8 @@ export const mockComments = [
   gap: 8px;
 }
 .bar-btn {
-  display: flex;
-  align-items: center;
+		display: flex;
+		align-items: center;
   margin-right: 8px;
   font-size: 16px;
   background: none;

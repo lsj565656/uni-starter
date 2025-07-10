@@ -1,11 +1,11 @@
 <template>
-    <view class="comment-item" :style="{ marginLeft: (level > 1 ? '24px' : '0') }">
+    <view class="comment-item">
       <image class="comment-avatar" :src="comment.commenter_avatar" :style="{ width: avatarSize+'px', height: avatarSize+'px' }" />
       <view class="comment-main">
         <view class="comment-header">
           <text class="comment-nickname">{{ comment.commenter_name }}</text>
           <text v-if="comment.commenter_id === taskOwnerId" class="author-tag">作者</text>
-          <text class="comment-date">{{ formatDate(comment.createdAt) }}</text>
+          <text class="comment-date">{{ formatRelativeTime(comment.createdAt) }}</text>
         </view>
         <view class="comment-content">
           <template v-if="level > 2 && comment.target_name">
@@ -48,6 +48,7 @@
   </template>
   
   <script>
+  import { formatRelativeTime } from '@/utils/tools.js'
   export default {
     name: 'CommentItem',
     props: {
@@ -62,10 +63,7 @@
       }
     },
     methods: {
-      formatDate(ts) {
-        const d = new Date(ts)
-        return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`
-      }
+      formatRelativeTime,
     }
   }
   </script>
