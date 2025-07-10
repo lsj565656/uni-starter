@@ -1,25 +1,32 @@
 <template>
   <view class="input-bar">
     <view class="input-wrap">
-      <!-- 图片选择按钮 -->
-      <view class="icon-btn" @click="onChooseImage">
-        <uni-icons type="image" size="26" color="#888" />
-      </view>
-      <textarea
+      <uni-easyinput
         ref="input"
-        class="input"
+        type="textarea"
         v-model="inputValue"
         :placeholder="placeholder"
         :maxlength="maxLength"
-        :auto-height="false"
-        :show-confirm-bar="true"
         :focus="isFocus"
-        :rows="1"
-        :style="{height: inputHeight + 'px'}"
+        :inputBorder="true"
+        :trim="true"
         @input="onInput"
-        @confirm="submit"
         @blur="onBlur"
-      ></textarea>
+        @confirm="submit"
+      >
+        <template #right>
+          <uni-icons
+            v-if="inputValue"
+            type="clear"
+            size="22"
+            color="#c0c4cc"
+            @mousedown="onClearMouseDown"
+            @touchstart="onClearMouseDown"
+            @click="clearInput"
+            style="margin-right: 4px;"
+          />
+        </template>
+      </uni-easyinput>
     </view>
     <button class="send-btn" :disabled="!inputValue.trim() && images.length === 0" @click="submit">发送</button>
   </view>
@@ -35,43 +42,52 @@
 export default {
   name: 'CommentInputBar',
   props: {
-    value: String,
+    modelValue: String,
     placeholder: String,
     maxLength: { type: Number, default: 120 }
   },
+  emits: ['submit', 'blur', 'clearContent', 'update:modelValue'],
   data() {
     return {
-      inputValue: this.value || '',
+      inputValue: this.modelValue || '',
       isFocus: false,
-      inputHeight: 36, // 默认一行
-      lineHeight: 36,  // 单行高度
-      maxLines: 3,
-      images: []
+      images: [],
+      isClearing: false
     }
   },
   watch: {
-    value(val) { this.inputValue = val }
+    modelValue(val) { this.inputValue = val }
   },
   methods: {
-    onInput(e) {
-      this.inputValue = e.detail.value
-      // 动态调整高度
-      this.$nextTick(() => {
-        const lines = (this.inputValue.match(/\n/g) || []).length + 1
-        this.inputHeight = Math.min(this.maxLines, lines) * this.lineHeight
-      })
+    onInput(val) {
+      this.inputValue = val
+      this.$emit('update:modelValue', this.inputValue)
       // 如果内容被清空，通知父组件退出回复状态
       if (!this.inputValue.trim()) {
-        this.$emit('clear-content')
+        this.$emit('clearContent')
       }
+    },
+    clearInput() {
+      this.isClearing = true
+      this.inputValue = ''
+      this.$emit('update:modelValue', '')
+      this.$nextTick(() => {
+        if (this.$refs.input && this.$refs.input.focus) {
+          this.$refs.input.focus();
+        }
+        setTimeout(() => { this.isClearing = false }, 300)
+      });
+    },
+    onClearMouseDown() {
+      this.isClearing = true;
     },
     submit() {
       if (!this.inputValue.trim() && this.images.length === 0) return
       this.$emit('submit', this.inputValue.trim(), this.images)
       this.inputValue = ''
       this.images = []
+      this.$emit('update:modelValue', '')
       this.isFocus = false
-      this.inputHeight = this.lineHeight
     },
     focus() {
       this.isFocus = false
@@ -81,7 +97,7 @@ export default {
     },
     onBlur() {
       this.isFocus = false
-      this.$emit('blur')
+      this.$emit('blur', this.inputValue, this.isClearing)
     },
     onChooseImage() {
       uni.chooseImage({
@@ -97,7 +113,7 @@ export default {
     triggerKeyboardHide() {
       if (this.isFocus) {
         this.isFocus = false
-        this.$emit('blur')
+        this.$emit('blur', this.inputValue)
       }
     }
   },
@@ -137,56 +153,73 @@ export default {
 .input-bar {
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  width: 100%;
   background: #fff;
   border-top: 1px solid #eee;
   display: flex;
   align-items: flex-end;
-  padding: 8px 10px;
+  padding: 2px 4px;
   z-index: 1000;
 }
 .input-wrap {
   flex: 1;
   display: flex;
-  align-items: flex-end;
-  background: #f5f5f5;
-  border-radius: 22px;
-  padding: 0 10px;
-  min-height: 36px;
-  max-height: 108px;
-  overflow: auto;
-}
-.input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  font-size: 16px;
-  min-height: 36px;
-  max-height: 108px;
-  line-height: 36px;
-  resize: none;
-  padding: 8px 0;
-  outline: none;
-}
-.icon-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
   align-items: center;
-  justify-content: center;
-  margin-right: 4px;
+  background: transparent;
+  border-radius: 22px;
+  padding: 0 4px;
+  min-height: 36px;
+  max-height: 108px;
+  overflow: hidden;
+}
+/* 深度覆盖 uni-easyinput 的外层和 textarea 行高和高度 */
+::v-deep .uni-easyinput__content {
+  background: #f5f5f5 !important;
+  border-radius: 18px !important;
+  min-height: 60px !important;
+  max-height: 60px !important;
+  box-sizing: border-box;
+  padding: 4px 12px !important;
+  border: none !important;
+}
+::v-deep .uni-easyinput__content-textarea {
+  min-height: 60px !important;
+  max-height: 60px !important;
+  line-height: 24px !important;
+  font-size: 16px !important;
+  color: #222 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  box-sizing: border-box;
+  overflow-y: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc #f5f5f5;
+}
+::v-deep .uni-easyinput__content-textarea::-webkit-scrollbar {
+  width: 4px;
+  background: #f5f5f5;
+}
+::v-deep .uni-easyinput__content-textarea::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 2px;
+}
+::v-deep .uni-easyinput__placeholder-class {
+  color: #bbb !important;
+  font-size: 16px !important;
 }
 .send-btn {
-  margin-left: 8px;
-  background: linear-gradient(90deg, #ff3b3b, #ff7b06);
+  background: linear-gradient(90deg, #ff9800, #ffc107);
   color: #fff;
   border: none;
   border-radius: 18px;
-  padding: 0 18px;
+  padding: 0 12px;
   height: 36px;
   font-size: 16px;
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(255,59,59,0.08);
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .send-btn:disabled {
   background: #eee;

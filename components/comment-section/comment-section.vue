@@ -18,7 +18,7 @@
         />
         <view class="comment-footer">没有更多评论</view>
       </view>
-      <view v-if="showInputBar" class="input-mask" @click="onInputBlur"></view>
+      <view v-if="showInputBar" class="input-mask" @click="onInputMaskClick"></view>
       <comment-input-bar
         v-if="showInputBar"
         ref="inputBar"
@@ -45,6 +45,7 @@
       authorId: { type: String, default: '' },
       taskOwnerId: { type: String, default: '' }
     },
+    emits: ['submit', 'blur', 'clearContent'],
     data() {
       return {
         inputValue: '',
@@ -54,7 +55,9 @@
     },
     computed: {
       replyPlaceholder() {
-        return this.replyTo ? `回复 ${this.replyTo.nickname}` : '说点什么...'
+        return this.replyTo && this.replyTo.commentId
+          ? `回复 ${this.replyTo.nickname}`
+          : '说点什么吧...'
       }
     },
     methods: {
@@ -77,11 +80,18 @@
         this.replyTo = null
       },
       onInputBlur() {
+        console.log(' section onInputBlur do !');
         setTimeout(() => {
+          this.$emit('blur', this.inputValue); // 关键：把内容传递给父组件
           this.replyTo = null
           this.showInputBar = false
           if (typeof uni !== 'undefined' && uni.hideKeyboard) uni.hideKeyboard()
-        }, 200)
+        }, 100)
+      },
+      onInputMaskClick() {
+        this.replyTo = null;
+        this.showInputBar = false;
+        if (typeof uni !== 'undefined' && uni.hideKeyboard) uni.hideKeyboard();
       },
       onSubmit(content, images) {
         this.$emit('submit', {
@@ -110,6 +120,7 @@
   .comment-section {
     background: #fff;
     padding-bottom: 70px;
+    padding: 0 16px;
   }
   .comment-header {
     font-size: 16px;

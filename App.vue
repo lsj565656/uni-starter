@@ -56,6 +56,7 @@
 	@import "static/iconfont.css";
 	
 	/* 全局CSS变量定义 */
+	/* #ifndef APP-NVUE */
 	:root {
 		/* 颜色变量 */
 		--primary-color: #007aff;
@@ -98,9 +99,11 @@
 		--shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
 		--shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
 	}
+	/* #endif */
 	
 	/* 移动端适配 */
 	@media (max-width: 768px) {
+		/* #ifndef APP-NVUE */
 		:root {
 			--font-size-xs: 10px;
 			--font-size-sm: 12px;
@@ -113,5 +116,6 @@
 			--spacing-lg: 12px;
 			--spacing-xl: 16px;
 		}
+		/* #endif */
 	}
 </style>

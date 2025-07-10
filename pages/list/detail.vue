@@ -42,32 +42,36 @@
 
     <!-- 评论区 -->
     <comment-section
+      ref="commentSection"
+      v-model="barInputValue"
       :comments="comments"
       :total-count="totalCommentCount"
       :author-id="currentUserId"
       :task-owner-id="taskOwnerId"
-      @submit="handleCommentSubmit"
+      @submit="onCommentSubmit"
       @like="handleCommentLike"
       @expand-replies="handleExpandReplies"
       @collapse-replies="handleCollapseReplies"
+      @blur="onCommentInputBlur"
     />
 
 		<!-- 底部操作栏 -->
     <view class="bottom-bar">
-      <view class="bar-left">
-        <button class="bar-btn" @click="onLike">
+      <view class="input-area" @click="showCommentInputBar">
+        <text class="bar-input-text">{{ barInputValue || '说点什么吧...' }}</text>
+      </view>
+      <view class="bar-btns">
+        <view class="bar-btn" @click="onLike">
           <uni-icons :type="task.is_liked ? 'heart-filled' : 'heart'" size="22" :color="task.is_liked ? 'red' : '#888'" />
           <text>{{ task.like_count }}</text>
-        </button>
-        <button class="bar-btn" @click="onComment">
+        </view>
+        <!-- <view class="bar-btn" @click="onComment">
           <uni-icons type="chat" size="22" color="#888" />
-          <text>{{ comments.length }}</text>
-				</button>
-			</view>
-      <view class="bar-right">
-        <button class="join-btn" @click="onJoin">立即加入</button>
-					</view>
-			</view>
+          <text>{{ totalCommentCount }}</text>
+        </view> -->
+        <button class="join-btn" @click="onJoin">加入</button>
+      </view>
+    </view>
 	</view>
 </template>
 
@@ -146,7 +150,8 @@ import { formatTime } from '@/utils/tools.js';
           }
         ]
       },
-      totalCommentCount: 0
+      totalCommentCount: 0,
+      barInputValue: '',
     }
   },
   watch: {
@@ -296,6 +301,48 @@ import { formatTime } from '@/utils/tools.js';
           }
         }
       }
+    },
+    showCommentInputBar() {
+      // 只需弹出输入框，v-model 会自动同步内容
+      if (this.$refs.commentSection && this.$refs.commentSection.onReply) {
+        this.$refs.commentSection.onReply({ id: '', commenter_name: '' })
+      } else if (this.$refs.commentSection) {
+        this.$refs.commentSection.showInputBar = true
+      }
+    },
+    onCommentInputBlur(val) {
+      console.log('onCommentInputBlur val :',val);
+      this.barInputValue = val && val.trim() ? val : ''
+    },
+    onCommentSubmit({ content, replyTo }) {
+      // 只处理一级评论
+      if (!replyTo || !replyTo.commentId) {
+        const now = Date.now()
+        const newComment = {
+          id: 'c' + now,
+          pid: '0',
+          task_id: this.id,
+          content,
+          createdAt: now,
+          commenter_id: this.currentUserId,
+          commenter_name: '我', // 实际应取当前用户昵称
+          commenter_avatar: '/static/avatar_me.png', // 实际应取当前用户头像
+          like_count: 0,
+          is_liked: false,
+          replies: [],
+          reply_count: 0
+        }
+        this.comments.unshift(newComment)
+        this.barInputValue = ''
+      }
+    },
+    submitComment() {
+      if (!this.inputValue.trim()) return
+      // 提交评论逻辑
+      // 你可以在这里调用 handleCommentSubmit 或自定义逻辑
+      this.inputValue = ''
+      this.inputActive = false
+      this.replyTo = null
     }
   },
   onLoad(options) {
@@ -598,27 +645,57 @@ export const mockComments = [
   position: fixed;
   left: 0; right: 0; bottom: 0;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-	background: #fff;
+  background: #fff;
   border-top: 1px solid #eee;
-  padding: 8px 12px;
+  padding: 8px 8px;
   z-index: 100;
 }
-.bar-left {
-		display: flex;
-		align-items: center;
-}
-.bar-btn {
-  background: none;
-  border: none;
-  margin-right: 18px;
+.input-area {
+  flex: 1;
   display: flex;
   align-items: center;
+  background: #f5f5f5;
+  border-radius: 18px;
+  padding: 4px 12px;
   font-size: 16px;
+  color: #222;
+  min-height: 36px;
+  max-height: 36px;
+  line-height: 24px;
+  overflow: hidden;
+}
+.bar-input-text {
+  color: #bbb;
+  font-size: 16px;
+  line-height: 24px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reply-to {
+  color: #1976d2;
+  margin-right: 2px;
+}
+.bar-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bar-btn {
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+  font-size: 16px;
+  background: none;
+  border: none;
+  padding: 0;
 }
 .bar-btn text {
-  margin-left: 4px;
+  margin-left: 2px;
+}
+uni-button:after {
+  border: none !important;
 }
 .bar-right {
   flex: 1;
@@ -629,9 +706,11 @@ export const mockComments = [
 				background: linear-gradient(90deg, #ff9800, #ffc107);
 				color: #fff;
   border: none;
-  border-radius: 20px;
-  padding: 8px 28px;
+  border-radius: 18px;
+  padding: 0 18px;
+  height: 36px;
   font-size: 16px;
   font-weight: 600;
 }
+/* 删除.float-input-bar及相关样式 */
 </style>
