@@ -8,7 +8,7 @@
           <text class="comment-date">{{ formatRelativeTime(comment.createdAt) }}</text>
         </view>
         <view class="comment-content">
-          <template v-if="level > 2 && comment.target_name">
+          <template v-if="level === 2 && comment.pid !== '0' && comment.target_name && isReplyToReply">
             <text class="reply-prefix">回复 </text>
             <text class="reply-to">{{ comment.target_name }}：</text>
             <text>{{ comment.content }}</text>
@@ -32,7 +32,8 @@
             :comment="reply"
             :author-id="authorId"
             :task-owner-id="taskOwnerId"
-            :level="level+1"
+            :level="2"
+            :is-reply-to-reply="isReplyToReplyComment(reply)"
             @reply="$emit('reply', $event)"
             @like="$emit('like', $event)"
           />
@@ -55,7 +56,8 @@
       comment: { type: Object, required: true },
       authorId: { type: String, default: '' },
       taskOwnerId: { type: String, default: '' },
-      level: { type: Number, default: 1 }
+      level: { type: Number, default: 1 },
+      isReplyToReply: { type: Boolean, default: false }
     },
     computed: {
       avatarSize() {
@@ -64,6 +66,13 @@
     },
     methods: {
       formatRelativeTime,
+      isReplyToReplyComment(reply) {
+        // 判断是否为回复回复的评论（三级及以上）
+        // 在平铺结构中，如果 reply.pid 指向的评论不是一级评论，说明是三级及以上评论
+        // 由于我们无法直接访问完整的评论列表，我们通过一个简单的规则来判断：
+        // 如果 reply.pid 存在且不等于当前评论的 id，说明是回复其他评论的评论
+        return reply.pid && reply.pid !== this.comment.id;
+      }
     }
   }
   </script>

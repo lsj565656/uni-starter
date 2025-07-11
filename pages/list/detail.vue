@@ -196,26 +196,26 @@ import { mockComments } from '@/utils/comments.js'
       return count
     },
     handleCommentLike(commentId) {
-      // 先找主评论
-      let found = false
-      for (const c of this.comments) {
-        if (c.id === commentId) {
-          c.is_liked = !c.is_liked
-          c.like_count += c.is_liked ? 1 : -1
-          found = true
-          break
-        }
-        // 再找子评论
-        if (c.replies && c.replies.length) {
-          const r = c.replies.find(r => r.id === commentId)
-          if (r) {
-            r.is_liked = !r.is_liked
-            r.like_count += r.is_liked ? 1 : -1
-            found = true
-            break
+      // 递归查找评论并处理点赞
+      const findAndLikeComment = (commentList) => {
+        for (const comment of commentList) {
+          if (comment.id === commentId) {
+            comment.is_liked = !comment.is_liked;
+            comment.like_count = (comment.like_count || 0) + (comment.is_liked ? 1 : -1);
+            return true;
+          }
+          
+          // 递归查找子评论
+          if (comment.replies && comment.replies.length > 0) {
+            if (findAndLikeComment(comment.replies)) {
+              return true;
+            }
           }
         }
-      }
+        return false;
+      };
+
+      findAndLikeComment(this.comments);
     },
     showCommentInputBar() {
       // 只需弹出输入框，v-model 会自动同步内容
@@ -244,82 +244,128 @@ import { mockComments } from '@/utils/comments.js'
         replies: [],
         reply_count: 0
       };
+
       if (!replyTo || !replyTo.commentId) {
         // 一级评论
         this.comments.unshift(newComment);
         this.barInputValue = '';
-					} else {
-        let inserted = false;
-        for (let i = 0; i < this.comments.length; i++) {
-          const c = this.comments[i];
-          if (c.id === replyTo.commentId) {
-            // 回复主评论，插入到replies数组的第一个（即父评论后面）
-            if (!c.replies) this.$set(c, 'replies', []);
-            newComment.target_id = c.commenter_id;
-            newComment.target_name = c.commenter_name;
-            newComment.target_avatar = c.commenter_avatar;
-            c.replies.splice(0, 0, newComment); // 插入到replies最前面
-            c.reply_count += 1;
-            inserted = true;
-            break;
-          }
-          if (c.replies && c.replies.length) {
-            const idx = c.replies.findIndex(r => r.id === replyTo.commentId);
-            if (idx !== -1) {
-              // 判断pid是否等于当前父评论id，不等于则加前缀
-              let actualParentId = c.id;
-              let prefix = '';
-              if (newComment.pid !== actualParentId) {
-                prefix = `回复 ${c.replies[idx].commenter_name}：`;
-              }
-              newComment.content = prefix + newComment.content;
-              newComment.pid = c.id;
-              newComment.target_id = c.replies[idx].commenter_id;
-              newComment.target_name = c.replies[idx].commenter_name;
-              newComment.target_avatar = c.replies[idx].commenter_avatar;
-              c.replies.splice(idx + 1, 0, newComment); // 插入到被回复评论后面
-              c.reply_count += 1;
-              inserted = true;
-              break;
+        
+        // 重新排序评论，确保层级关系正确
+        this.comments = this.reorderReplies(this.comments);
+      } else {
+        // 查找被回复的评论并设置 target_name
+        const findTargetComment = (commentList, targetId) => {
+          for (const comment of commentList) {
+            if (comment.id === targetId) {
+              return comment;
+            }
+            if (comment.replies && comment.replies.length > 0) {
+              const found = findTargetComment(comment.replies, targetId);
+              if (found) return found;
             }
           }
+          return null;
+        };
+        
+        // 查找被回复评论所属的一级评论
+        const findParentComment = (commentList, targetId) => {
+          for (const comment of commentList) {
+            if (comment.id === targetId) {
+              return comment;
+            }
+            if (comment.replies && comment.replies.length > 0) {
+              // 检查当前一级评论的 replies 中是否包含目标评论
+              const hasTarget = comment.replies.some(reply => reply.id === targetId);
+              if (hasTarget) {
+                return comment;
+              }
+              // 递归查找更深层
+              const found = findParentComment(comment.replies, targetId);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+
+        // 查找被回复的评论
+        const targetComment = findTargetComment(this.comments, replyTo.commentId);
+        if (targetComment) {
+          // 设置被回复的用户信息
+          newComment.target_name = targetComment.commenter_name;
         }
-        if (!inserted) {
+        
+        // 查找被回复评论所属的一级评论
+        const parentComment = findParentComment(this.comments, replyTo.commentId);
+        if (parentComment) {
+          // 将新评论插入到一级评论的 replies 数组中
+          if (!parentComment.replies) {
+            this.$set(parentComment, 'replies', []);
+          }
+          parentComment.replies.unshift(newComment);
+          parentComment.reply_count = (parentComment.reply_count || 0) + 1;
+        } else {
           // fallback: 没找到就push到第一个主评论下
           if (this.comments.length) {
             if (!this.comments[0].replies) this.$set(this.comments[0], 'replies', []);
             this.comments[0].replies.push(newComment);
-            this.comments[0].reply_count += 1;
+            this.comments[0].reply_count = (this.comments[0].reply_count || 0) + 1;
           }
         }
+        
         this.barInputValue = '';
+        
+        // 重新排序评论，确保层级关系正确
+        this.comments = this.reorderReplies(this.comments);
       }
     },
     reorderReplies(comments) {
       if (!Array.isArray(comments)) return [];
-      // 一级评论按时间倒序
-      const roots = comments.slice().sort((a, b) => b.createdAt - a.createdAt);
-      for (const root of roots) {
-        if (Array.isArray(root.replies) && root.replies.length > 0) {
-          root.replies = root.replies.slice().sort((a, b) => b.createdAt - a.createdAt);
+      
+      // 递归函数：按层级关系重新组织评论，保持视觉齐平
+      const organizeByHierarchy = (commentList, parentId = null, maxDepth = 10) => {
+        if (!Array.isArray(commentList) || maxDepth <= 0) return [];
+        
+        const result = [];
+        
+        // 先找直接回复当前父评论的评论
+        const directReplies = commentList.filter(c => c.pid === parentId);
+        
+        // 按时间排序直接回复
+        directReplies.sort((a, b) => b.createdAt - a.createdAt);
+        
+        for (const reply of directReplies) {
+          // 添加当前回复
+          result.push({ ...reply, replies: [] });
+          
+          // 递归查找该回复的所有子回复，并插入到该回复后面
+          const childReplies = commentList.filter(c => c.pid === reply.id);
+          if (childReplies.length > 0) {
+            // 按时间排序子回复
+            childReplies.sort((a, b) => b.createdAt - a.createdAt);
+            // 将子回复平铺插入到当前回复后面
+            for (const child of childReplies) {
+              result.push({ ...child, replies: [] });
+              
+              // 递归处理更深层的回复
+              const deeperReplies = organizeByHierarchy(commentList, child.id, maxDepth - 1);
+              result.push(...deeperReplies);
+            }
+          }
+        }
+        
+        return result;
+      };
+      
+      // 处理每个一级评论
+      for (const comment of comments) {
+        if (Array.isArray(comment.replies) && comment.replies.length > 0) {
+          // 按层级关系组织评论，保持视觉齐平
+          comment.replies = organizeByHierarchy(comment.replies, comment.id);
         }
       }
-      return roots;
-    },
-    // 辅助递归：父评论parent，子评论数组replies
-    _reorderRepliesRecursive(parent, replies) {
-      // 只找直接回复parent的，按时间倒序
-      const directReplies = replies.filter(r => r.pid === parent.id).sort((a, b) => b.createdAt - a.createdAt);
-      const result = [];
-      for (const reply of directReplies) {
-        result.push(reply);
-        if (Array.isArray(replies) && replies.length > 0) {
-          // 递归插入reply的所有子评论
-          const children = this._reorderRepliesRecursive(reply, replies);
-          result.push(...children);
-        }
-      }
-      return result;
+      
+      // 一级评论按时间倒序排序
+      return comments.slice().sort((a, b) => b.createdAt - a.createdAt);
     }
   },
   onLoad(options) {
