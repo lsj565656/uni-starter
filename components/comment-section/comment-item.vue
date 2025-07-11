@@ -8,7 +8,7 @@
           <text class="comment-date">{{ formatRelativeTime(comment.createdAt) }}</text>
         </view>
         <view class="comment-content">
-          <template v-if="level === 2 && comment.pid !== '0' && comment.target_name && isReplyToReply">
+          <template v-if="level >= 3 && comment.target_name">
             <text class="reply-prefix">回复 </text>
             <text class="reply-to">{{ comment.target_name }}：</text>
             <text>{{ comment.content }}</text>
@@ -24,25 +24,55 @@
             <text>{{ comment.like_count || '' }}</text>
           </view>
         </view>
-        <!-- 二级及以上回复 -->
+        
+        <!-- 回复列表 -->
         <view v-if="comment.replies && comment.replies.length > 0" class="replies">
-          <comment-item
-            v-for="reply in comment.replies"
-            :key="reply.id"
-            :comment="reply"
-            :author-id="authorId"
-            :task-owner-id="taskOwnerId"
-            :level="2"
-            :is-reply-to-reply="isReplyToReplyComment(reply)"
-            @reply="$emit('reply', $event)"
-            @like="$emit('like', $event)"
-          />
-          <view v-if="comment.reply_count > comment.replies.length" class="expand-replies" @click="$emit('expand-replies', comment.id)">
-            展开全部{{ comment.reply_count }}条回复
-          </view>
-          <view v-else-if="comment.reply_count > 2 && comment.replies.length === comment.reply_count" class="collapse-replies" @click="$emit('collapse-replies', comment.id)">
-            收起
-          </view>
+          <!-- 显示前2条回复 -->
+          <template v-if="!comment.expanded && comment.replies.length > 2">
+            <comment-item
+              v-for="(reply, index) in comment.replies.slice(0, 2)"
+              :key="reply.id"
+              :comment="reply"
+              :author-id="authorId"
+              :task-owner-id="taskOwnerId"
+              :level="level + 1"
+              @reply="$emit('reply', $event)"
+              @like="$emit('like', $event)"
+            />
+            <!-- 显示更多回复按钮 -->
+            <view v-if="comment.reply_count > 2" class="more-replies" @click="onLoadMoreReplies">
+              <text class="more-replies-text">查看全部{{ comment.reply_count }}条回复</text>
+            </view>
+          </template>
+          
+          <!-- 显示所有回复 -->
+          <template v-else>
+            <comment-item
+              v-for="reply in comment.replies"
+              :key="reply.id"
+              :comment="reply"
+              :author-id="authorId"
+              :task-owner-id="taskOwnerId"
+              :level="level + 1"
+              @reply="$emit('reply', $event)"
+              @like="$emit('like', $event)"
+            />
+            
+            <!-- 加载更多回复 -->
+            <view v-if="comment.hasMoreReplies && !comment.loadingReplies" class="load-more-replies" @click="onLoadMoreReplies">
+              <text class="load-more-replies-text">加载更多回复</text>
+            </view>
+            
+            <!-- 回复加载中 -->
+            <view v-if="comment.loadingReplies" class="loading-replies">
+              <text class="loading-replies-text">加载中...</text>
+            </view>
+            
+            <!-- 收起回复 -->
+            <view v-if="comment.reply_count > 2 && comment.replies.length >= comment.reply_count" class="collapse-replies" @click="$emit('collapse-replies', comment.id)">
+              <text class="collapse-replies-text">收起</text>
+            </view>
+          </template>
         </view>
       </view>
     </view>
@@ -56,8 +86,7 @@
       comment: { type: Object, required: true },
       authorId: { type: String, default: '' },
       taskOwnerId: { type: String, default: '' },
-      level: { type: Number, default: 1 },
-      isReplyToReply: { type: Boolean, default: false }
+      level: { type: Number, default: 1 }
     },
     computed: {
       avatarSize() {
@@ -66,12 +95,8 @@
     },
     methods: {
       formatRelativeTime,
-      isReplyToReplyComment(reply) {
-        // 判断是否为回复回复的评论（三级及以上）
-        // 在平铺结构中，如果 reply.pid 指向的评论不是一级评论，说明是三级及以上评论
-        // 由于我们无法直接访问完整的评论列表，我们通过一个简单的规则来判断：
-        // 如果 reply.pid 存在且不等于当前评论的 id，说明是回复其他评论的评论
-        return reply.pid && reply.pid !== this.comment.id;
+      onLoadMoreReplies() {
+        this.$emit('load-more-replies', this.comment.id)
       }
     }
   }
@@ -91,13 +116,6 @@
   }
   .comment-main {
     flex: 1;
-  }
-  .comment-header {
-    display: flex;
-    align-items: center;
-    font-size: 14px;
-    color: #888;
-    margin-bottom: 2px;
   }
   .comment-nickname {
     font-weight: 500;
@@ -157,5 +175,56 @@
   }
   .replies {
     margin-top: 6px;
+  }
+  .more-replies {
+    padding: 8px 0;
+    color: #1976d2;
+    font-size: 14px;
+  }
+  .more-replies-text {
+    cursor: pointer;
+  }
+  .load-more-replies {
+    padding: 8px 0;
+    color: #1976d2;
+    font-size: 14px;
+  }
+  .load-more-replies-text {
+    cursor: pointer;
+  }
+  .loading-replies {
+    padding: 8px 0;
+    color: #999;
+    font-size: 14px;
+    text-align: center;
+  }
+  .loading-replies-text {
+    display: inline-block;
+    position: relative;
+  }
+  .loading-replies-text::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    margin: auto;
+    border: 2px solid transparent;
+    border-top-color: #999;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    right: -20px;
+    top: 0;
+  }
+  .collapse-replies {
+    padding: 8px 0;
+    color: #999;
+    font-size: 14px;
+  }
+  .collapse-replies-text {
+    cursor: pointer;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 </style>

@@ -35,8 +35,8 @@
 
     <!-- 发布者 -->
     <view class="task-publisher">
-      <image class="publisher-avatar" :src="task.user?.avatar_file?.url || '/static/logo.png'" />
-      <text class="publisher-nickname">{{ task.user?.nickname }}</text>
+      <image class="publisher-avatar" :src="task.user?.ownerAvatarUrl?.url || '/static/logo.png'" />
+      <text class="publisher-nickname">{{ task.user?.ownerNickname }}</text>
       <text class="publisher-date">发布于{{ formatTime(task.create_date) }}</text>
 				</view>
 
@@ -46,12 +46,16 @@
       v-model="barInputValue"
       :comments="comments"
       :total-count="totalCommentCount"
-      :author-id="currentUserId"
-      :task-owner-id="taskOwnerId"
+      :author-id="this.userInfo._id"
+      :task-owner-id="this.task.user?.ownerUserId"
+      :loading="commentLoading"
+      :has-more="hasMoreComments"
       @submit="onCommentSubmit"
       @like="handleCommentLike"
       @expand-replies="handleExpandReplies"
       @collapse-replies="handleCollapseReplies"
+      @load-more="loadMoreComments"
+      @load-more-replies="handleLoadMoreReplies"
       @blur="onCommentInputBlur"
     />
 
@@ -78,295 +82,406 @@
 <script>
 import { formatTime } from '@/utils/tools.js';
 import { mockComments } from '@/utils/comments.js'
+import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 
 	export default {
 		data() {
 			return {
-      id: '',
-      task: {
-        image: '',
-        score: 0,
-        price: 0,
-        mode: 'score',
-        joined_count: 0,
-        max_participants: 1,
-        category_name: '',
-        name: '',
-        description: '',
-        location: '',
-        start_time: '',
-        end_time: '',
-        user: {
-          nickname: '',
-          avatar_file: { url: '' }
+        id: '',
+        task: {
+          image: '',
+          score: 0,
+          price: 0,
+          mode: 'score',
+          joined_count: 0,
+          max_participants: 1,
+          category_name: '',
+          name: '',
+          description: '',
+          location: '',
+          start_time: '',
+          end_time: '',
+          user: {
+            nickname: '',
+            avatar_file: { url: '' }
+          },
+          create_date: '',
+          is_liked: false,
+          like_count: 0
         },
-        create_date: '',
-        is_liked: false,
-        like_count: 0
-      },
-      comments: mockComments,
-      currentUserId: 'u1',
-      taskOwnerId: 'u2',
-      totalCommentCount: 0,
-      barInputValue: '',
-    }
-  },
-  watch: {
-    comments: {
-      handler(val) {
-        this.totalCommentCount = this.calcTotalCommentCount(val)
-      },
-      deep: true,
-      immediate: true
+        comments: [],
+        // comments: mockComments,
+        taskOwnerId: 'u2', // 实际应从任务数据获取
+        totalCommentCount: 0,
+        barInputValue: '',
+        commentLoading: false,
+        hasMoreComments: false,
+        currentPage: 1,
+        pageSize: 20,
+        // 存储每个评论的回复分页状态
+        replyPaginationMap: new Map()
+      }
+    },
+    watch: {
+      comments: {
+        handler(val) {
+          this.totalCommentCount = this.calcTotalCommentCount(val)
+        },
+        deep: true,
+        immediate: true
 			}
 		},
+    computed: {
+      userInfo() {
+        return store.userInfo
+      }
+    },
 		mounted() {
-    // 对评论树做排序和重排
-    this.comments = this.reorderReplies(this.comments)
+      this.loadComments();
 		},
 		methods: {
-    formatTime,
-    onLike() {
-      const wasLiked = !!this.task.is_liked;
-      const oldLikeCount = typeof this.task.like_count === 'number' ? this.task.like_count : 0;
-      // 乐观更新
-      if (wasLiked) {
-        this.task.is_liked = false;
-        this.task.like_count = Math.max(oldLikeCount - 1, 0);
-      } else {
-        this.task.is_liked = true;
-        this.task.like_count = oldLikeCount + 1;
-      }
-      uniCloud.callFunction({
-        name: 'likeTask',
-        data: { task_id: this.id }
-      }).then(res => {
-        const result = res.result;
-        if (result && result.code === 0) {
-          // 成功后不处理，UI已响应
+      formatTime,
+      
+      // 加载评论列表
+      async loadComments(page = 1) {
+        if (this.commentLoading) return;
+        
+        this.commentLoading = true;
+        
+        try {
+          const res = await uniCloud.callFunction({
+            name: 'getTaskComments',
+            data: {
+              taskId: this.id,
+              page,
+              pageSize: this.pageSize,
+              currentUserId: this.userInfo._id
+            }
+          });
+          
+          if (res.result && res.result.code === 0) {
+            const { comments, total, hasMore } = res.result.data;
+            
+            if (page === 1) {
+              // 第一页，替换数据
+              this.comments = comments;
+              this.currentPage = 1;
+            } else {
+              // 加载更多，追加数据
+              this.comments = [...this.comments, ...comments];
+            }
+            
+            this.hasMoreComments = hasMore;
+            this.totalCommentCount = total;
+          } else {
+            uni.showToast({
+              title: res.result?.message || '加载评论失败',
+              icon: 'none'
+            });
+          }
+        } catch (error) {
+          console.error('加载评论失败:', error);
+          uni.showToast({
+            title: '加载评论失败',
+            icon: 'none'
+          });
+        } finally {
+          this.commentLoading = false;
+        }
+      },
+      
+      // 加载更多评论
+      loadMoreComments() {
+        if (this.hasMoreComments && !this.commentLoading) {
+          this.loadComments(this.currentPage + 1);
+        }
+      },
+      
+      // 加载更多回复
+      async loadMoreReplies(commentId, page = 1) {
+        const paginationKey = `${commentId}_${page}`;
+        if (this.replyPaginationMap.has(paginationKey)) {
+          return this.replyPaginationMap.get(paginationKey);
+        }
+        
+        try {
+          const res = await uniCloud.callFunction({
+            name: 'getMoreReplies',
+            data: {
+              taskId: this.id,
+              parentId: commentId,
+              page,
+              pageSize: 10,
+              currentUserId: this.userInfo._id
+            }
+          });
+          
+          if (res.result && res.result.code === 0) {
+            const { replies, total, hasMore } = res.result.data;
+            
+            // 缓存结果
+            this.replyPaginationMap.set(paginationKey, {
+              replies,
+              total,
+              hasMore
+            });
+            
+            return { replies, total, hasMore };
+          } else {
+            throw new Error(res.result?.message || '加载回复失败');
+          }
+        } catch (error) {
+          console.error('加载回复失败:', error);
+          uni.showToast({
+            title: '加载回复失败',
+            icon: 'none'
+          });
+          return { replies: [], total: 0, hasMore: false };
+        }
+      },
+      
+      onLike() {
+        const wasLiked = !!this.task.is_liked;
+        const oldLikeCount = typeof this.task.like_count === 'number' ? this.task.like_count : 0;
+        // 乐观更新
+        if (wasLiked) {
+          this.task.is_liked = false;
+          this.task.like_count = Math.max(oldLikeCount - 1, 0);
         } else {
-          // 失败回滚
+          this.task.is_liked = true;
+          this.task.like_count = oldLikeCount + 1;
+        }
+        uniCloud.callFunction({
+          name: 'likeTask',
+          data: { task_id: this.id }
+        }).then(res => {
+          const result = res.result;
+          if (result && result.code === 0) {
+            // 成功后不处理，UI已响应
+          } else {
+            // 失败回滚
+            this.task.is_liked = wasLiked;
+            this.task.like_count = oldLikeCount;
+          }
+        }).catch(() => {
+          // 网络异常回滚
           this.task.is_liked = wasLiked;
           this.task.like_count = oldLikeCount;
-        }
-      }).catch(() => {
-        // 网络异常回滚
-        this.task.is_liked = wasLiked;
-        this.task.like_count = oldLikeCount;
-      });
-    },
-    onComment() {
-      uni.showToast({ title: '评论功能开发中', icon: 'none' });
-    },
-    onJoin() {
-      uni.showToast({ title: '加入功能开发中', icon: 'none' });
-    },
-    fetchTaskDetail(id) {
-      uniCloud.callFunction({
-        name: 'getTaskDetail',
-        data: { id }
-      }).then(res => {
-        if (res.result && res.result.data) {
-          this.task = { ...this.task, ...res.result.data };
-        }
+        });
+      },
+      
+      onComment() {
+        uni.showToast({ title: '评论功能开发中', icon: 'none' });
+      },
+      
+      onJoin() {
+        uni.showToast({ title: '加入功能开发中', icon: 'none' });
+      },
+      
+      fetchTaskDetail(id) {
+        uniCloud.callFunction({
+          name: 'getTaskDetail',
+          data: { id }
+        }).then(res => {
+          if (res.result && res.result.data) {
+            this.task = { ...this.task, ...res.result.data };
+          }
 				});
 			},
-    handleExpandReplies(commentId) {
-      const idx = this.comments.findIndex(c => c.id === commentId)
-      if (idx === -1) return
-      const allReplies = this.allRepliesMap[commentId]
-      if (!allReplies) return
-      this.$set(this.comments[idx], 'replies', allReplies)
-    },
-    handleCollapseReplies(commentId) {
-      const idx = this.comments.findIndex(c => c.id === commentId)
-      if (idx === -1) return
-      const allReplies = this.allRepliesMap[commentId]
-      if (!allReplies) return
-      this.$set(this.comments[idx], 'replies', allReplies.slice(0, 2))
-    },
-    calcTotalCommentCount(comments) {
-      let count = 0
-      for (const c of comments) {
-        count += 1
-        if (c.replies && c.replies.length) {
-          count += this.calcTotalCommentCount(c.replies)
+      
+      // 展开回复
+      async handleExpandReplies(commentId) {
+        const comment = this.findCommentById(commentId);
+        if (!comment) return;
+        
+        // 标记为已展开
+        this.$set(comment, 'expanded', true);
+        
+        // 如果已经有完整回复，直接展开
+        if (comment.replies && comment.replies.length >= comment.reply_count) {
+          return;
         }
-      }
-      return count
-    },
-    handleCommentLike(commentId) {
-      // 递归查找评论并处理点赞
-      const findAndLikeComment = (commentList) => {
-        for (const comment of commentList) {
-          if (comment.id === commentId) {
-            comment.is_liked = !comment.is_liked;
-            comment.like_count = (comment.like_count || 0) + (comment.is_liked ? 1 : -1);
-            return true;
+        
+        // 加载更多回复
+        const { replies, hasMore } = await this.loadMoreReplies(commentId, 1);
+        
+        if (replies.length > 0) {
+          // 合并回复
+          const existingReplies = comment.replies || [];
+          comment.replies = [...existingReplies, ...replies];
+          comment.hasMoreReplies = hasMore;
+        }
+      },
+      
+      // 收起回复
+      handleCollapseReplies(commentId) {
+        const comment = this.findCommentById(commentId);
+        if (!comment) return;
+        
+        // 标记为未展开
+        this.$set(comment, 'expanded', false);
+        
+        // 只保留前2条回复
+        if (comment.replies && comment.replies.length > 2) {
+          comment.replies = comment.replies.slice(0, 2);
+          comment.hasMoreReplies = true;
+        }
+      },
+      
+      // 查找评论
+      findCommentById(commentId) {
+        const findInList = (commentList) => {
+          for (const comment of commentList) {
+            if (comment.id === commentId) {
+              return comment;
+            }
+            if (comment.replies && comment.replies.length > 0) {
+              const found = findInList(comment.replies);
+              if (found) return found;
+            }
           }
-          
-          // 递归查找子评论
-          if (comment.replies && comment.replies.length > 0) {
-            if (findAndLikeComment(comment.replies)) {
+          return null;
+        };
+        
+        return findInList(this.comments);
+      },
+      
+      calcTotalCommentCount(comments) {
+        let count = 0
+        for (const c of comments) {
+          count += 1
+          if (c.replies && c.replies.length) {
+            count += this.calcTotalCommentCount(c.replies)
+          }
+        }
+        return count
+      },
+      
+      handleCommentLike(commentId) {
+        // 递归查找评论并处理点赞
+        const findAndLikeComment = (commentList) => {
+          for (const comment of commentList) {
+            if (comment.id === commentId) {
+              comment.is_liked = !comment.is_liked;
+              comment.like_count = (comment.like_count || 0) + (comment.is_liked ? 1 : -1);
               return true;
             }
-          }
-        }
-        return false;
-      };
-
-      findAndLikeComment(this.comments);
-    },
-    showCommentInputBar() {
-      // 只需弹出输入框，v-model 会自动同步内容
-      if (this.$refs.commentSection && this.$refs.commentSection.onReply) {
-        this.$refs.commentSection.onReply({ id: '', commenter_name: '' })
-      } else if (this.$refs.commentSection) {
-        this.$refs.commentSection.showInputBar = true
-      }
-    },
-    onCommentInputBlur(val) {
-      this.barInputValue = val && val.trim() ? val : ''
-    },
-    onCommentSubmit({ content, replyTo }) {
-      const now = Date.now();
-      const newComment = {
-        id: 'c' + now,
-        pid: replyTo && replyTo.commentId ? replyTo.commentId : '0',
-        task_id: this.id,
-        content,
-        createdAt: now,
-        commenter_id: this.currentUserId,
-        commenter_name: '我', // 实际应取当前用户昵称
-        commenter_avatar: '/static/avatar_me.png', // 实际应取当前用户头像
-        like_count: 0,
-        is_liked: false,
-        replies: [],
-        reply_count: 0
-      };
-
-      if (!replyTo || !replyTo.commentId) {
-        // 一级评论
-        this.comments.unshift(newComment);
-        this.barInputValue = '';
-        
-        // 重新排序评论，确保层级关系正确
-        this.comments = this.reorderReplies(this.comments);
-      } else {
-        // 查找被回复的评论并设置 target_name
-        const findTargetComment = (commentList, targetId) => {
-          for (const comment of commentList) {
-            if (comment.id === targetId) {
-              return comment;
-            }
+            
+            // 递归查找子评论
             if (comment.replies && comment.replies.length > 0) {
-              const found = findTargetComment(comment.replies, targetId);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-        
-        // 查找被回复评论所属的一级评论
-        const findParentComment = (commentList, targetId) => {
-          for (const comment of commentList) {
-            if (comment.id === targetId) {
-              return comment;
-            }
-            if (comment.replies && comment.replies.length > 0) {
-              // 检查当前一级评论的 replies 中是否包含目标评论
-              const hasTarget = comment.replies.some(reply => reply.id === targetId);
-              if (hasTarget) {
-                return comment;
+              if (findAndLikeComment(comment.replies)) {
+                return true;
               }
-              // 递归查找更深层
-              const found = findParentComment(comment.replies, targetId);
-              if (found) return found;
             }
           }
-          return null;
+          return false;
         };
 
-        // 查找被回复的评论
-        const targetComment = findTargetComment(this.comments, replyTo.commentId);
-        if (targetComment) {
-          // 设置被回复的用户信息
-          newComment.target_name = targetComment.commenter_name;
-        }
-        
-        // 查找被回复评论所属的一级评论
-        const parentComment = findParentComment(this.comments, replyTo.commentId);
-        if (parentComment) {
-          // 将新评论插入到一级评论的 replies 数组中
-          if (!parentComment.replies) {
-            this.$set(parentComment, 'replies', []);
-          }
-          parentComment.replies.unshift(newComment);
-          parentComment.reply_count = (parentComment.reply_count || 0) + 1;
-        } else {
-          // fallback: 没找到就push到第一个主评论下
-          if (this.comments.length) {
-            if (!this.comments[0].replies) this.$set(this.comments[0], 'replies', []);
-            this.comments[0].replies.push(newComment);
-            this.comments[0].reply_count = (this.comments[0].reply_count || 0) + 1;
-          }
-        }
-        
-        this.barInputValue = '';
-        
-        // 重新排序评论，确保层级关系正确
-        this.comments = this.reorderReplies(this.comments);
-      }
-    },
-    reorderReplies(comments) {
-      if (!Array.isArray(comments)) return [];
+        findAndLikeComment(this.comments);
+      },
       
-      // 递归函数：按层级关系重新组织评论，保持视觉齐平
-      const organizeByHierarchy = (commentList, parentId = null, maxDepth = 10) => {
-        if (!Array.isArray(commentList) || maxDepth <= 0) return [];
+      showCommentInputBar() {
+        // 只需弹出输入框，v-model 会自动同步内容
+        if (this.$refs.commentSection && this.$refs.commentSection.onReply) {
+          this.$refs.commentSection.onReply({ id: '', commenter_name: '' })
+        } else if (this.$refs.commentSection) {
+          this.$refs.commentSection.showInputBar = true
+        }
+      },
+      
+      onCommentInputBlur(val) {
+        this.barInputValue = val && val.trim() ? val : ''
+      },
+      
+      async onCommentSubmit({ content, replyTo }) {
+        if (!content.trim()) {
+          uni.showToast({
+            title: '请输入评论内容',
+            icon: 'none'
+          });
+          return;
+        }
         
-        const result = [];
-        
-        // 先找直接回复当前父评论的评论
-        const directReplies = commentList.filter(c => c.pid === parentId);
-        
-        // 按时间排序直接回复
-        directReplies.sort((a, b) => b.createdAt - a.createdAt);
-        
-        for (const reply of directReplies) {
-          // 添加当前回复
-          result.push({ ...reply, replies: [] });
-          
-          // 递归查找该回复的所有子回复，并插入到该回复后面
-          const childReplies = commentList.filter(c => c.pid === reply.id);
-          if (childReplies.length > 0) {
-            // 按时间排序子回复
-            childReplies.sort((a, b) => b.createdAt - a.createdAt);
-            // 将子回复平铺插入到当前回复后面
-            for (const child of childReplies) {
-              result.push({ ...child, replies: [] });
-              
-              // 递归处理更深层的回复
-              const deeperReplies = organizeByHierarchy(commentList, child.id, maxDepth - 1);
-              result.push(...deeperReplies);
+        try {
+          const res = await uniCloud.callFunction({
+            name: 'addTaskComment',
+            data: {
+              taskId: this.id,
+              content: content.trim(),
+              pid: replyTo && replyTo.commentId ? replyTo.commentId : '0',
+              targetName: replyTo && replyTo.commenterName ? replyTo.commenterName : null,
+              currentUserId: this.userInfo._id,
+              currentUserName: this.userInfo.nickname, // 实际应从用户系统获取
+              currentUserAvatar: this.userInfo.avatar_file.url, // 实际应从用户系统获取
+              taskOwnerId: this.task.user?.ownerUserId
             }
+          });
+          
+          if (res.result && res.result.code === 0) {
+            const newComment = res.result.data;
+            
+            if (!replyTo || !replyTo.commentId) {
+              // 一级评论，添加到列表顶部
+              this.comments.unshift(newComment);
+            } else {
+              // 回复评论，添加到对应父评论的回复中
+              const parentComment = this.findCommentById(replyTo.commentId);
+              if (parentComment) {
+                if (!parentComment.replies) {
+                  this.$set(parentComment, 'replies', []);
+                }
+                parentComment.replies.unshift(newComment);
+                parentComment.reply_count = (parentComment.reply_count || 0) + 1;
+              }
+            }
+            
+            this.barInputValue = '';
+            
+            uni.showToast({
+              title: '评论成功',
+              icon: 'success'
+            });
+          } else {
+            throw new Error(res.result?.message || '评论失败');
           }
+        } catch (error) {
+          console.error('评论失败:', error);
+          uni.showToast({
+            title: error.message || '评论失败',
+            icon: 'none'
+          });
         }
-        
-        return result;
-      };
+      },
       
-      // 处理每个一级评论
-      for (const comment of comments) {
-        if (Array.isArray(comment.replies) && comment.replies.length > 0) {
-          // 按层级关系组织评论，保持视觉齐平
-          comment.replies = organizeByHierarchy(comment.replies, comment.id);
+      // 加载更多回复
+      async handleLoadMoreReplies(commentId) {
+        const comment = this.findCommentById(commentId);
+        if (!comment) return;
+        
+        // 设置加载状态
+        this.$set(comment, 'loadingReplies', true);
+        
+        try {
+          // 计算当前页码
+          const currentPage = Math.floor((comment.replies?.length || 0) / 10) + 1;
+          const { replies, hasMore } = await this.loadMoreReplies(commentId, currentPage);
+          
+          if (replies.length > 0) {
+            // 合并回复
+            const existingReplies = comment.replies || [];
+            comment.replies = [...existingReplies, ...replies];
+            comment.hasMoreReplies = hasMore;
+          }
+        } catch (error) {
+          console.error('加载更多回复失败:', error);
+          uni.showToast({
+            title: '加载更多回复失败',
+            icon: 'none'
+          });
+        } finally {
+          this.$set(comment, 'loadingReplies', false);
         }
       }
-      
-      // 一级评论按时间倒序排序
-      return comments.slice().sort((a, b) => b.createdAt - a.createdAt);
-    }
   },
   onLoad(options) {
     if (options.id) this.id = options.id;
@@ -381,8 +496,9 @@ import { mockComments } from '@/utils/comments.js'
       joined_count: options.joined_count ? Number(options.joined_count) : 0,
       max_participants: options.max_participants ? Number(options.max_participants) : 1,
       user: {
-        nickname: options.nickname ? decodeURIComponent(options.nickname) : '',
-        avatar_file: { url: options.avatar_url ? decodeURIComponent(options.avatar_url) : '' }
+        ownerUserId: options.ownerUserId ? decodeURIComponent(options.ownerUserId) : '',
+        ownerNickname: options.ownerNickname ? decodeURIComponent(options.ownerNickname) : '',
+        ownerAvatarUrl: { url: options.ownerAvatarUrl ? decodeURIComponent(options.ownerAvatarUrl) : '' }
       },
       score: options.score ? Number(options.score) : 0,
       price: options.price ? Number(options.price) : 0,
@@ -392,19 +508,24 @@ import { mockComments } from '@/utils/comments.js'
       end_time: options.end_time ? Number(options.end_time) : '',
       create_date: options.create_date ? Number(options.create_date) : '',
       category_name: options.category_name ? decodeURIComponent(options.category_name) : '',
-      // 可继续加其它字段
+      // 可继续加其它字段 
     };
   },
   onPullDownRefresh() {
     if (!this.id) return;
-    uniCloud.callFunction({
-      name: 'getTaskDetail',
-      data: { id: this.id }
-    }).then(res => {
-      if (res.result && res.result.data) {
+    Promise.all([
+      // 刷新任务详情
+      uniCloud.callFunction({
+        name: 'getTaskDetail',
+        data: { id: this.id }
+      }),
+      // 刷新评论列表
+      this.loadComments(1)
+    ]).then(([taskRes]) => {
+      if (taskRes.result && taskRes.result.data) {
         // 保留本地 is_liked/like_count
         const { is_liked, like_count } = this.task;
-        this.task = { ...this.task, ...res.result.data, is_liked, like_count };
+        this.task = { ...this.task, ...taskRes.result.data, is_liked, like_count };
       }
       uni.stopPullDownRefresh();
     }).catch(() => {

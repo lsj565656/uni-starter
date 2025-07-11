@@ -39,9 +39,10 @@ export default {
   methods: {
     goDetail() {
       // 合并任务和用户的所有核心字段
-      const { _id, name, image, description, like_count, is_liked, joined_count, max_participants, score, price, mode, location, start_time, end_time, category_name, create_date } = this.task;
-      const nickname = this.user?.nickname || '';
-      const avatar_url = this.user?.avatar_file?.url || '';
+      const { _id, name, image, description, like_count, is_liked, joined_count, max_participants, score, price, mode, location, start_time, end_time, category_name, create_date} = this.task;
+      const ownerUserId = this.user?._id || '';
+      const ownerNickname = this.user?.nickname || '';
+      const ownerAvatarUrl = this.user?.avatar_file?.url || '';
       // 构建参数对象
       const params = {
         id: _id,
@@ -59,8 +60,9 @@ export default {
         start_time,
         end_time,
         category_name,
-        nickname,
-        avatar_url,
+        ownerUserId,
+        ownerNickname,
+        ownerAvatarUrl,
         create_date
       };
       // 构建 url 查询字符串

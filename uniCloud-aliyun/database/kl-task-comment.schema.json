@@ -1,0 +1,94 @@
+{
+  "bsonType": "object",
+  "required": ["task_id", "content", "commenter_id", "commenter_name"],
+  "permission": {
+    "read": true,
+    "create": "auth.uid != null",
+    "update": "doc.commenter_id == auth.uid",
+    "delete": "doc.commenter_id == auth.uid || doc.task_owner_id == auth.uid"
+  },
+  "properties": {
+    "_id": {
+      "description": "ID，系统自动生成"
+    },
+    "pid": {
+      "bsonType": "string",
+      "description": "父评论ID，0表示一级评论",
+      "defaultValue": "0"
+    },
+    "task_id": {
+      "bsonType": "string",
+      "description": "任务ID",
+      "title": "任务ID"
+    },
+    "content": {
+      "bsonType": "string",
+      "description": "评论内容",
+      "title": "评论内容",
+      "maxLength": 500
+    },
+    "commenter_id": {
+      "bsonType": "string",
+      "description": "评论者ID",
+      "title": "评论者ID"
+    },
+    "commenter_name": {
+      "bsonType": "string",
+      "description": "评论者昵称",
+      "title": "评论者昵称",
+      "maxLength": 50
+    },
+    "commenter_avatar": {
+      "bsonType": "string",
+      "description": "评论者头像",
+      "title": "评论者头像"
+    },
+    "target_name": {
+      "bsonType": "string",
+      "description": "被回复的用户昵称",
+      "title": "被回复用户",
+      "maxLength": 50
+    },
+    "like_count": {
+      "bsonType": "int",
+      "description": "点赞数",
+      "title": "点赞数",
+      "minimum": 0,
+      "defaultValue": 0
+    },
+    "is_liked": {
+      "bsonType": "bool",
+      "description": "当前用户是否点赞",
+      "title": "是否点赞",
+      "defaultValue": false
+    },
+    "reply_count": {
+      "bsonType": "int",
+      "description": "回复数",
+      "title": "回复数",
+      "minimum": 0,
+      "defaultValue": 0
+    },
+    "task_owner_id": {
+      "bsonType": "string",
+      "description": "任务发布者ID",
+      "title": "任务发布者ID"
+    },
+    "create_date": {
+      "bsonType": "timestamp",
+      "description": "创建时间",
+      "title": "创建时间",
+      "defaultValue": {
+        "$env": "now"
+      }
+    },
+    "update_date": {
+      "bsonType": "timestamp",
+      "description": "更新时间",
+      "title": "更新时间",
+      "defaultValue": {
+        "$env": "now"
+      }
+    }
+  }
+} 

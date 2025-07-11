@@ -769,7 +769,6 @@
 								lastUpdate: Date.now(),
 								filterKey: ''
 							};
-							console.log('[categoryCache] 写入缓存:', catNum, this.categoryCache[catNum]);
 						}
 					});
 				} else {
@@ -845,7 +844,6 @@
 				this.colListKey++;
 				this.inited = true;
 			});
-			 console.log('登录后token:', uni.getStorageSync('uni_id_token'));
 		},
 	}
 </script>

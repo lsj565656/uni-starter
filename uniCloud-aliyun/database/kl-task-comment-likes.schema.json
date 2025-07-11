@@ -1,0 +1,38 @@
+{
+  "bsonType": "object",
+  "required": ["comment_id", "user_id"],
+  "permission": {
+    "read": "auth.uid != null",
+    "create": "auth.uid != null",
+    "update": false,
+    "delete": "doc.user_id == auth.uid"
+  },
+  "properties": {
+    "_id": {
+      "description": "ID，系统自动生成"
+    },
+    "comment_id": {
+      "bsonType": "string",
+      "description": "评论ID",
+      "title": "评论ID"
+    },
+    "user_id": {
+      "bsonType": "string",
+      "description": "用户ID",
+      "title": "用户ID"
+    },
+    "task_id": {
+      "bsonType": "string",
+      "description": "任务ID",
+      "title": "任务ID"
+    },
+    "create_date": {
+      "bsonType": "timestamp",
+      "description": "创建时间",
+      "title": "创建时间",
+      "defaultValue": {
+        "$env": "now"
+      }
+    }
+  }
+} 

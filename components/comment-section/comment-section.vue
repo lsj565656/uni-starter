@@ -3,7 +3,7 @@
       <view class="comment-header">
         <text class="comment-count">{{ totalCount }} 条评论</text>
       </view>
-      <view v-if="comments.length === 0" class="comment-empty">暂无评论</view>
+      <view v-if="comments.length === 0 && !loading" class="comment-empty">暂无评论</view>
       <view v-else>
         <comment-item
           v-for="item in comments"
@@ -15,8 +15,21 @@
           @like="onLike"
           @expand-replies="onExpandReplies"
           @collapse-replies="onCollapseReplies"
+          @load-more-replies="onLoadMoreReplies"
         />
-        <view class="comment-footer">没有更多评论</view>
+        
+        <!-- 加载更多评论 -->
+        <view v-if="hasMore && !loading" class="load-more" @click="onLoadMore">
+          <text class="load-more-text">加载更多评论</text>
+        </view>
+        
+        <!-- 加载中 -->
+        <view v-if="loading" class="loading">
+          <text class="loading-text">加载中...</text>
+        </view>
+        
+        <!-- 没有更多 -->
+        <view v-if="!hasMore && comments.length > 0" class="comment-footer">没有更多评论</view>
       </view>
       <view v-if="showInputBar" class="input-mask" @click="onInputMaskClick"></view>
       <comment-input-bar
@@ -43,14 +56,16 @@
       comments: { type: Array, default: () => [] },
       totalCount: { type: Number, default: 0 },
       authorId: { type: String, default: '' },
-      taskOwnerId: { type: String, default: '' }
+      taskOwnerId: { type: String, default: '' },
+      loading: { type: Boolean, default: false },
+      hasMore: { type: Boolean, default: false }
     },
-    emits: ['submit', 'blur', 'clearContent'],
+    emits: ['submit', 'blur', 'clearContent', 'load-more', 'expand-replies', 'collapse-replies', 'load-more-replies'],
     data() {
       return {
         inputValue: '',
         replyTo: null,
-        showInputBar: false // 新增
+        showInputBar: false
       }
     },
     computed: {
@@ -81,10 +96,8 @@
       },
       onInputBarClear() {
         // 输入内容被清空，不退出回复状态
-        // this.replyTo = null // 移除这行，保持回复状态
       },
       onInputBlur() {
-        console.log(' section onInputBlur do !');
         setTimeout(() => {
           this.$emit('blur', this.inputValue); // 关键：把内容传递给父组件
           this.replyTo = null
@@ -116,6 +129,12 @@
       },
       onCollapseReplies(commentId) {
         this.$emit('collapse-replies', commentId)
+      },
+      onLoadMore() {
+        this.$emit('load-more')
+      },
+      onLoadMoreReplies(commentId) {
+        this.$emit('load-more-replies', commentId)
       }
     }
   }
@@ -130,7 +149,7 @@
   .comment-header {
     font-size: 16px;
     font-weight: 600;
-    padding: 16px 16px 8px 16px;
+    padding: 16px 16px 16px 4px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -148,6 +167,42 @@
     text-align: center;
     font-size: 13px;
     margin: 18px 0 10px 0;
+  }
+  .load-more {
+    text-align: center;
+    padding: 16px 0;
+    color: #1976d2;
+    font-size: 14px;
+  }
+  .load-more-text {
+    cursor: pointer;
+  }
+  .loading {
+    text-align: center;
+    padding: 16px 0;
+    color: #999;
+    font-size: 14px;
+  }
+  .loading-text {
+    display: inline-block;
+    position: relative;
+  }
+  .loading-text::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    margin: auto;
+    border: 2px solid transparent;
+    border-top-color: #999;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    right: -24px;
+    top: 0;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
   .input-mask {
     position: fixed;
