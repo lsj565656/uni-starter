@@ -31,7 +31,7 @@
             </swiper-item>
         </swiper>
 
-				<!-- 宫格功能区 -->
+		<!-- 宫格功能区 -->
 		<view class="section">
 			<!-- <uni-title type="h2" title="快捷功能" align="left" /> -->
 			<uni-grid :column="3" :highlight="true" @change="change">
@@ -49,7 +49,7 @@
 		</view>
 
 		<!-- 店铺信息卡片 -->
-		<shop-info-card
+		<!-- <shop-info-card
 			:store-name="storeName"
 			:business-status-text="businessStatusText"
 			:business-status-class="businessStatusClass"
@@ -59,41 +59,13 @@
 			:phone="phone"
 			@address-click="openMap"
 			@phone-click="makePhoneCall"
-		/>
+		/> -->
 
-		<!-- 食材区 -->
-		<view class="section" id="ingredients-section">
-			<view class="section-header">
-				<view class="section-title">
-					<uni-icons type="shop" size="20" color="#007aff" />
-					<text>新鲜食材</text>
-				</view>
-				<view class="section-actions">
-					<text class="update-time">{{ ingredientsUpdateTime }}</text>
-					<uni-icons type="refresh" size="16" color="#666" @click="refreshIngredients"></uni-icons>
-				</view>
-			</view>
-			<scroll-view class="ingredients-scroll"
-			:class="{ 'scrolled-left': isIngredientsScrolledLeft }"
-			scroll-x show-scrollbar="false"
-			@scroll="handleIngredientsScroll"
-			>
-				<view class="ingredients-container">
-					<ingredient-card
-						v-for="ingredient in ingredients"
-						:key="ingredient.id"
-						:ingredient="ingredient"
-						@click="showIngredientDetail(ingredient)"
-					/>
-				</view>
-			</scroll-view>
-		</view>
-
-		<!-- 面食制作流程 -->
+		<!-- 发布流程 -->
 		<view class="section" id="flour-process-section">
 			<view class="section-header">
 				<uni-icons type="gear" size="20" color="#007aff" />
-				<text class="section-title">面食制作</text>
+				<text class="section-title">玩法技巧</text>
 				<view class="timeline-mode-switch">
 					<uni-icons
 						custom-prefix="iconfont"
@@ -128,48 +100,6 @@
 				:process-data="flourProcess"
 				:mode="flourTimelineMode"
 				@image-click="handleFlourTimelineImageClick"
-			/>
-		</view>
-
-		<!-- 卤肉制作流程 -->
-		<view id="meat-process" class="section">
-			<view class="section-header">
-				<uni-icons type="fire" size="20" color="#007aff" />
-				<text class="section-title">卤肉制作</text>
-				<view class="timeline-mode-switch">
-					<uni-icons
-						custom-prefix="iconfont"
-						type="icon-align-text-center"
-						:color="meatTimelineMode === 'tree' ? '#007aff' : '#bbb'"
-						size="22"
-						@click="meatTimelineMode = 'tree'"
-						class="mode-icon"
-					/>
-					<uni-icons
-						custom-prefix="iconfont"
-						type="icon-wenzijuzuo"
-						:color="meatTimelineMode === 'vertical' ? '#007aff' : '#bbb'"
-						size="22"
-						@click="meatTimelineMode = 'vertical'"
-						class="mode-icon"
-					/>
-				</view>
-				<view class="section-actions">
-					<text class="update-time">{{ processUpdateTime }}</text>
-					<uni-icons
-						type="refresh"
-						size="16"
-						color="#666"
-						@click="refreshProcess"
-					/>
-				</view>
-			</view>
-			<timeline
-				:steps="meatProcessSteps"
-				:current-step="currentMeatStep"
-				:process-data="meatProcess"
-				:mode="meatTimelineMode"
-				@image-click="handleMeatTimelineImageClick"
 			/>
 		</view>
 
@@ -290,8 +220,35 @@
 			</unicloud-db>
 		</view>
 	</view>
+	<!-- 优质案例 -->
+	<view class="section" id="ingredients-section">
+		<view class="section-header">
+			<view class="section-title">
+				<uni-icons type="shop" size="20" color="#007aff" />
+				<text>优质案例</text>
+			</view>
+			<view class="section-actions">
+				<text class="update-time">{{ ingredientsUpdateTime }}</text>
+				<uni-icons type="refresh" size="16" color="#666" @click="refreshIngredients"></uni-icons>
+			</view>
+		</view>
+		<scroll-view class="ingredients-scroll"
+		:class="{ 'scrolled-left': isIngredientsScrolledLeft }"
+		scroll-x show-scrollbar="false"
+		@scroll="handleIngredientsScroll"
+		>
+			<view class="ingredients-container">
+				<ingredient-card
+					v-for="ingredient in ingredients"
+					:key="ingredient.id"
+					:ingredient="ingredient"
+					@click="showIngredientDetail(ingredient)"
+				/>
+			</view>
+		</scroll-view>
+	</view>
 	
-	<!-- 食材详情弹窗 -->
+	<!-- 优质案例弹窗 -->
 	<uni-popup
 		ref="ingredientPopup"
 		type="center"
@@ -301,7 +258,11 @@
 	>
 		<view class="ingredient-popup">
 			<view class="ingredient-popup-header">
-				<text class="ingredient-popup-title">{{ currentIngredient?.name }}</text>
+				<text class="ingredient-popup-title">{{ currentIngredient?.title }}</text>
+			</view>
+			<view class="ingredient-popup-publisher" v-if="currentIngredient?.publisher">
+				<image class="publisher-avatar" :src="currentIngredient.publisher.avatar" />
+				<text class="publisher-name">{{ currentIngredient.publisher.name }}</text>
 			</view>
 			<view class="ingredient-popup-content">
 				<!-- 图片轮播 -->
@@ -316,7 +277,7 @@
 					>
 						<swiper-item v-for="(image, index) in ingredientImages" :key="index">
 							<image
-								class="ingredient-image"
+								class="ingredient-image-fixed"
 								:src="image"
 								mode="aspectFill"
 								@click="previewImage(index)"
@@ -328,9 +289,20 @@
 						<text>{{ currentImageIndex + 1 }} / {{ ingredientImages.length }}</text>
 					</view>
 				</view>
-				<!-- 食材描述 -->
+				<!-- 任务描述 -->
 				<view class="ingredient-description">
 					<text>{{ currentIngredient?.description }}</text>
+				</view>
+				<!-- 评论区 -->
+				<view class="ingredient-comment" v-if="currentComment">
+					<view class="comment-user">
+						<image class="comment-avatar" :src="currentComment.user.avatar" />
+						<text class="comment-username">{{ currentComment.user.name }}</text>
+					</view>
+					<view class="comment-content">{{ currentComment.content }}</view>
+					<view class="comment-tags">
+						<uni-badge v-for="tag in currentComment.tags" :key="tag" :text="tag" type="primary" size="small" :inverted="true" />
+					</view>
 				</view>
 			</view>
 		</view>
@@ -346,6 +318,7 @@
 	import ingredientCard from '@/components/ingredient-card/ingredient-card.vue'
 	import timeline from '@/components/timeline/timeline.vue'
 	import shopInfoCard from '@/components/shop-info-card/shop-info-card.vue'
+	import { ingredients } from '@/utils/ingredients'
 
     const imageDatas = ref([
         {
@@ -364,50 +337,6 @@
             image: images.ingredients.mianfen,
         }
     ])
-	const ingredients = ref([
-		{
-			id: 1,
-			name: '精选五花肉',
-			description: '新鲜猪肉，肥瘦均匀，肉质鲜嫩，口感醇厚。采用传统工艺精心挑选，确保每一块肉都达到最佳品质。',
-			image: images.ingredients.wuhuarou,
-			additionalImages: [
-				images.ingredients.wuhuarou,
-				'https://s3.bmp.ovh/imgs/2025/06/10/7f8698b08ed0a131.jpg',
-				'https://s3.bmp.ovh/imgs/2025/06/10/74a9c32cd547c77f.jpg'
-			]
-		},
-		{
-			id: 2,
-			name: '新鲜蔬菜',
-			description: '当季时令蔬菜，绿色健康，营养丰富。每日新鲜采购，保证蔬菜的新鲜度和营养价值。',
-			image: images.ingredients.shucai,
-			additionalImages: [
-				images.ingredients.shucai,
-				'https://s3.bmp.ovh/imgs/2025/06/10/5d34a2e16e7fed35.jpg'
-			]
-		},
-		{
-			id: 3,
-			name: '优质面粉',
-			description: '高筋面粉，口感筋道，制作出的面食更加有嚼劲。选用优质小麦，经过精细加工而成。',
-			image: images.ingredients.mianfen,
-			additionalImages: [
-				images.ingredients.mianfen,
-				'https://s3.bmp.ovh/imgs/2025/06/10/7f8698b08ed0a131.jpg'
-			]
-		},
-		{
-			id: 4,
-			name: '秘制调料',
-			description: '传统配方，味道醇厚，经过多年传承和改良。独特的调味工艺，让每一道菜都充满家的味道。',
-			image: images.ingredients.wuhuarou,
-			additionalImages: [
-				images.ingredients.wuhuarou,
-				'https://s3.bmp.ovh/imgs/2025/06/10/74a9c32cd547c77f.jpg',
-				'https://s3.bmp.ovh/imgs/2025/06/10/5d34a2e16e7fed35.jpg'
-			]
-		}
-	])
 	const ingredientsUpdateTime = ref('12-01 14:30')
 	const flourProcessSteps = ref([
 		{ name: '称重', icon: 'icon-chengzhong', time: '08:00' },
@@ -515,7 +444,7 @@
 	const address = ref('郑州市中原区煤机路与牛庄南街交叉口西120米')
 	const phone = ref('13673989888')
 	const current = ref(0)
-	const homeList = ref(['食材展示', '制作流程', '热门兑换', '我的订单', '用户评价', '管理后台'])
+	const homeList = ref(['优质案例', '玩法技巧', '热门兑换', '我的订单'])
 	const hasLogin = ref(false)
 
 	const businessStatus = computed(() => {
@@ -549,6 +478,7 @@
 	const currentIngredient = ref(null)
 	const ingredientImages = ref([])
 	const currentImageIndex = ref(0)
+	const currentComment = ref(null)
 	const savedScrollTop = ref(0)
 
 	// 时间线模式切换
@@ -692,18 +622,20 @@
     }
 	function showIngredientDetail(ingredient) {
 		currentIngredient.value = ingredient;
-		const allImages = [ingredient.image];
-		if (ingredient.additionalImages && ingredient.additionalImages.length > 0) {
-			allImages.push(...ingredient.additionalImages);
-		}
-		ingredientImages.value = allImages;
-		currentImageIndex.value = 0;
+		// 图片和评论一一对应，取每条 afterComments 的第一张图片，没有则用默认图
+		const imgs = (ingredient.afterComments || []).map(c => (c.images && c.images.length ? c.images[0] : '/static/logo.png'))
+		ingredientImages.value = imgs.length ? imgs : ['/static/logo.png']
+		currentImageIndex.value = 0
+		currentComment.value = (ingredient.afterComments && ingredient.afterComments[0]) || null
 		nextTick(() => {
 			if (ingredientPopup.value) ingredientPopup.value.open();
 		});
 	}
 	function onImageSwiperChange(e) {
 		currentImageIndex.value = e.detail.current
+		if (currentIngredient.value && currentIngredient.value.afterComments) {
+			currentComment.value = currentIngredient.value.afterComments[currentImageIndex.value] || null
+		}
 	}
 	function previewImage(index) {
 		uni.previewImage({ current: index, urls: ingredientImages.value })
@@ -738,7 +670,6 @@
 		const index = e.detail.index
 		const item = homeList.value[index]
 		if (index === 0) {
-			// 食材展示
 			// #ifdef H5
 			if (typeof document !== 'undefined') {
 				const el = document.getElementById('ingredients-section')
@@ -845,7 +776,7 @@
 	}
 </script>
 
-<style>
+<style scoped>
 	.custom-nav {
 		position: fixed;
 		top: 0;
@@ -1065,7 +996,7 @@
 	.ingredient-popup {
 		background-color: #fff;
 		border-radius: 20rpx;
-		width: 90vw;
+		width: 92vw;
 		max-width: 600rpx;
 		max-height: 80vh;
 		overflow: hidden;
@@ -1074,10 +1005,9 @@
 
 	.ingredient-popup-header {
 		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 30rpx 40rpx 20rpx 40rpx;
-		border-bottom: 1rpx solid #f0f0f0;
+		align-items: flex-end;
+		padding: 30rpx 40rpx 0 40rpx;
+		border-bottom: none;
 	}
 
 	.ingredient-popup-title {
@@ -1086,65 +1016,80 @@
 		color: #333;
 		flex: 1;
 	}
-
-	.close-icon {
-		padding: 10rpx;
-		cursor: pointer;
-		transition: opacity 0.2s;
-		
-		&:active {
-			opacity: 0.6;
-		}
+	.ingredient-popup-publisher {
+		display: flex;
+		align-items: center;
+		gap: 8rpx;
+		padding: 8rpx 40rpx 0 40rpx;
+		margin-bottom: 8rpx;
 	}
-
+	.publisher-avatar {
+		width: 36rpx;
+		height: 36rpx;
+		border-radius: 50%;
+		object-fit: cover;
+	}
+	.publisher-name {
+		font-size: 24rpx;
+		color: #666;
+	}
 	.ingredient-popup-content {
 		padding: 0 40rpx 40rpx 40rpx;
 	}
-
-	.ingredient-images {
+	.ingredient-image-fixed {
 		width: 100%;
-		margin-bottom: 30rpx;
-		position: relative;
-	}
-
-	.ingredient-swiper {
-		width: 100%;
-		height: 400rpx;
-		border-radius: 16rpx;
-		overflow: hidden;
-		box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
-	}
-
-	.ingredient-image {
-		width: 100%;
-		height: 100%;
+		height: 200rpx;
 		object-fit: cover;
-		border-radius: 16rpx;
-		transition: transform 0.3s ease;
-		
-		&:active {
-			transform: scale(0.98);
-		}
+		border-radius: 12rpx;
+		background: #f5f5f5;
 	}
-
-	.image-counter {
-		position: absolute;
-		bottom: 20rpx;
-		right: 20rpx;
-		background: rgba(0, 0, 0, 0.6);
-		color: #fff;
-		padding: 8rpx 16rpx;
-		border-radius: 20rpx;
-		font-size: 24rpx;
-		backdrop-filter: blur(10rpx);
-	}
-
 	.ingredient-description {
 		text-align: left;
 		font-size: 28rpx;
 		color: #666;
 		line-height: 1.6;
-		padding: 20rpx 0;
+		padding: 20rpx 0 0 0;
+		margin-bottom: 10rpx;
+	}
+	.ingredient-comment {
+		background: #f8f9fa;
+		border-radius: 14rpx;
+		margin: 18rpx 0 0 0;
+		padding: 18rpx 18rpx 12rpx 18rpx;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+		display: flex;
+		flex-direction: column;
+		gap: 8rpx;
+	}
+	.comment-user {
+		display: flex;
+		align-items: center;
+		gap: 10rpx;
+		margin-bottom: 4rpx;
+	}
+	.comment-avatar {
+		width: 36rpx;
+		height: 36rpx;
+		border-radius: 50%;
+		object-fit: cover;
+		background: #eee;
+	}
+	.comment-username {
+		font-size: 26rpx;
+		color: #1976d2;
+		font-weight: 600;
+	}
+	.comment-content {
+		font-size: 24rpx;
+		color: #333;
+		margin-bottom: 4rpx;
+		line-height: 1.5;
+		word-break: break-all;
+	}
+	.comment-tags {
+		display: flex;
+		gap: 8rpx;
+		flex-wrap: wrap;
 	}
 
 	/* 弹窗打开时锁定页面滚动 */
