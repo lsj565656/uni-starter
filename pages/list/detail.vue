@@ -131,7 +131,7 @@ import { store } from '@/uni_modules/uni-id-pages/common/store.js'
         immediate: true
 			}
 		},
-    computed: {
+		computed: {
       userInfo() {
         return store.userInfo
       }
@@ -173,8 +173,8 @@ import { store } from '@/uni_modules/uni-id-pages/common/store.js'
             
             this.hasMoreComments = hasMore;
             this.totalCommentCount = total;
-          } else {
-            uni.showToast({
+			} else {
+				uni.showToast({
               title: res.result?.message || '加载评论失败',
               icon: 'none'
             });
@@ -232,10 +232,10 @@ import { store } from '@/uni_modules/uni-id-pages/common/store.js'
           }
         } catch (error) {
           console.error('加载回复失败:', error);
-          uni.showToast({
+				uni.showToast({
             title: '加载回复失败',
-            icon: 'none'
-          });
+					icon: 'none'
+				});
           return { replies: [], total: 0, hasMore: false };
         }
       },
@@ -437,11 +437,11 @@ import { store } from '@/uni_modules/uni-id-pages/common/store.js'
             
             this.barInputValue = '';
             
-            uni.showToast({
+					uni.showToast({
               title: '评论成功',
-              icon: 'success'
+						icon: 'success'
             });
-          } else {
+				} else {
             throw new Error(res.result?.message || '评论失败');
           }
         } catch (error) {

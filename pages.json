@@ -68,6 +68,14 @@
 				"navigationBarTitleText": "阅读记录",
 				"enablePullDownRefresh": true
 			}
+		},
+		{
+			"path": "pages/category-tasks/index",
+			"style": {
+				"navigationBarTitleText": "分类",
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": true
+			}
 		}
 		// #ifdef APP
 		, {

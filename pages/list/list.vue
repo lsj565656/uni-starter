@@ -220,6 +220,7 @@
 <script>
 	let cdbRef;
 	import statusBar from "@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar";
+	import { categories } from '@/utils/categories'
 
 	export default {
 		components: {
@@ -235,15 +236,6 @@
 				dataList: [],
 				statusBarHeight: 0,
 				currentCategory: 0,
-				categories: [
-					{ id: 0, name: '全部' },
-					{ id: 1, name: '邻帮' },
-					{ id: 2, name: '跑腿' },
-					{ id: 3, name: '家政' },
-					{ id: 4, name: '宠物' },
-					{ id: 5, name: '维修' },
-					{ id: 6, name: '其他' }
-				],
 				showFilterDrawer: false,
 				// 筛选相关数据
 				selectedPriceRange: '',
@@ -345,8 +337,13 @@
 					return '请输入搜索内容'
 				}
 			},
+			listCategories() {
+				// 只取 use_list 为 true 的分类
+				return categories.filter(c => c.use_list)
+			},
 			categoryNames() {
-				return this.categories.map(c => c.name)
+				// 用于分类tab显示
+				return this.listCategories.map(c => c.text)
 			},
 			filteredData() {
 				return this.dataList;
@@ -709,7 +706,8 @@
 			},
 			// 新增：获取当前分类 id
 			getCurrentCategoryId(categoryIndex = this.currentCategory) {
-				return this.categories[categoryIndex]?.id ?? 0;
+				// 取 listCategories 的 catId
+				return this.listCategories[categoryIndex]?.catId ?? 0;
 			},
 			getColumnsFiltered(data) {
 				const cols = [[], []];
@@ -819,7 +817,7 @@
 			// 只处理外部跳转指定分类
 			const tabCategory = uni.getStorageSync('listTabCategory')
 			if (tabCategory) {
-				const idx = this.categories.findIndex(c => c.name === tabCategory)
+				const idx = this.listCategories.findIndex(c => c.text === tabCategory)
 				if (idx !== -1) {
 					this.currentCategory = idx
 					this.applyRealTimeFilter();

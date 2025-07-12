@@ -52,7 +52,7 @@ export const flourProcess = [
 	},
 	{
 		id: 6,
-		name: '任务结算',
+		name: '任务结算获得酬劳',
 		icon: 'icon-wanjie',
 		time: '19:20',
 		image: images.process.shaobing,

@@ -41,20 +41,53 @@
 		</view>
 
 		<!-- 宫格功能区 -->
-		<view class="section">
-			<!-- <uni-title type="h2" title="快捷功能" align="left" /> -->
-			<uni-grid :column="3" :highlight="true" @change="change">
-				<template v-for="(item,i) in homeList">
-					<uni-grid-item :index="i" :key="i"
-						v-if="i<3 || i>2&&i<6&&hasLogin || i>5&&uniIDHasRole('admin')"
-					>
-						<view class="grid-item-box" style="background-color: #fff;">
-							<text class="big-number">{{i+1}}</text>
-							<text class="text">{{item}}</text>
+		<view class="section grid-section">
+			<uni-swiper-dot
+				:info="gridPages"
+				:current="gridSwiperCurrent"
+				mode="round"
+				:dotsStyles="{
+					backgroundColor: '#e0e6ed',
+					selectedBackgroundColor: '#1976d2',
+					width: 8,
+					height: 8,
+					selectedWidth: 24,
+					border: 'none',
+					selectedBorder: 'none',
+					bottom: 0
+				}"
+				style="margin-top: -1px;"
+			>
+				<swiper
+					class="grid-swiper"
+					:style="{ height: gridSwiperHeight }"
+					:indicator-dots="false"
+					:current="gridSwiperCurrent"
+					@change="handleGridChange"
+					circular
+					:autoplay="false"
+					:duration="300"
+				>
+					<swiper-item v-for="(page, pageIdx) in gridPages" :key="pageIdx">
+						<view class="grid-page">
+							<view class="grid-row" v-for="row in currentGridRows" :key="row">
+								<view class="grid-col" v-for="col in gridColumn" :key="col">
+									<template v-if="page[(row-1)*gridColumn + (col-1)]">
+										<view class="grid-item" @click="handleGridItemClick(page[(row-1)*gridColumn + (col-1)])">
+											<image
+												class="grid-item-icon"
+												:src="page[(row-1)*gridColumn + (col-1)].icon || '/static/logo.png'"
+												mode="aspectFit"
+											/>
+											<text class="grid-item-text">{{ page[(row-1)*gridColumn + (col-1)].text }}</text>
+										</view>
+									</template>
+								</view>
+							</view>
 						</view>
-					</uni-grid-item>
-				</template>
-			</uni-grid>
+					</swiper-item>
+				</swiper>
+			</uni-swiper-dot>
 		</view>
 
 		<!-- 店铺信息卡片 -->
@@ -328,6 +361,7 @@
 	import { flourProcess as flourProcessData } from '@/utils/flourProcess'
 	import { notices, getNoticeIcon, getNoticeColor, generateRandomNotice } from '@/utils/notices'
 	import NoticeBar from '@/components/notice-bar/notice-bar.vue'
+	import { categories } from '@/utils/categories'
 
     const imageDatas = ref([
         {
@@ -439,6 +473,36 @@
 
 	// 时间线模式切换
 	const flourTimelineMode = ref('tree')
+
+	// 宫格分页逻辑
+	const gridColumn = categories[0]?.grid_column || 3
+	const gridRow = categories[0]?.grid_row || 3
+	const gridPageSize = gridColumn * gridRow
+	const homeGridItems = computed(() => categories.filter(c => c.use_home_grid))
+	const gridPages = computed(() => {
+  const pages = []
+  for (let i = 0; i < homeGridItems.value.length; i += gridPageSize) {
+    pages.push(homeGridItems.value.slice(i, i + gridPageSize))
+  }
+  return pages
+})
+const gridSwiperCurrent = ref(0)
+function handleGridChange(e) {
+  gridSwiperCurrent.value = e.detail.current
+}
+function handleGridItemClick(item) {
+  if (item.route) {
+    uni.navigateTo({ url: item.route })
+  } else {
+    uni.showToast({ title: item.text, icon: 'none' })
+  }
+}
+// 动态计算当前页实际行数
+const currentGridRows = computed(() => {
+  const page = gridPages.value[gridSwiperCurrent.value] || []
+  return Math.ceil(page.length / gridColumn)
+})
+const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 
 	const onIngredientPopupChange = (e) => {
 		if (e.type === 'hide') {
@@ -628,59 +692,6 @@
 	function clickBannerItem(item) {
 		console.log('点击了banner:', item)
 		// 可以在这里添加banner点击逻辑
-	}
-
-	// 宫格功能相关方法
-	function change(e) {
-		const index = e.detail.index
-		const item = homeList.value[index]
-		if (index === 0) {
-			// #ifdef H5
-			if (typeof document !== 'undefined') {
-				const el = document.getElementById('ingredients-section')
-				if (el) {
-					el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-				}
-			}
-			// #endif
-			// #ifndef H5
-			uni.pageScrollTo({
-				selector: '#ingredients-section',
-				duration: 300
-			})
-			// #endif
-			return
-		}
-		if (index === 1) {
-			// 制作流程
-			// #ifdef H5
-			if (typeof document !== 'undefined') {
-				const el = document.getElementById('flour-process-section')
-				if (el) {
-					el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-				}
-			}
-			// #endif
-			// #ifndef H5
-			uni.pageScrollTo({
-				selector: '#flour-process-section',
-				duration: 300
-			})
-			// #endif
-			return
-		}
-		if (index === 2) {
-			// 热门兑换
-			uni.switchTab({
-				url: '/pages/list/list',
-				success() {
-					uni.setStorageSync('listTabCategory', '娱乐')
-				}
-			})
-			return
-		}
-		// 其它功能...
-		uni.showToast({ title: item + '功能', icon: 'none' })
 	}
 
 	const isIngredientsScrolledLeft = ref(false)
@@ -1243,5 +1254,72 @@
 		text-align: center;
 		font-size: 16px;
 		margin-top: 6px;
+	}
+	.grid-section {
+		padding: 0;
+		background: transparent;
+		box-shadow: none;
+		margin: 10px 0 0 0;
+	}
+	.grid-swiper {
+		width: 100%;
+		/* height 由style绑定动态控制 */
+		background: transparent;
+	}
+	.grid-page {
+		width: 100%;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		background: transparent;
+	}
+	.grid-row {
+		display: flex;
+		flex-direction: row;
+		width: 100%;
+		justify-content: space-around;
+		margin-bottom: 0;
+	}
+	.grid-col {
+		flex: 1;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	.grid-item {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		width: 80px;
+		height: 80px;
+		margin: 0 4px;
+		background: none;
+		border-radius: 12px;
+		box-shadow: none;
+		transition: background 0.2s;
+		cursor: pointer;
+	}
+	.grid-item:active {
+		background: #f5f5f5;
+	}
+	.grid-item-icon {
+		width: 40px;
+		height: 40px;
+		margin-bottom: 6px;
+		border-radius: 8px;
+		background: #f8f8f8;
+	}
+	.grid-item-text {
+		font-size: 14px;
+		color: #333;
+		margin-top: 2px;
+		text-align: center;
+	}
+	/* 优化uni-swiper-dot横杠切换动画 */
+	:deep(.uni-swiper__dots-long) {
+	transition: width 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s;
 	}
 </style> 
