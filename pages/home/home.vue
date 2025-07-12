@@ -29,7 +29,16 @@
             <swiper-item v-for="(item, index) in imageDatas" :key="item.id">
                 <image class="banner-image" :src="item.image" mode="aspectFill" @click="clickBannerItem(item)" :draggable="false" />
             </swiper-item>
-        </swiper>
+        		</swiper>
+
+		<!-- 通告消息栏 -->
+		<view class="notice-section">
+			<NoticeBar
+				:notices="noticeList"
+				background-color="#f8f9fa"
+				@click="handleNoticeClick"
+			/>
+		</view>
 
 		<!-- 宫格功能区 -->
 		<view class="section">
@@ -60,48 +69,6 @@
 			@address-click="openMap"
 			@phone-click="makePhoneCall"
 		/> -->
-
-		<!-- 发布流程 -->
-		<view class="section" id="flour-process-section">
-			<view class="section-header">
-				<uni-icons type="gear" size="20" color="#007aff" />
-				<text class="section-title">玩法技巧</text>
-				<view class="timeline-mode-switch">
-					<uni-icons
-						custom-prefix="iconfont"
-						type="icon-align-text-center"
-						:color="flourTimelineMode === 'tree' ? '#007aff' : '#bbb'"
-						size="22"
-						@click="flourTimelineMode = 'tree'"
-						class="mode-icon"
-					/>
-					<uni-icons
-						custom-prefix="iconfont"
-						type="icon-wenzijuzuo"
-						:color="flourTimelineMode === 'vertical' ? '#007aff' : '#bbb'"
-						size="22"
-						@click="flourTimelineMode = 'vertical'"
-						class="mode-icon"
-					/>
-				</view>
-				<view class="section-actions">
-					<text class="update-time">{{ processUpdateTime }}</text>
-					<uni-icons
-						type="refresh"
-						size="16"
-						color="#666"
-						@click="refreshProcess"
-					/>
-				</view>
-			</view>
-			<timeline
-				:steps="flourProcessSteps"
-				:current-step="currentFlourStep"
-				:process-data="flourProcess"
-				:mode="flourTimelineMode"
-				@image-click="handleFlourTimelineImageClick"
-			/>
-		</view>
 
 		<!-- 热门任务瀑布流区块 -->
 		<view class="section hot-tasks-section">
@@ -285,7 +252,7 @@
 						</swiper-item>
 					</swiper>
 					<!-- 图片计数器 -->
-					<view class="image-counter" v-if="ingredientImages.length > 1">
+					<view class="image-counter" v-if="ingredientImages.length >= 1">
 						<text>{{ currentImageIndex + 1 }} / {{ ingredientImages.length }}</text>
 					</view>
 				</view>
@@ -307,18 +274,60 @@
 			</view>
 		</view>
 	</uni-popup>
+	<!-- 玩法技巧 -->
+	<view class="section" id="flour-process-section">
+		<view class="section-header">
+			<uni-icons type="gear" size="20" color="#007aff" />
+			<text class="section-title">玩法技巧</text>
+			<view class="timeline-mode-switch">
+				<uni-icons
+					custom-prefix="iconfont"
+					type="icon-align-text-center"
+					:color="flourTimelineMode === 'tree' ? '#007aff' : '#bbb'"
+					size="22"
+					@click="flourTimelineMode = 'tree'"
+					class="mode-icon"
+				/>
+				<uni-icons
+					custom-prefix="iconfont"
+					type="icon-wenzijuzuo"
+					:color="flourTimelineMode === 'vertical' ? '#007aff' : '#bbb'"
+					size="22"
+					@click="flourTimelineMode = 'vertical'"
+					class="mode-icon"
+				/>
+			</view>
+			<view class="section-actions">
+				<text class="update-time">{{ processUpdateTime }}</text>
+				<uni-icons
+					type="refresh"
+					size="16"
+					color="#666"
+					@click="refreshProcess"
+				/>
+			</view>
+		</view>
+		<timeline
+			:process-data="flourProcess"
+			:mode="flourTimelineMode"
+			@image-click="handleFlourTimelineImageClick"
+		/>
+	</view>
 </template>
 
 <script setup>
 	// #ifdef APP
 	import statusBar from "@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar";
 	// #endif
-	import { ref, computed, nextTick } from 'vue'
+	import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 	import { images } from '@/utils/images'
 	import ingredientCard from '@/components/ingredient-card/ingredient-card.vue'
 	import timeline from '@/components/timeline/timeline.vue'
 	import shopInfoCard from '@/components/shop-info-card/shop-info-card.vue'
 	import { ingredients } from '@/utils/ingredients'
+	import { flourProcess as flourProcessData } from '@/utils/flourProcess'
+	import { notices, getNoticeIcon, getNoticeColor, generateRandomNotice } from '@/utils/notices'
+	import NoticeBar from '@/components/notice-bar/notice-bar.vue'
 
     const imageDatas = ref([
         {
@@ -338,106 +347,53 @@
         }
     ])
 	const ingredientsUpdateTime = ref('12-01 14:30')
-	const flourProcessSteps = ref([
-		{ name: '称重', icon: 'icon-chengzhong', time: '08:00' },
-		{ name: '和面', icon: 'icon-miantuan', time: '08:15' },
-		{ name: '面剂', icon: 'icon-ganmianzhang', time: '08:30' },
-		{ name: '入炉', icon: 'icon-jiarezhizuo', time: '08:45' },
-		{ name: '出炉', icon: 'icon-wanjie', time: '09:00' }
-	])
-	const flourProcess = ref([
-		{
-			id: 1,
-			name: '称重',
-			time: '08:00',
-			image: images.process.mianfen,
-			images: [
-				images.process.mianfen,
-				'https://s3.bmp.ovh/imgs/2025/06/10/7f8698b08ed0a131.jpg',
-				'https://s3.bmp.ovh/imgs/2025/06/10/74a9c32cd547c77f.jpg'
-			],
-			status: 'completed'
-		},
-		{
-			id: 2,
-			name: '和面',
-			time: '08:15',
-			image: images.process.hemianguo,
-			images: [
-				images.process.hemianguo,
-				'https://s3.bmp.ovh/imgs/2025/06/10/5d34a2e16e7fed35.jpg',
-				'https://s3.bmp.ovh/imgs/2025/06/10/5d34a2e16e7fed35.jpg',
-				'https://s3.bmp.ovh/imgs/2025/06/10/7f8698b08ed0a131.jpg'
-			],
-			status: 'completed'
-		},
-		{
-			id: 3,
-			name: '面剂',
-			time: '08:30',
-			image: images.process.baozhi_1,
-			status: 'completed'
-		},
-		{
-			id: 4,
-			name: '入炉',
-			time: '08:45',
-			image: images.process.baozhi_2,
-			status: 'in-progress'
-		},
-		{
-			id: 5,
-			name: '出炉',
-			time: '09:00',
-			image: images.process.shaobing,
-			status: 'pending'
-		}
-	])
-	const meatProcessSteps = ref([
-		{ name: '清洗', icon: 'icon-qingxi', time: '07:00' },
-		{ name: '入锅', icon: 'icon-jiatiaoliao', time: '07:30' },
-		{ name: '加料', icon: 'icon-jiatiaoliao', time: '07:45' },
-		{ name: '卤制', icon: 'icon-jiarezhizuo', time: '08:00' },
-		{ name: '出锅', icon: 'icon-wanjie', time: '08:30' }
-	])
+	const flourProcess = ref(flourProcessData)
+	
+	// 通告消息相关
+	const noticeList = ref([...notices])
 	const meatProcess = ref([
 		{
 			id: 1,
-			name: '五花肉清洗',
+			name: '清洗',
+			icon: 'icon-qingxi',
 			time: '07:00',
 			image: images.process.lurou_1,
 			status: 'completed'
 		},
 		{
 			id: 2,
-			name: '加入卤料',
+			name: '入锅',
+			icon: 'icon-jiatiaoliao',
 			time: '07:30',
 			image: images.process.lurou_2,
 			status: 'in-progress'
 		},
 		{
 			id: 3,
-			name: '卤制过程',
+			name: '加料',
+			icon: 'icon-jiatiaoliao',
 			time: '07:45',
 			image: images.process.lurou_3,
 			status: 'pending'
 		},
 		{
 			id: 4,
-			name: '调味收汁',
+			name: '卤制',
+			icon: 'icon-jiarezhizuo',
 			time: '08:00',
 			image: images.process.lurou_4,
 			status: 'pending'
 		},
 		{
 			id: 5,
-			name: '卤肉出锅',
+			name: '出锅',
+			icon: 'icon-wanjie',
 			time: '08:30',
 			image: images.process.hemian_1,
 			status: 'pending'
 		}
 	])
-	const currentFlourStep = ref(3)
+	const currentFlourStep = ref(6)
 	const currentMeatStep = ref(2)
 	const storeName = ref('***餐饮店')
 	const businessHours = ref('09:00-21:00')
@@ -483,13 +439,9 @@
 
 	// 时间线模式切换
 	const flourTimelineMode = ref('tree')
-	const meatTimelineMode = ref('tree')
 
 	const onIngredientPopupChange = (e) => {
 		if (e.type === 'hide') {
-			isIngredientPopupOpen.value = false
-			showNavFab.value = false
-			
 			// 恢复页面滚动状态
 			// #ifdef H5
 			if (typeof document !== 'undefined') {
@@ -517,7 +469,7 @@
 		}
 	}
 
-	// 刷新食材信息方法
+	// 刷新优质案例信息方法
 	function refreshIngredients() {
 		uni.showLoading({ title: '刷新中...' })
 		setTimeout(() => {
@@ -530,7 +482,7 @@
 				const hour = String(now.getHours()).padStart(2, '0')
 				const minute = String(now.getMinutes()).padStart(2, '0')
 				ingredientsUpdateTime.value = `${month}-${day} ${hour}:${minute}`
-				uni.showToast({ title: '食材已更新', icon: 'success' })
+				uni.showToast({ title: '已更新', icon: 'success' })
 			} else {
 				uni.showToast({ title: '已是最新', icon: 'none' })
 			}
@@ -647,12 +599,25 @@
 		urls: allImages
 	})
 	}
-	function handleMeatTimelineImageClick({ allImages, currentIndex }) {
-		console.log('点击了肉图片', allImages, currentIndex)
-        uni.previewImage({
-		current: currentIndex,
-		urls: allImages
-	})
+	
+	// 通告消息相关方法
+	function addRandomNotice() {
+		const newNotice = generateRandomNotice()
+		noticeList.value.unshift(newNotice)
+		// 保持最多20条消息
+		if (noticeList.value.length > 20) {
+			noticeList.value = noticeList.value.slice(0, 20)
+		}
+	}
+	
+	function handleNoticeClick(notice) {
+		if (notice) {
+			uni.showToast({
+				title: `点击了：${notice.text}`,
+				icon: 'none',
+				duration: 2000
+			})
+		}
 	}
 
 	// Banner相关方法
@@ -774,6 +739,27 @@
 		});
 		return columns;
 	}
+	
+	// 生命周期钩子
+	let addNoticeTimer = null
+	
+	onMounted(() => {
+		// 每60秒添加一条新的随机通告
+		addNoticeTimer = setInterval(() => {
+			const newNotice = generateRandomNotice()
+			noticeList.value.unshift(newNotice)
+			// 保持最多20条消息
+			if (noticeList.value.length > 20) {
+				noticeList.value = noticeList.value.slice(0, 20)
+			}
+		}, 60000)
+	})
+	
+	onUnmounted(() => {
+		if (addNoticeTimer) {
+			clearInterval(addNoticeTimer)
+		}
+	})
 </script>
 
 <style scoped>
@@ -863,16 +849,6 @@
 		/* #endif */
 	}
 
-	.grid-item-box {
-		flex: 1;
-		/* #ifndef APP-NVUE */
-		display: flex;
-		/* #endif */
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 15px 0;
-	}
 
 	.banner-image {
 		width: 100%;
@@ -931,11 +907,20 @@
 		border-radius: 12px;
 		overflow: hidden;
 	}
+	
+	/* 通告消息栏样式 */
+	.notice-section {
+		margin: 10px 16px;
+		border-radius: 8px;
+		overflow: hidden;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+	}
 	.section {
 		margin: 10px 0;
 		background: #fff;
 		border-radius: 12px;
 		box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+		padding: 16px;
 	}
 	.section-header {
 		display: flex;
@@ -961,14 +946,6 @@
 	.ingredients-container {
 		display: flex;
 		gap: 12px;
-	}
-	.grid-item-box {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 15px 0;
 	}
 	.big-number {
 		font-size: 32px;
@@ -1038,7 +1015,7 @@
 	}
 	.ingredient-image-fixed {
 		width: 100%;
-		height: 200rpx;
+		height: 400rpx;
 		object-fit: cover;
 		border-radius: 12rpx;
 		background: #f5f5f5;
@@ -1243,5 +1220,28 @@
 		font-size: 16px;
 		color: #1976d2;
 		font-weight: 600;
+	}
+	/* 宫格功能区样式补充 */
+	.grid-item-box {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 15px 0;
+		background-color: #fff;
+		border-radius: 8px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+		margin: 4px;
+	}
+	.big-number {
+		font-size: 32px;
+		font-weight: 700;
+		color: #007aff;
+	}
+	.text {
+		text-align: center;
+		font-size: 16px;
+		margin-top: 6px;
 	}
 </style> 

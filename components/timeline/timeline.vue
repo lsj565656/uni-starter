@@ -24,7 +24,7 @@
 			:class="{ 'timeline-container--zigzag': displayMode === 'tree' }"
 		>
 			<view 
-				v-for="(step, index) in steps" 
+				v-for="(step, index) in processData" 
 				:key="index"
 				class="timeline-item"
 				:class="{ 
@@ -55,7 +55,7 @@
 				
 				<!-- 只在树形模式且不是最后一个节点时渲染主线段 -->
 				<view
-					v-if="displayMode === 'tree' && index < steps.length - 1"
+					v-if="displayMode === 'tree' && index < processData.length - 1"
 					class="timeline-item__mainline"
 					:style="getZigzagMainlineStyle(index)"
 				></view>
@@ -70,7 +70,7 @@
 				</view>
 				
 				<!-- 树形模式：图片左右交错 -->
-				<view v-if="displayMode === 'tree' && processData && processData[index]">
+				<view v-if="displayMode === 'tree' && step">
 					<view
 						:class="['timeline-item__image-stack', (index + 1) % 2 === 1 ? 'timeline-item__image-stack--left' : 'timeline-item__image-stack--right']"
 					>
@@ -113,7 +113,7 @@
 				>
 					<text class="timeline-item__title">{{ step.name }}</text>
 					<text class="timeline-item__time">{{ step.time }}</text>
-					<view v-if="processData && processData[index]">
+					<view v-if="step">
 						<view class="timeline-image-wrapper" style="position: relative; width: 120px; height: 80px;">
 							<view
 								v-for="(img, imgIdx) in getStepImages(index)"
@@ -147,9 +147,9 @@
 					</view>
 				</view>
 				
-				<!-- 垂直模式的连接线：只在index < steps.length - 1时渲染 -->
+				<!-- 垂直模式的连接线：只在index < processData.length - 1时渲染 -->
 				<view 
-					v-if="displayMode === 'vertical' && index < steps.length - 1"
+					v-if="displayMode === 'vertical' && index < processData.length - 1"
 					class="timeline-item__line timeline-item__line--vertical"
 				></view>
 			</view>
@@ -160,9 +160,9 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 
-// 定义props
+// 定义props - 优化后的参数结构
 const props = defineProps({
-	steps: {
+	processData: {
 		type: Array,
 		required: true,
 		default: () => []
@@ -170,10 +170,6 @@ const props = defineProps({
 	currentStep: {
 		type: Number,
 		default: 0
-	},
-	processData: {
-		type: Array,
-		default: () => []
 	},
 	mode: {
 		type: String,
@@ -198,10 +194,11 @@ const getIconColor = (index) => {
 
 // 获取步骤状态
 const getStepStatus = (index) => {
-	if (props.processData && props.processData[index]) {
-		return props.processData[index].status || 'pending'
+	const step = props.processData[index]
+	if (step && step.status) {
+		return step.status
 	}
-	// 如果没有processData，则使用currentStep逻辑
+	// 如果没有status，则使用currentStep逻辑
 	if (index < props.currentStep) {
 		return 'completed'
 	} else if (index === props.currentStep) {

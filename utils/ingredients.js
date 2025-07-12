@@ -47,7 +47,7 @@ export const ingredients = [
       {
         user: { name: '赵先生', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/juice-orange.jpg' },
         content: '顺路帮个忙的事儿,赚的积分到账后抽中了小礼品，开心！',
-        images: ['https://s3.bmp.ovh/imgs/2025/06/10/cleaning-service.jpg'],
+        images: ['https://s3.bmp.ovh/imgs/2025/07/12/83e18f93156e578d.png'],
         tags: ['方便', '积分抽奖']
       },
       {
@@ -64,18 +64,18 @@ export const ingredients = [
     title: '空调清洗',
     category: '维修',
     description: '家里空调需要清洗,想用80积分请人上门清洗空调，有经验者优先。',
-    publisher: { name: '小王要开心', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/coffee-latte.jpg' },
+    publisher: { name: '小王要开心', avatar: 'https://s3.bmp.ovh/imgs/2025/07/12/5becf82ca511baa5.png' },
     afterComments: [
       {
         user: { name: '老李', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/bluetooth-earphone.jpg' },
         content: '退休无事,发挥余热，做些事情，很开心。',
-        images: ['https://s3.bmp.ovh/imgs/2025/06/10/cleaning-service.jpg'],
+        images: ['https://s3.bmp.ovh/imgs/2025/07/12/9e14120fa2ae72f3.png'],
         tags: ['方便']
       },
       {
-        user: { name: '小王要开心', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/coffee-latte.jpg' },
+        user: { name: '小王要开心', avatar: 'https://s3.bmp.ovh/imgs/2025/07/12/5becf82ca511baa5.png' },
         content: '师傅很细心,热情',
-        images: ['https://s3.bmp.ovh/imgs/2025/06/10/cinema.jpg'],
+        images: ['https://s3.bmp.ovh/imgs/2025/07/12/0fdc2b484d6deb7b.png'],
         tags: ['细心', '处理到位']
       }
     ],
@@ -86,7 +86,7 @@ export const ingredients = [
     title: '积分寄养照看',
     category: '宠物',
     description: '出差期间,想60积分请人帮忙照看宠物，定时喂食遛狗，实时照片反馈。',
-    publisher: { name: '三岁就爱笑', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/express-service.jpg' },
+    publisher: { name: '三岁就爱笑', avatar: 'https://s3.bmp.ovh/imgs/2025/07/12/91a383af439c173c.png' },
     afterComments: [
       {
         user: { name: '王先生', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/ktv.jpg' },
@@ -95,7 +95,7 @@ export const ingredients = [
         tags: ['贴心', '放心', '积分结算']
       },
       {
-        user: { name: '三岁就爱笑', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/express-service.jpg' },
+        user: { name: '三岁就爱笑', avatar: 'https://s3.bmp.ovh/imgs/2025/07/12/91a383af439c173c.png' },
         content: '每天都有照片，出差很安心。',
         images: ['https://s3.bmp.ovh/imgs/2025/06/10/cinema.jpg'],
         tags: ['照片准时', '放心']
@@ -108,12 +108,12 @@ export const ingredients = [
     title: '周末结伴爬山（0积分）',
     category: '旅游',
     description: '结伴出游，0积分参与，结识新朋友，享受健康生活。',
-    publisher: { name: '活动发起人-小孙', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/stationery.jpg' },
+    publisher: { name: '活动发起人-小孙', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/b266d287bf74e640.jpg' },
     afterComments: [
       {
-        user: { name: '小明', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/keychain.jpg' },
+        user: { name: '小明', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/b266d287bf74e640.jpg' },
         content: '大家一起玩很开心，认识了新朋友！',
-        images: ['https://s3.bmp.ovh/imgs/2025/06/10/keychain.jpg'],
+        images: ['https://s3.bmp.ovh/imgs/2025/07/12/f7015cf3f21670b4.png'],
         tags: ['免费', '有趣', '交友']
       },
       {
