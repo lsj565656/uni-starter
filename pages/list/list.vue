@@ -53,31 +53,45 @@
 
 		<!-- 分类栏 -->
 		<view class="sticky-bar">
+			<!-- 左侧返回全部按钮 -->
+			<view 
+				v-if="showBackToAllBtn" 
+				class="back-to-all-btn" 
+				@click.stop="backToAll"
+			>
+				<uni-icons type="left" size="20" color="#4c82ff" />
+			</view>
+			
 			<scroll-view
 				class="category-scroll"
 				scroll-x
 				scroll-with-animation
+				:scroll-left="categoryScrollLeft"
+				ref="categoryScroll"
 				style="white-space: nowrap;"
 			>
-				<uni-segmented-control
-					:current="currentCategory"
-					:values="categoryNames"
-					@clickItem="onCategoryChange"
-					styleType="text"
-					activeColor="#1976d2"
-					class="custom-segmented-control"
+				<view
+					v-for="(item, index) in categoryNames"
+					:key="index"
+					:id="'cat-' + index"
+					class="seg-item"
+					:class="{ active: currentCategory === index }"
+					:style="categoryItemStyle"
+					@click="onCategoryChange({ currentIndex: index })"
 				>
-					<template v-slot:default="{ item, index }">
-						<view
-							:id="'cat-' + index"
-							class="seg-item"
-							:class="{ active: currentCategory === index }"
-						>
-							{{ item }}
-						</view>
-					</template>
-				</uni-segmented-control>
+					{{ item }}
+					<view v-if="currentCategory === index" class="seg-underline"></view>
+				</view>
+				<!-- 虚拟留白 - 确保最后一个分类项能完整显示 -->
+				<view
+					:style="{
+					display: 'inline-block',
+					width: '16px',
+					height: '1px'
+					}"
+				></view>
 			</scroll-view>
+			<!-- 筛选按钮 -->
 			<view class="filter-icon-btn" @click.stop="toggleFilterDrawer">
 				<uni-badge :text="activeFilterCount" :absolute="'true'" :offset="[0, 0]" :is-dot="false" v-if="activeFilterCount > 0">
 					<uni-icons type="tune" size="26" color="#4c82ff" />
@@ -85,7 +99,7 @@
 				<uni-icons v-else type="tune" size="26" color="#4c82ff" />
 			</view>
 		</view>
-
+		
 		<!-- 筛选抽屉 -->
 		<uni-drawer ref="filterDrawer" mode="right" :mask="true" :mask-click="false" :width="300" @close="onFilterDrawerClose" @open="onFilterDrawerOpen">
 			<view class="filter-drawer-content" @click.stop>
@@ -311,6 +325,8 @@
 				lastRequestedCategoryId: 0, // 新增：记录本次请求的分类id
 				lastCacheWriteScene: '', // 新增：记录本次缓存写入场景
 				likesCountDelta: {}, // 新增：用于存储点赞数的变化量
+				categoryScrollLeft: 0,
+				showBackToAllBtn: false, // 新增：是否显示返回全部按钮
 			}
 		},
 		computed: {
@@ -344,6 +360,35 @@
 			categoryNames() {
 				// 用于分类tab显示
 				return this.listCategories.map(c => c.text)
+			},
+			// 新增：动态计算分类项样式 - 一屏显示4.5个分类项
+			categoryItemStyle() {
+				// 获取屏幕宽度
+				const screenWidth = uni.getSystemInfoSync().windowWidth || 375;
+				// 一屏显示4.5个分类项，左右各露出半个分类项
+				const VISIBLE_COUNT = 4.5;
+				// 分类项左右margin
+				const marginPx = 8;
+				// 计算分类项宽度：(屏幕宽度 - 左右padding - 分类项间距) / 4.5
+				const itemWidth = Math.floor((screenWidth - 32 - (VISIBLE_COUNT - 1) * marginPx * 2) / VISIBLE_COUNT);
+				
+				return {
+					width: itemWidth + 'px',
+					margin: `0 ${marginPx}px`,
+					minWidth: itemWidth + 'px',
+					maxWidth: itemWidth + 'px',
+					flexShrink: '0'
+				};
+			},
+			// 新增：计算总内容宽度
+			totalCategoryWidth() {
+				const categoryCount = this.categoryNames.length;
+				const itemStyle = this.categoryItemStyle;
+				const itemWidth = parseInt(itemStyle.width);
+				const itemMargin = parseInt(itemStyle.margin.split(' ')[1]);
+				// 总宽度 = 分类项数量 × (分类项宽度 + 左右margin) + 虚拟留白宽度
+				const virtualBlankWidth = 16; // 虚拟留白宽度，与scroll-view的paddingRight一致
+				return categoryCount * (itemWidth + itemMargin * 2) + virtualBlankWidth;
 			},
 			filteredData() {
 				return this.dataList;
@@ -404,6 +449,9 @@
 					? [ { value: 'asc', text: '积分升序' }, { value: 'desc', text: '积分降序' } ]
 					: [ { value: 'asc', text: '价格升序' }, { value: 'desc', text: '价格降序' } ];
 			},
+			currentCatId() {
+				return 'cat-' + this.currentCategory
+			},
 		},
 		watch: {
 			keyword(keyword, oldValue) {
@@ -459,8 +507,10 @@
 				uni.navigateTo({ url: '/pages/list/search/search?keyword=' + encodeURIComponent(this.keyword),animationType: 'fade-in'})
 			},
 			onCategoryChange(e) {
-				console.log('[onCategoryChange] 当前所有缓存快照:', JSON.parse(JSON.stringify(this.categoryCache)));
 				const newCategoryIndex = e.currentIndex;
+				this.currentCategory = newCategoryIndex;
+				this.scrollCategoryToCenter(newCategoryIndex);
+				console.log('[onCategoryChange] 当前所有缓存快照:', JSON.parse(JSON.stringify(this.categoryCache)));
 				const newCategoryId = this.getCurrentCategoryId(newCategoryIndex);
 				const now = Date.now();
 				const cache = this.categoryCache[newCategoryId];
@@ -796,6 +846,67 @@
 				this.onUdbDataChange({ data });
 				return false;
 			},
+			scrollCategoryToCenter(index) {
+				if (index === 0) {
+					this.categoryScrollLeft = 0
+					return
+				}
+				
+				// 获取屏幕宽度和分类项样式
+				const screenWidth = uni.getSystemInfoSync().windowWidth || 375;
+				const itemStyle = this.categoryItemStyle;
+				const itemWidth = parseInt(itemStyle.width);
+				const itemMargin = parseInt(itemStyle.margin.split(' ')[1]);
+				const itemTotalWidth = itemWidth + itemMargin * 2;
+				
+				// 计算目标分类项在总内容中的绝对位置
+				const targetItemAbsoluteLeft = index * itemTotalWidth;
+				
+				// 计算scroll-view的可视宽度（减去左右padding）
+				const scrollViewVisibleWidth = screenWidth - 32; // 左右各16px padding
+				
+				// 计算目标滚动位置：让目标分类项居中显示
+				// 由于一屏显示4.5个分类项，目标分类项应该在第2.25个位置（从0开始算）
+				const targetPosition = scrollViewVisibleWidth * 0.5 - itemTotalWidth * 0.5;
+				let targetScrollLeft = targetItemAbsoluteLeft - targetPosition;
+				
+				// 边界检查
+				const totalWidth = this.totalCategoryWidth;
+				const maxScrollLeft = Math.max(0, totalWidth - scrollViewVisibleWidth);
+				
+				if (targetScrollLeft < 0) {
+					targetScrollLeft = 0;
+				} else if (targetScrollLeft > maxScrollLeft) {
+					targetScrollLeft = maxScrollLeft;
+				}
+				
+				// 应用滚动
+				this.categoryScrollLeft = targetScrollLeft;
+				
+				// 更新返回全部按钮显示状态
+				this.updateBackToAllBtnVisibility();
+			},
+			
+			// 新增：更新返回全部按钮显示状态
+			updateBackToAllBtnVisibility() {
+				const itemStyle = this.categoryItemStyle;
+				const itemWidth = parseInt(itemStyle.width);
+				const itemMargin = parseInt(itemStyle.margin.split(' ')[1]);
+				const itemTotalWidth = itemWidth + itemMargin * 2;
+				
+				// 当滚动距离大于一个分类项宽度时显示返回全部按钮
+				this.showBackToAllBtn = this.categoryScrollLeft > itemTotalWidth;
+			},
+			
+			// 新增：返回全部分类
+			backToAll() {
+				// 切换到全部分类
+				this.onCategoryChange({ currentIndex: 0 });
+				// 滚动到最左侧
+				this.categoryScrollLeft = 0;
+				// 隐藏返回全部按钮
+				this.showBackToAllBtn = false;
+			},
 		},
 		mounted() {
 			cdbRef = this.$refs.udb;
@@ -928,23 +1039,37 @@
 		position: sticky;
 		top: 60px;
 		left: 0;
+		height: 45px;
 		background: #fff;
 		z-index: 1001;
-		height: 50px;
-		width: 100%;
-		padding-right: 10%;
+		width: 100vw;
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+	}
+	.back-to-all-btn {
+		position: fixed;
+		top: 60px;
+		left: 0px;
+		background: #fff;
+		height: 45px !important;
+		width: 8%;
+		z-index: 1002;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+		border-right: 1px solid #f0f0f0;
+		box-shadow: 2px 0 8px rgba(0,0,0,0.04);
 	}
+	
 	.filter-icon-btn {
 		position: fixed;
 		top: 60px;
 		right: 0px;
-		background: #ffffff46;
-		height: 50px;
-		width: 10%;
+		background: #fff;
+		height: 45px !important;
+		width: 8%;
 		z-index: 1002;
 		display: flex;
 		align-items: center;
@@ -965,25 +1090,59 @@
 		height: 40px;
 	}
 	.category-scroll {
-		width: 90vw !important;
-		overflow-x: auto;
+		flex: 1;
+		height: 100%;
 		white-space: nowrap;
+		overflow-x: auto;
+		overflow-y: hidden;
+		scrollbar-width: none;
+		-ms-overflow-style: none;
+		padding: 0 16px; /* 左右各16px内边距，配合4.5个分类项显示 */
+		box-sizing: border-box;
+	}
+	.category-scroll::-webkit-scrollbar {
+		display: none;
+	}
+	.filter-icon-btn {
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-left: 4px;
 	}
 	.seg-item {
-		display: inline-block;
-		padding: 0 18px;
-		height: 40px;
-		line-height: 40px;
+		display: inline-flex !important;
+		flex-direction: row !important;
+		align-items: center;
+		justify-content: center;
+		padding: 0 12px;
+		height: 45px;
+		box-sizing: border-box;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 		font-size: 15px;
 		color: #666;
 		border-radius: 20px;
-		margin: 0 4px;
-		background: #f5f5f5;
 		transition: background 0.2s, color 0.2s;
+		cursor: pointer;
+		flex-shrink: 0;
+		position: relative;
 	}
 	.seg-item.active {
+		background: #fff !important;
+		color: #1976d2 !important;
+		font-weight: 600;
+	}
+	.seg-underline {
+		position: absolute;
+		bottom: 0;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 20px;
+		height: 3px;
 		background: #1976d2;
-		color: #fff;
+		border-radius: 2px;
 	}
 	.masonry-scroll {
 		width: 100%;
@@ -1081,7 +1240,7 @@
 	}
 	.filter-btn {
 		width: 60%;
-		height: 44px;
+		height: 45px;
 		border: none;
 		border-radius: 8px;
 		font-size: 16px;
@@ -1129,7 +1288,7 @@
 	}
 	.mode-switch-btn {
 		flex: 1;
-		height: 44px;
+		height: 45px;
 		border: none;
 		border-radius: 8px;
 		font-size: 16px;
