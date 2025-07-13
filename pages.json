@@ -4,9 +4,7 @@
 			"style": {
 				"navigationBarTitleText": "列表",
 				"enablePullDownRefresh": true,
-				// #ifdef MP || APP-PLUS
 				"navigationStyle": "custom"
-				// #endif
 			}
 		},
 		{
@@ -14,9 +12,7 @@
 			"style": {
 				"navigationBarTitleText": "首页",
 				"enablePullDownRefresh": false,
-				//#ifndef MP || APP-PLUS
 				"navigationStyle": "custom"
-				//#endif
 			}
 		}, {
 			"path": "pages/list/search/search",
@@ -76,9 +72,14 @@
 				"navigationStyle": "custom",
 				"enablePullDownRefresh": true
 			}
-		}
-		// #ifdef APP
-		, {
+		},
+		{
+			"path": "pages/publish/publish",
+			"style": {
+				"navigationBarTitleText": "发布任务"
+			}
+		},
+		{
 			"path": "pages/ucenter/about/about",
 			"style": {
 				"navigationBarTitleText": "关于",
@@ -114,7 +115,6 @@
 				"enablePullDownRefresh": false
 			}
 		}
-		// #endif
 	],
 	"subPackages": [{
 			"root": "uni_modules/uni-feedback",
@@ -206,7 +206,6 @@
 						"navigationBarTitleText": "设置密码"
 					}
 				}
-				// #ifdef H5
 				,
 				{
 					"path": "userinfo/cropImage/cropImage"
@@ -218,38 +217,24 @@
 						"navigationBarTitleText": "注册管理员账号"
 					}
 				}
-				// #endif
 			]
 		}
 	],
 	"globalStyle": {
-		// #ifdef H5
-		"h5": {
-			"titleNView": false
-		},
-		// #endif
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "uni-starter",
 		"navigationBarBackgroundColor": "#FFFFFF",
 		"backgroundColor": "#F8F8F8",
 		"enablePullDownRefresh": false,
-		// "maxWidth":375,
 		"rpxCalcMaxDeviceWidth": 375,
 		"rpxCalcBaseDeviceWidth": 375
-		// "rpxCalcIncludeWidth":0
 	},
 	"condition": {
-		"list": [{
-				"path": "pages/list/detail"
-			}, {
-				"path": "pages/list/list"
-			},
-			{
-				"path": "pages/home/home"
-			},
-			{
-				"path": "pages/ucenter/settings/settings"
-			}
+		"list": [
+			{ "path": "pages/list/detail" },
+			{ "path": "pages/list/list" },
+			{ "path": "pages/home/home" },
+			{ "path": "pages/ucenter/settings/settings" }
 		],
 		"current": 3
 	},
@@ -258,22 +243,26 @@
 		"selectedColor": "#007AFF",
 		"borderStyle": "black",
 		"backgroundColor": "#FFFFFF",
-		"list": [{
-			"pagePath": "pages/home/home",
-			"iconPath": "static/tabbar/home.png",
-			"selectedIconPath": "static/tabbar/home-active.png",
-			"text": "首页"
-		}, {
-			"pagePath": "pages/list/list",
-			"iconPath": "static/tabbar/menu.png",
-			"selectedIconPath": "static/tabbar/menu-active.png",
-			"text": "列表"
-		}, {
-			"pagePath": "pages/ucenter/ucenter",
-			"iconPath": "static/tabbar/mine.png",
-			"selectedIconPath": "static/tabbar/mine-active.png",
-			"text": "我的"
-		}]
+		"list": [
+			{
+				"pagePath": "pages/home/home",
+				"iconPath": "static/tabbar/home.png",
+				"selectedIconPath": "static/tabbar/home-active.png",
+				"text": "首页"
+			},
+			{
+				"pagePath": "pages/list/list",
+				"iconPath": "static/tabbar/menu.png",
+				"selectedIconPath": "static/tabbar/menu-active.png",
+				"text": "列表"
+			},
+			{
+				"pagePath": "pages/ucenter/ucenter",
+				"iconPath": "static/tabbar/mine.png",
+				"selectedIconPath": "static/tabbar/mine-active.png",
+				"text": "我的"
+			}
+		]
 	},
 	"uniIdRouter": {
 		"loginPage": "uni_modules/uni-id-pages/pages/login/login-withoutpwd",

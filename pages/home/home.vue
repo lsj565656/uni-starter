@@ -213,18 +213,16 @@
 		</view>
 		<timeline :process-data="flourProcess" :mode="flourTimelineMode" @image-click="handleFlourTimelineImageClick" />
 	</view>
-	<!-- 悬浮发布按钮和返回顶部按钮 -->
-	<uni-fab :pattern="{
-      backgroundColor: '#1976d2',
-      color: '#fff',
-      icon: 'plus',
-      buttonColor: '#1976d2',
-      iconColor: '#fff'
-    }" :horizontal="'right'" :vertical="'bottom'" :popMenu="false" :content="[]" @fabClick="goToPublish"
-		style="z-index: 9999;" />
-	<view v-if="showBackToTop" class="back-to-top-btn" @click="scrollToTop">
-		<uni-icons type="arrow-up" size="28" color="#fff" />
-	</view>
+	<!-- 悬浮发布按钮和返回顶部按钮（均用uni-fab） -->
+	<uni-fab
+		:pattern="fabPattern"
+		:content="fabContent"
+		:horizontal="'right'"
+		:vertical="'bottom'"
+		:popMenu="true"
+		:direction="'horizontal'"
+		@trigger="onFabMenuClick"
+	/>
 </template>
 
 <script setup>
@@ -730,6 +728,49 @@
 	// 直接注册页面滚动钩子
 	onPageScroll((e) => {
 		showBackToTop.value = (e.scrollTop || 0) > 300
+	})
+
+	const showFab = ref(true)
+	const isAtTop = ref(true)
+
+	// 主按钮透明，菜单项不透明
+	const fabPattern = {
+		backgroundColor: 'rgba(255,255,255,0.6)', // 近乎全透明
+		color: '#1296db',
+		icon: 'plusempty',
+		buttonColor: 'rgba(255,255,255,0.6)',
+		iconColor: '#1976d2',
+		boxShadow: 'none'
+	}
+
+	const fabContent = [
+		{
+			iconPath: '/static/icons/backTop.png',
+			text: '置顶',
+			active: false,
+			disabled: isAtTop.value // 动态禁用
+		},
+		{
+			iconPath: '/static/icons/publish.png',
+			text: '发布',
+			active: false,
+			disabled: false
+		}
+	]
+
+	function onFabMenuClick({ index, item }) {
+		if (item.text === '发布') {
+			uni.navigateTo({ url: '/pages/publish/publish' })
+		} else if (item.text === '置顶' && !isAtTop.value) {
+			uni.pageScrollTo({ scrollTop: 0, duration: 300 })
+		}
+	}
+
+	onPageScroll((e) => {
+		showFab.value = true
+		isAtTop.value = (e.scrollTop || 0) <= 0
+		// 动态更新置顶按钮禁用状态
+		fabContent[0].disabled = isAtTop.value
 	})
 </script>
 
@@ -1310,24 +1351,10 @@
 		transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s;
 	}
 
-	.back-to-top-btn {
-		position: fixed;
-		right: 24px;
-		bottom: 100px;
-		width: 48px;
-		height: 48px;
-		background: #1976d2;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-		z-index: 9999;
-		cursor: pointer;
-		transition: opacity 0.2s;
-	}
-
-	.back-to-top-btn:active {
-		opacity: 0.7;
+	/* 不再需要 .back-to-top-btn 样式，uni-fab自带圆角和阴影 */
+	/* 可选：让主fab按钮点击区域也透明 */
+	::v-deep .uni-fab__circle {
+		background: rgba(255,255,255,0.6) !important;
+		box-shadow: none !important;
 	}
 </style>
