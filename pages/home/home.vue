@@ -110,9 +110,9 @@
 				<text class="section-title">热门任务</text>
 			</view>
 			<unicloud-db
-				collection="kl-food-products"
+				collection="kl-tasks"
 				:where="'isActive == true && isHot == true'"
-				field="image,name,description,like_count,category,stock,price,isActive,user_id,_id,create_date"
+				field="image,name,description,like_count,category,category_name,mode,score,price,joined_count,max_participants,isActive,user_id,_id,create_date,is_liked"
 				:options="{ join: { 0: { leftKey: 'user_id', rightKey: '_id', from: 1, as: 'user_id', type: 'left' } } }"
 				orderby="create_date desc"
 				:page-size="5"
@@ -123,43 +123,14 @@
 						<template v-if="!loading && data && data.length > 0">
 							<view class="masonry-col" v-for="(col, colIdx) in homeHotColumnsWithMoreCard(data)" :key="colIdx">
 								<template v-for="item in col">
-									<uni-card
+									<task-card
 										v-if="!item._isMoreCard"
 										:key="item._id"
-										padding="0"
-										spacing="0"
-										class="masonry-card"
-									>
-										<template v-slot:cover>
-											<view class="custom-cover">
-												<image class="cover-image" mode="aspectFill" :src="item.image"></image>
-												<view class="cover-content">
-													<text class="uni-subtitle uni-white">{{ item.name }}</text>
-												</view>
-											</view>
-										</template>
-										<uni-list>
-											<uni-list-item :title="item.description || item.name || '暂无描述'" showArrow></uni-list-item>
-											<view class="user-info">
-												<image class="user-avatar" :src="item.user_id[0]?.avatar_file?.url || '/static/logo.png'" />
-												<text class="user-nickname">{{ item.user_id[0]?.nickname || '匿名用户' }}</text>
-											</view>
-										</uni-list>
-										<view slot="actions" class="card-actions no-border">
-											<view class="card-actions-item">
-												<uni-icons type="shop" size="18" color="#999"></uni-icons>
-												<text class="card-actions-item-text">库存: {{ item.stock ?? 0 }}</text>
-											</view>
-											<view class="card-actions-item" @click="$emit('likeTask', item)">
-												<uni-icons type="heart" size="18" color="#999"></uni-icons>
-												<text class="card-actions-item-text">点赞</text>
-											</view>
-											<view class="card-actions-item" @click="$emit('commentTask', item)">
-												<uni-icons type="chatbubble" size="18" color="#999"></uni-icons>
-												<text class="card-actions-item-text">评论</text>
-											</view>
-										</view>
-									</uni-card>
+										:task="item"
+										:user="getUserObj(item.user_id)"
+										:showActions="false"
+										@like="handleLikeTask"
+									/>
 									<uni-card
 										v-else
 										class="masonry-card more-card"
@@ -176,43 +147,14 @@
 						</template>
 						<template v-else>
 							<view class="masonry-col" v-for="(col, colIdx) in homeHotColumns(data)" :key="colIdx">
-								<uni-card
+								<task-card
 									v-for="item in col"
 									:key="item._id"
-									padding="0"
-									spacing="0"
-									class="masonry-card"
-								>
-									<template v-slot:cover>
-										<view class="custom-cover">
-											<image class="cover-image" mode="aspectFill" :src="item.image"></image>
-											<view class="cover-content">
-												<text class="uni-subtitle uni-white">{{ item.name }}</text>
-											</view>
-										</view>
-									</template>
-									<uni-list>
-										<uni-list-item :title="item.description || item.name || '暂无描述'" showArrow></uni-list-item>
-										<view class="user-info">
-											<image class="user-avatar" :src="item.user_id[0]?.avatar_file?.url || '/static/logo.png'" />
-											<text class="user-nickname">{{ item.user_id[0]?.nickname || '匿名用户' }}</text>
-										</view>
-									</uni-list>
-									<view slot="actions" class="card-actions no-border">
-										<view class="card-actions-item">
-											<uni-icons type="shop" size="18" color="#999"></uni-icons>
-											<text class="card-actions-item-text">库存: {{ item.stock ?? 0 }}</text>
-										</view>
-										<view class="card-actions-item" @click="$emit('likeTask', item)">
-											<uni-icons type="heart" size="18" color="#999"></uni-icons>
-											<text class="card-actions-item-text">点赞</text>
-										</view>
-										<view class="card-actions-item" @click="$emit('commentTask', item)">
-											<uni-icons type="chatbubble" size="18" color="#999"></uni-icons>
-											<text class="card-actions-item-text">评论</text>
-										</view>
-									</view>
-								</uni-card>
+									:task="item"
+									:user="getUserObj(item.user_id)"
+									:showActions="false"
+									@like="handleLikeTask"
+								/>
 							</view>
 						</template>
 					</view>
@@ -357,6 +299,7 @@
 	import ingredientCard from '@/components/ingredient-card/ingredient-card.vue'
 	import timeline from '@/components/timeline/timeline.vue'
 	import shopInfoCard from '@/components/shop-info-card/shop-info-card.vue'
+	import taskCard from '@/components/task-card/task-card.vue'
 	import { ingredients } from '@/utils/ingredients'
 	import { flourProcess as flourProcessData } from '@/utils/flourProcess'
 	import { notices, getNoticeIcon, getNoticeColor, generateRandomNotice } from '@/utils/notices'
@@ -731,6 +674,11 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		uni.switchTab({ url: '/pages/list/list' });
 		// #endif
 	}
+	
+	// 处理任务点赞
+	function handleLikeTask(task) {
+		uni.showToast({ title: '点赞功能开发中', icon: 'none' });
+	}
 
 	function homeHotColumnsWithMoreCard(data) {
 		const columns = [[], []];
@@ -750,6 +698,16 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		});
 		return columns;
 	}
+
+	// 在 <script setup> 内部添加 getUserObj 方法
+	function getUserObj(user_id) {
+  // 如果是数组且有对象，返回第一个对象
+  if (Array.isArray(user_id) && user_id.length && typeof user_id[0] === 'object') {
+    return user_id[0];
+  }
+  // 不是对象，返回 null
+  return null;
+}
 	
 	// 生命周期钩子
 	let addNoticeTimer = null
@@ -1159,7 +1117,7 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		cursor: pointer;
 	}
 
-	/* Masonry 卡片和用户信息样式 from list.vue */
+	/* Masonry 布局样式 */
 	.masonry-scroll {
 		width: 100%;
 		background: #f8f8f8;
@@ -1177,37 +1135,6 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		width: 49%;
 		margin: 0 auto;
 		box-sizing: border-box;
-	}
-	.masonry-card {
-		margin-bottom: 12px;
-		max-height: 400px;
-		overflow: hidden;
-		margin: 4px 1px !important;
-	}
-	.custom-cover { position: relative; }
-	.cover-image { width: 100%; height: 120px; object-fit: cover; border-radius: 8px 8px 0 0; }
-	.cover-content { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); padding: 4px 8px; }
-	.uni-subtitle.uni-white { color: #fff; font-size: 14px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.card-actions { display: flex; flex-direction: row; justify-content: space-around; padding: 2px 0; }
-	.card-actions-item { display: flex; align-items: center; line-height: 1.2 !important; }
-	.card-actions-item-text { margin-left: 2px; font-size: 10px; color: #666; }
-	.user-info {
-		display: flex;
-		align-items: center;
-		flex-direction: row;
-		padding: 2px 8px;
-		border-top: 1px solid #f0f0f0;
-	}
-	.user-avatar {
-		width: 24px;
-		height: 24px;
-		border-radius: 50%;
-		margin-right: 8px;
-	}
-	.user-nickname {
-		max-width: 40vw !important;
-		font-size: 13px;
-		color: #666;
 	}
 	.more-card {
 		display: flex !important;

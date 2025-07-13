@@ -14,7 +14,7 @@
         <view class="task-type-tag">{{ task.category_name }}</view>
       </view>
     </uni-list>
-    <view class="card-actions no-border">
+    <view v-if="showActions" class="card-actions no-border">
       <view class="card-actions-item">
         <text class="card-actions-item-text">
           {{ task.mode === 'score' ? (task.score + ' 积分') : (task.price + '¥') }}
@@ -35,7 +35,14 @@
 <script>
 export default {
   name: 'TaskCard',
-  props: { task: Object, user: Object },
+  props: { 
+    task: Object, 
+    user: Object,
+    showActions: {
+      type: Boolean,
+      default: true
+    }
+  },
   methods: {
     goDetail() {
       // 合并任务和用户的所有核心字段
