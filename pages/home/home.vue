@@ -13,7 +13,7 @@
 			</view>
 		</view>
 		<!-- #endif -->
-		
+
 		<!-- banner -->
 		<!-- <unicloud-db ref="bannerdb" v-slot:default="{data, loading, error, options}" collection="opendb-banner"
 			field="_id,bannerfile,open_url,title" @load="onqueryload" >
@@ -25,28 +25,21 @@
 				</swiper-item>
 			</swiper>
 		</unicloud-db> -->
-        <swiper class="swiper-box"  @change="changeSwiper" :current="current" indicator-dots>
-            <swiper-item v-for="(item, index) in imageDatas" :key="item.id">
-                <image class="banner-image" :src="item.image" mode="aspectFill" @click="clickBannerItem(item)" :draggable="false" />
-            </swiper-item>
-        		</swiper>
+		<swiper class="swiper-box" @change="changeSwiper" :current="current" indicator-dots>
+			<swiper-item v-for="(item, index) in imageDatas" :key="item.id">
+				<image class="banner-image" :src="item.image" mode="aspectFill" @click="clickBannerItem(item)"
+					:draggable="false" />
+			</swiper-item>
+		</swiper>
 
 		<!-- 通告消息栏 -->
 		<view class="notice-section">
-			<NoticeBar
-				:notices="noticeList"
-				background-color="#f8f9fa"
-				@click="handleNoticeClick"
-			/>
+			<NoticeBar :notices="noticeList" background-color="#f8f9fa" @click="handleNoticeClick" />
 		</view>
 
 		<!-- 宫格功能区 -->
 		<view class="section grid-section">
-			<uni-swiper-dot
-				:info="gridPages"
-				:current="gridSwiperCurrent"
-				mode="round"
-				:dotsStyles="{
+			<uni-swiper-dot :info="gridPages" :current="gridSwiperCurrent" mode="round" :dotsStyles="{
 					backgroundColor: '#e0e6ed',
 					selectedBackgroundColor: '#1976d2',
 					width: 8,
@@ -55,31 +48,21 @@
 					border: 'none',
 					selectedBorder: 'none',
 					bottom: 0
-				}"
-				style="margin-top: -1px;"
-			>
-				<swiper
-					class="grid-swiper"
-					:style="{ height: gridSwiperHeight }"
-					:indicator-dots="false"
-					:current="gridSwiperCurrent"
-					@change="handleGridChange"
-					circular
-					:autoplay="false"
-					:duration="300"
-				>
+				}" style="margin-top: -1px;">
+				<swiper class="grid-swiper" :style="{ height: gridSwiperHeight }" :indicator-dots="false"
+					:current="gridSwiperCurrent" @change="handleGridChange" circular :autoplay="false" :duration="300">
 					<swiper-item v-for="(page, pageIdx) in gridPages" :key="pageIdx">
 						<view class="grid-page">
 							<view class="grid-row" v-for="row in currentGridRows" :key="row">
 								<view class="grid-col" v-for="col in gridColumn" :key="col">
 									<template v-if="page[(row-1)*gridColumn + (col-1)]">
-										<view class="grid-item" @click="handleGridItemClick(page[(row-1)*gridColumn + (col-1)])">
-											<image
-												class="grid-item-icon"
+										<view class="grid-item"
+											@click="handleGridItemClick(page[(row-1)*gridColumn + (col-1)])">
+											<image class="grid-item-icon"
 												:src="page[(row-1)*gridColumn + (col-1)].icon || '/static/logo.png'"
-												mode="aspectFit"
-											/>
-											<text class="grid-item-text">{{ page[(row-1)*gridColumn + (col-1)].text }}</text>
+												mode="aspectFit" />
+											<text
+												class="grid-item-text">{{ page[(row-1)*gridColumn + (col-1)].text }}</text>
 										</view>
 									</template>
 								</view>
@@ -109,34 +92,21 @@
 				<uni-icons type="fire" size="20" color="#007aff" />
 				<text class="section-title">热门任务</text>
 			</view>
-			<unicloud-db
-				collection="kl-tasks"
-				:where="'isActive == true && isHot == true'"
+			<unicloud-db collection="kl-tasks" :where="'isActive == true && isHot == true'"
 				field="image,name,description,like_count,category,category_name,mode,score,price,joined_count,max_participants,isActive,user_id,_id,create_date,is_liked"
 				:options="{ join: { 0: { leftKey: 'user_id', rightKey: '_id', from: 1, as: 'user_id', type: 'left' } } }"
-				orderby="create_date desc"
-				:page-size="5"
-				v-slot:default="{data, loading, error}"
-			>
+				orderby="create_date desc" :page-size="5" v-slot:default="{data, loading, error}">
 				<view class="masonry-scroll">
 					<view class="masonry-row">
 						<template v-if="!loading && data && data.length > 0">
-							<view class="masonry-col" v-for="(col, colIdx) in homeHotColumnsWithMoreCard(data)" :key="colIdx">
+							<view class="masonry-col" v-for="(col, colIdx) in homeHotColumnsWithMoreCard(data)"
+								:key="colIdx">
 								<template v-for="item in col">
-									<task-card
-										v-if="!item._isMoreCard"
-										:key="item._id"
-										:task="item"
-										:user="getUserObj(item.user_id)"
-										:showActions="false"
-										@like="handleLikeTask"
-									/>
-									<uni-card
-										v-else
-										class="masonry-card more-card"
+									<task-card v-if="!item._isMoreCard" :key="item._id" :task="item"
+										:user="getUserObj(item.user_id)" :showActions="false" @like="handleLikeTask" />
+									<uni-card v-else class="masonry-card more-card"
 										:style="{ minHeight: '80px', maxHeight: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }"
-										@click="goToListPage"
-									>
+										@click="goToListPage">
 										<view class="more-card-content">
 											<text class="more-card-text">查看更多</text>
 											<uni-icons type="arrowright" color="#1976d2" style="margin-bottom: 8px;" />
@@ -147,14 +117,8 @@
 						</template>
 						<template v-else>
 							<view class="masonry-col" v-for="(col, colIdx) in homeHotColumns(data)" :key="colIdx">
-								<task-card
-									v-for="item in col"
-									:key="item._id"
-									:task="item"
-									:user="getUserObj(item.user_id)"
-									:showActions="false"
-									@like="handleLikeTask"
-								/>
+								<task-card v-for="item in col" :key="item._id" :task="item"
+									:user="getUserObj(item.user_id)" :showActions="false" @like="handleLikeTask" />
 							</view>
 						</template>
 					</view>
@@ -174,30 +138,18 @@
 				<uni-icons type="refresh" size="16" color="#666" @click="refreshIngredients"></uni-icons>
 			</view>
 		</view>
-		<scroll-view class="ingredients-scroll"
-		:class="{ 'scrolled-left': isIngredientsScrolledLeft }"
-		scroll-x show-scrollbar="false"
-		@scroll="handleIngredientsScroll"
-		>
+		<scroll-view class="ingredients-scroll" :class="{ 'scrolled-left': isIngredientsScrolledLeft }" scroll-x
+			show-scrollbar="false" @scroll="handleIngredientsScroll">
 			<view class="ingredients-container">
-				<ingredient-card
-					v-for="ingredient in ingredients"
-					:key="ingredient.id"
-					:ingredient="ingredient"
-					@click="showIngredientDetail(ingredient)"
-				/>
+				<ingredient-card v-for="ingredient in ingredients" :key="ingredient.id" :ingredient="ingredient"
+					@click="showIngredientDetail(ingredient)" />
 			</view>
 		</scroll-view>
 	</view>
-	
+
 	<!-- 优质案例弹窗 -->
-	<uni-popup
-		ref="ingredientPopup"
-		type="center"
-		:animation="true"
-		:is-mask-click="true"
-		@change="onIngredientPopupChange"
-	>
+	<uni-popup ref="ingredientPopup" type="center" :animation="true" :is-mask-click="true"
+		@change="onIngredientPopupChange">
 		<view class="ingredient-popup">
 			<view class="ingredient-popup-header">
 				<text class="ingredient-popup-title">{{ currentIngredient?.title }}</text>
@@ -209,21 +161,12 @@
 			<view class="ingredient-popup-content">
 				<!-- 图片轮播 -->
 				<view class="ingredient-images">
-					<swiper
-						class="ingredient-swiper"
-						:indicator-dots="ingredientImages.length > 1"
-						:autoplay="false"
-						indicator-color="rgba(255,255,255,0.3)"
-						indicator-active-color="#fff"
-						@change="onImageSwiperChange"
-					>
+					<swiper class="ingredient-swiper" :indicator-dots="ingredientImages.length > 1" :autoplay="false"
+						indicator-color="rgba(255,255,255,0.3)" indicator-active-color="#fff"
+						@change="onImageSwiperChange">
 						<swiper-item v-for="(image, index) in ingredientImages" :key="index">
-							<image
-								class="ingredient-image-fixed"
-								:src="image"
-								mode="aspectFill"
-								@click="previewImage(index)"
-							/>
+							<image class="ingredient-image-fixed" :src="image" mode="aspectFill"
+								@click="previewImage(index)" />
 						</swiper-item>
 					</swiper>
 					<!-- 图片计数器 -->
@@ -243,7 +186,8 @@
 					</view>
 					<view class="comment-content">{{ currentComment.content }}</view>
 					<view class="comment-tags">
-						<uni-badge v-for="tag in currentComment.tags" :key="tag" :text="tag" type="primary" size="small" :inverted="true" />
+						<uni-badge v-for="tag in currentComment.tags" :key="tag" :text="tag" type="primary" size="small"
+							:inverted="true" />
 					</view>
 				</view>
 			</view>
@@ -255,38 +199,31 @@
 			<uni-icons type="gear" size="20" color="#007aff" />
 			<text class="section-title">玩法技巧</text>
 			<view class="timeline-mode-switch">
-				<uni-icons
-					custom-prefix="iconfont"
-					type="icon-align-text-center"
-					:color="flourTimelineMode === 'tree' ? '#007aff' : '#bbb'"
-					size="22"
-					@click="flourTimelineMode = 'tree'"
-					class="mode-icon"
-				/>
-				<uni-icons
-					custom-prefix="iconfont"
-					type="icon-wenzijuzuo"
-					:color="flourTimelineMode === 'vertical' ? '#007aff' : '#bbb'"
-					size="22"
-					@click="flourTimelineMode = 'vertical'"
-					class="mode-icon"
-				/>
+				<uni-icons custom-prefix="iconfont" type="icon-align-text-center"
+					:color="flourTimelineMode === 'tree' ? '#007aff' : '#bbb'" size="22"
+					@click="flourTimelineMode = 'tree'" class="mode-icon" />
+				<uni-icons custom-prefix="iconfont" type="icon-wenzijuzuo"
+					:color="flourTimelineMode === 'vertical' ? '#007aff' : '#bbb'" size="22"
+					@click="flourTimelineMode = 'vertical'" class="mode-icon" />
 			</view>
 			<view class="section-actions">
 				<text class="update-time">{{ processUpdateTime }}</text>
-				<uni-icons
-					type="refresh"
-					size="16"
-					color="#666"
-					@click="refreshProcess"
-				/>
+				<uni-icons type="refresh" size="16" color="#666" @click="refreshProcess" />
 			</view>
 		</view>
-		<timeline
-			:process-data="flourProcess"
-			:mode="flourTimelineMode"
-			@image-click="handleFlourTimelineImageClick"
-		/>
+		<timeline :process-data="flourProcess" :mode="flourTimelineMode" @image-click="handleFlourTimelineImageClick" />
+	</view>
+	<!-- 悬浮发布按钮和返回顶部按钮 -->
+	<uni-fab :pattern="{
+      backgroundColor: '#1976d2',
+      color: '#fff',
+      icon: 'plus',
+      buttonColor: '#1976d2',
+      iconColor: '#fff'
+    }" :horizontal="'right'" :vertical="'bottom'" :popMenu="false" :content="[]" @fabClick="goToPublish"
+		style="z-index: 9999;" />
+	<view v-if="showBackToTop" class="back-to-top-btn" @click="scrollToTop">
+		<uni-icons type="arrow-up" size="28" color="#fff" />
 	</view>
 </template>
 
@@ -294,82 +231,63 @@
 	// #ifdef APP
 	import statusBar from "@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar";
 	// #endif
-	import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
-	import { images } from '@/utils/images'
+	import {
+		ref,
+		computed,
+		nextTick,
+		onMounted,
+		onUnmounted
+	} from 'vue'
+	import {
+		images
+	} from '@/utils/images'
 	import ingredientCard from '@/components/ingredient-card/ingredient-card.vue'
 	import timeline from '@/components/timeline/timeline.vue'
 	import shopInfoCard from '@/components/shop-info-card/shop-info-card.vue'
 	import taskCard from '@/components/task-card/task-card.vue'
-	import { ingredients } from '@/utils/ingredients'
-	import { flourProcess as flourProcessData } from '@/utils/flourProcess'
-	import { notices, getNoticeIcon, getNoticeColor, generateRandomNotice } from '@/utils/notices'
+	import {
+		ingredients
+	} from '@/utils/ingredients'
+	import {
+		flourProcess as flourProcessData
+	} from '@/utils/flourProcess'
+	import {
+		notices,
+		getNoticeIcon,
+		getNoticeColor,
+		generateRandomNotice
+	} from '@/utils/notices'
 	import NoticeBar from '@/components/notice-bar/notice-bar.vue'
-	import { categories } from '@/utils/categories'
+	import {
+		categories
+	} from '@/utils/categories'
+	import uniFab from '@/uni_modules/uni-fab/components/uni-fab/uni-fab.vue'
+	import uniIcons from '@/uni_modules/uni-icons/components/uni-icons/uni-icons.vue'
+	import {
+		onPageScroll
+	} from '@dcloudio/uni-app'
 
-    const imageDatas = ref([
-        {
-            id: 1,
-            name: 'banner1',
-            image: images.ingredients.wuhuarou,
-        },
-        {
-            id: 2,
-            name: 'banner2',
-            image: images.ingredients.shucai,
-        },
-        {
-            id: 3,
-            name: 'banner3',
-            image: images.ingredients.mianfen,
-        }
-    ])
-	const ingredientsUpdateTime = ref('12-01 14:30')
-	const flourProcess = ref(flourProcessData)
-	
-	// 通告消息相关
-	const noticeList = ref([...notices])
-	const meatProcess = ref([
-		{
+	const imageDatas = ref([{
 			id: 1,
-			name: '清洗',
-			icon: 'icon-qingxi',
-			time: '07:00',
-			image: images.process.lurou_1,
-			status: 'completed'
+			name: 'banner1',
+			image: images.ingredients.wuhuarou,
 		},
 		{
 			id: 2,
-			name: '入锅',
-			icon: 'icon-jiatiaoliao',
-			time: '07:30',
-			image: images.process.lurou_2,
-			status: 'in-progress'
+			name: 'banner2',
+			image: images.ingredients.shucai,
 		},
 		{
 			id: 3,
-			name: '加料',
-			icon: 'icon-jiatiaoliao',
-			time: '07:45',
-			image: images.process.lurou_3,
-			status: 'pending'
-		},
-		{
-			id: 4,
-			name: '卤制',
-			icon: 'icon-jiarezhizuo',
-			time: '08:00',
-			image: images.process.lurou_4,
-			status: 'pending'
-		},
-		{
-			id: 5,
-			name: '出锅',
-			icon: 'icon-wanjie',
-			time: '08:30',
-			image: images.process.hemian_1,
-			status: 'pending'
+			name: 'banner3',
+			image: images.ingredients.mianfen,
 		}
 	])
+	const ingredientsUpdateTime = ref('12-01 14:30')
+	const flourProcess = ref(flourProcessData)
+
+	// 通告消息相关
+	const noticeList = ref([...notices])
 	const currentFlourStep = ref(6)
 	const currentMeatStep = ref(2)
 	const storeName = ref('***餐饮店')
@@ -423,29 +341,36 @@
 	const gridPageSize = gridColumn * gridRow
 	const homeGridItems = computed(() => categories.filter(c => c.use_home_grid))
 	const gridPages = computed(() => {
-  const pages = []
-  for (let i = 0; i < homeGridItems.value.length; i += gridPageSize) {
-    pages.push(homeGridItems.value.slice(i, i + gridPageSize))
-  }
-  return pages
-})
-const gridSwiperCurrent = ref(0)
-function handleGridChange(e) {
-  gridSwiperCurrent.value = e.detail.current
-}
-function handleGridItemClick(item) {
-  if (item.route) {
-    uni.navigateTo({ url: item.route })
-  } else {
-    uni.showToast({ title: item.text, icon: 'none' })
-  }
-}
-// 动态计算当前页实际行数
-const currentGridRows = computed(() => {
-  const page = gridPages.value[gridSwiperCurrent.value] || []
-  return Math.ceil(page.length / gridColumn)
-})
-const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
+		const pages = []
+		for (let i = 0; i < homeGridItems.value.length; i += gridPageSize) {
+			pages.push(homeGridItems.value.slice(i, i + gridPageSize))
+		}
+		return pages
+	})
+	const gridSwiperCurrent = ref(0)
+
+	function handleGridChange(e) {
+		gridSwiperCurrent.value = e.detail.current
+	}
+
+	function handleGridItemClick(item) {
+		if (item.route) {
+			uni.navigateTo({
+				url: item.route
+			})
+		} else {
+			uni.showToast({
+				title: item.text,
+				icon: 'none'
+			})
+		}
+	}
+	// 动态计算当前页实际行数
+	const currentGridRows = computed(() => {
+		const page = gridPages.value[gridSwiperCurrent.value] || []
+		return Math.ceil(page.length / gridColumn)
+	})
+	const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 
 	const onIngredientPopupChange = (e) => {
 		if (e.type === 'hide') {
@@ -458,7 +383,7 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 				document.body.style.top = ''
 			}
 			// #endif
-			
+
 			// 使用更可靠的方式恢复滚动位置
 			nextTick(() => {
 				if (savedScrollTop.value > 0) {
@@ -478,7 +403,9 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 
 	// 刷新优质案例信息方法
 	function refreshIngredients() {
-		uni.showLoading({ title: '刷新中...' })
+		uni.showLoading({
+			title: '刷新中...'
+		})
 		setTimeout(() => {
 			uni.hideLoading()
 			const hasUpdate = Math.random() > 0.5
@@ -489,9 +416,15 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 				const hour = String(now.getHours()).padStart(2, '0')
 				const minute = String(now.getMinutes()).padStart(2, '0')
 				ingredientsUpdateTime.value = `${month}-${day} ${hour}:${minute}`
-				uni.showToast({ title: '已更新', icon: 'success' })
+				uni.showToast({
+					title: '已更新',
+					icon: 'success'
+				})
 			} else {
-				uni.showToast({ title: '已是最新', icon: 'none' })
+				uni.showToast({
+					title: '已是最新',
+					icon: 'none'
+				})
 			}
 		}, 1000)
 	}
@@ -499,90 +432,101 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 	// 其它交互方法
 	function openMap() {
 		// #ifdef APP-PLUS
-        // APP端调用地图
-        uni.openLocation({
-            latitude: 34.761829904749774,
-            longitude: 113.59211537161264,
-            name: 'xx餐饮店',
-            address: address.value,
-            scale: 18
-        })
-        // #endif
-        
-        // #ifdef H5
-        // H5端跳转到高德地图
-        const encodedAddress = encodeURIComponent(address.value)
-        window.open(`https://uri.amap.com/marker?position=113.59211537161264,34.761829904749774&name=卤肉烧饼&address=${encodedAddress}`)
-        // #endif
-        
-        // #ifdef MP-WEIXIN
-        // 微信小程序调用地图
-        uni.openLocation({
-            latitude: 34.761829904749774,
-            longitude: 113.59211537161264,
-            name: 'xx餐饮店',
-            address: address.value,
-            scale: 18
-        })
-        // #endif
+		// APP端调用地图
+		uni.openLocation({
+			latitude: 34.761829904749774,
+			longitude: 113.59211537161264,
+			name: 'xx餐饮店',
+			address: address.value,
+			scale: 18
+		})
+		// #endif
+
+		// #ifdef H5
+		// H5端跳转到高德地图
+		const encodedAddress = encodeURIComponent(address.value)
+		window.open(
+			`https://uri.amap.com/marker?position=113.59211537161264,34.761829904749774&name=卤肉烧饼&address=${encodedAddress}`
+			)
+		// #endif
+
+		// #ifdef MP-WEIXIN
+		// 微信小程序调用地图
+		uni.openLocation({
+			latitude: 34.761829904749774,
+			longitude: 113.59211537161264,
+			name: 'xx餐饮店',
+			address: address.value,
+			scale: 18
+		})
+		// #endif
 	}
+
 	function makePhoneCall() {
-        // 检查拨打电话权限
-        // #ifdef APP-PLUS
-        uni.authorize({
-            scope: 'scope.phoneCall',
-            success: () => {
-                // 权限获取成功，拨打电话
-                callPhone()
-            },
-            fail: () => {
-                // 权限获取失败，引导用户手动开启
-                uni.showModal({
-                    title: '需要拨打电话权限',
-                    content: '请在设置中开启拨打电话权限，或手动拨打：' + phone.value,
-                    confirmText: '去设置',
-                    cancelText: '取消',
-                    success: (res) => {
-                        if (res.confirm) {
-                            // 打开应用设置页面
-                            uni.openSetting({
-                                success: (settingRes) => {
-                                    if (settingRes.authSetting['scope.phoneCall']) {
-                                        callPhone()
-                                    }
-                                }
-                            })
-                        }
-                    }
-                })
-            }
-        })
-        // #endif
-        
-        // #ifdef H5
-        // H5端直接拨打电话
-        callPhone()
-        // #endif
-        
-        // #ifdef MP-WEIXIN
-        // 微信小程序直接拨打电话
-        callPhone()
-        // #endif
+		// 检查拨打电话权限
+		// #ifdef APP-PLUS
+		uni.authorize({
+			scope: 'scope.phoneCall',
+			success: () => {
+				// 权限获取成功，拨打电话
+				callPhone()
+			},
+			fail: () => {
+				// 权限获取失败，引导用户手动开启
+				uni.showModal({
+					title: '需要拨打电话权限',
+					content: '请在设置中开启拨打电话权限，或手动拨打：' + phone.value,
+					confirmText: '去设置',
+					cancelText: '取消',
+					success: (res) => {
+						if (res.confirm) {
+							// 打开应用设置页面
+							uni.openSetting({
+								success: (settingRes) => {
+									if (settingRes.authSetting['scope.phoneCall']) {
+										callPhone()
+									}
+								}
+							})
+						}
+					}
+				})
+			}
+		})
+		// #endif
+
+		// #ifdef H5
+		// H5端直接拨打电话
+		callPhone()
+		// #endif
+
+		// #ifdef MP-WEIXIN
+		// 微信小程序直接拨打电话
+		callPhone()
+		// #endif
 	}
+
 	function callPhone() {
-        uni.makePhoneCall({
-            phoneNumber: phone.value,
-            success: () => { console.log('拨打电话成功') },
-            fail: (err) => {
-                console.error('拨打电话失败：', err)
-                uni.showToast({ title: '拨打电话失败', icon: 'none' })
-            }
-        })
-    }
+		uni.makePhoneCall({
+			phoneNumber: phone.value,
+			success: () => {
+				console.log('拨打电话成功')
+			},
+			fail: (err) => {
+				console.error('拨打电话失败：', err)
+				uni.showToast({
+					title: '拨打电话失败',
+					icon: 'none'
+				})
+			}
+		})
+	}
+
 	function showIngredientDetail(ingredient) {
 		currentIngredient.value = ingredient;
 		// 图片和评论一一对应，取每条 afterComments 的第一张图片，没有则用默认图
-		const imgs = (ingredient.afterComments || []).map(c => (c.images && c.images.length ? c.images[0] : '/static/logo.png'))
+		const imgs = (ingredient.afterComments || []).map(c => (c.images && c.images.length ? c.images[0] :
+			'/static/logo.png'))
 		ingredientImages.value = imgs.length ? imgs : ['/static/logo.png']
 		currentImageIndex.value = 0
 		currentComment.value = (ingredient.afterComments && ingredient.afterComments[0]) || null
@@ -590,23 +534,32 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 			if (ingredientPopup.value) ingredientPopup.value.open();
 		});
 	}
+
 	function onImageSwiperChange(e) {
 		currentImageIndex.value = e.detail.current
 		if (currentIngredient.value && currentIngredient.value.afterComments) {
 			currentComment.value = currentIngredient.value.afterComments[currentImageIndex.value] || null
 		}
 	}
+
 	function previewImage(index) {
-		uni.previewImage({ current: index, urls: ingredientImages.value })
+		uni.previewImage({
+			current: index,
+			urls: ingredientImages.value
+		})
 	}
-	function handleFlourTimelineImageClick({ allImages, currentIndex }) {
+
+	function handleFlourTimelineImageClick({
+		allImages,
+		currentIndex
+	}) {
 		console.log('点击了面图片', allImages, currentIndex)
-        uni.previewImage({
-		current: currentIndex,
-		urls: allImages
-	})
+		uni.previewImage({
+			current: currentIndex,
+			urls: allImages
+		})
 	}
-	
+
 	// 通告消息相关方法
 	function addRandomNotice() {
 		const newNotice = generateRandomNotice()
@@ -616,7 +569,7 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 			noticeList.value = noticeList.value.slice(0, 20)
 		}
 	}
-	
+
 	function handleNoticeClick(notice) {
 		if (notice) {
 			uni.showToast({
@@ -641,7 +594,9 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 	const processUpdateTime = ref('12-01 14:30')
 
 	function refreshProcess() {
-		uni.showLoading({ title: '刷新中...' })
+		uni.showLoading({
+			title: '刷新中...'
+		})
 		setTimeout(() => {
 			uni.hideLoading()
 			const hasUpdate = Math.random() > 0.5
@@ -652,47 +607,74 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 				const hour = String(now.getHours()).padStart(2, '0')
 				const minute = String(now.getMinutes()).padStart(2, '0')
 				processUpdateTime.value = `${month}-${day} ${hour}:${minute}`
-				uni.showToast({ title: '流程已更新', icon: 'success' })
+				uni.showToast({
+					title: '流程已更新',
+					icon: 'success'
+				})
 			} else {
-				uni.showToast({ title: '已是最新', icon: 'none' })
+				uni.showToast({
+					title: '已是最新',
+					icon: 'none'
+				})
 			}
 		}, 1000)
 	}
 
 	function goToTaskDetail(id) {
-		uni.navigateTo({ url: `/pages/list/detail?id=${id}` })
+		uni.navigateTo({
+			url: `/pages/list/detail?id=${id}`
+		})
 	}
+
 	function likeTask(id) {
-		uni.showToast({ title: '点赞功能开发中', icon: 'none' })
+		uni.showToast({
+			title: '点赞功能开发中',
+			icon: 'none'
+		})
 	}
 
 	function goToListPage() {
 		// #ifdef H5 || APP-PLUS
-		uni.switchTab({ url: '/pages/list/list' });
+		uni.switchTab({
+			url: '/pages/list/list'
+		});
 		// #endif
 		// #ifdef MP-WEIXIN
-		uni.switchTab({ url: '/pages/list/list' });
+		uni.switchTab({
+			url: '/pages/list/list'
+		});
 		// #endif
 	}
-	
+
 	// 处理任务点赞
 	function handleLikeTask(task) {
-		uni.showToast({ title: '点赞功能开发中', icon: 'none' });
+		uni.showToast({
+			title: '点赞功能开发中',
+			icon: 'none'
+		});
 	}
 
 	function homeHotColumnsWithMoreCard(data) {
-		const columns = [[], []];
+		const columns = [
+			[],
+			[]
+		];
 		(data || []).forEach((item, idx) => {
 			columns[idx % 2].push(item);
 		});
 		// 找到最短列
 		const minIdx = columns[0].length <= columns[1].length ? 0 : 1;
-		columns[minIdx].push({ _isMoreCard: true });
+		columns[minIdx].push({
+			_isMoreCard: true
+		});
 		return columns;
 	}
 
 	function homeHotColumns(data) {
-		const columns = [[], []];
+		const columns = [
+			[],
+			[]
+		];
 		(data || []).forEach((item, idx) => {
 			columns[idx % 2].push(item);
 		});
@@ -701,17 +683,17 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 
 	// 在 <script setup> 内部添加 getUserObj 方法
 	function getUserObj(user_id) {
-  // 如果是数组且有对象，返回第一个对象
-  if (Array.isArray(user_id) && user_id.length && typeof user_id[0] === 'object') {
-    return user_id[0];
-  }
-  // 不是对象，返回 null
-  return null;
-}
-	
+		// 如果是数组且有对象，返回第一个对象
+		if (Array.isArray(user_id) && user_id.length && typeof user_id[0] === 'object') {
+			return user_id[0];
+		}
+		// 不是对象，返回 null
+		return null;
+	}
+
 	// 生命周期钩子
 	let addNoticeTimer = null
-	
+
 	onMounted(() => {
 		// 每60秒添加一条新的随机通告
 		addNoticeTimer = setInterval(() => {
@@ -723,11 +705,31 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 			}
 		}, 60000)
 	})
-	
+
 	onUnmounted(() => {
 		if (addNoticeTimer) {
 			clearInterval(addNoticeTimer)
 		}
+	})
+
+	const showBackToTop = ref(false)
+
+	function goToPublish() {
+		uni.navigateTo({
+			url: '/pages/publish/publish'
+		})
+	}
+
+	function scrollToTop() {
+		uni.pageScrollTo({
+			scrollTop: 0,
+			duration: 300
+		})
+	}
+
+	// 直接注册页面滚动钩子
+	onPageScroll((e) => {
+		showBackToTop.value = (e.scrollTop || 0) > 300
 	})
 </script>
 
@@ -764,20 +766,22 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		text-align: center;
 		margin: 0 20rpx;
 	}
-	
-	.section-box{
+
+	.section-box {
 		display: flex;
 		flex-direction: row;
 		align-items: center;
 		padding: 20rpx;
 	}
-	.decoration{
+
+	.decoration {
 		width: 4px;
 		height: 12px;
 		border-radius: 10px;
 		background-color: #2979ff;
 	}
-	.section-text{
+
+	.section-text {
 		color: #333;
 		margin-left: 15rpx;
 	}
@@ -786,6 +790,7 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 	.warp {
 		background-color: #fff;
 	}
+
 	/* #endif */
 
 	.example-body {
@@ -798,14 +803,14 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		width: 50rpx;
 		height: 50rpx;
 	}
-	
-	.big-number{
+
+	.big-number {
 		font-size: 50rpx;
 		font-weight: 700;
 		font-stretch: condensed;
-		font-style:oblique;
+		font-style: oblique;
 	}
-	
+
 	.text {
 		text-align: center;
 		font-size: 26rpx;
@@ -848,6 +853,7 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 
 	/* #ifndef APP-NVUE || VUE3*/
 	::v-deep
+
 	/* #endif */
 	.uni-searchbar__box {
 		border-width: 0;
@@ -855,6 +861,7 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 
 	/* #ifndef APP-NVUE || VUE3 */
 	::v-deep
+
 	/* #endif */
 	.uni-input-placeholder {
 		font-size: 28rpx;
@@ -865,62 +872,72 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		min-height: 100vh;
 		padding-bottom: 10rpx;
 	}
+
 	.banner-image {
 		width: 100%;
 		height: 180px;
 		border-radius: 12px;
 		margin-bottom: 16px;
 	}
+
 	.swiper-box {
 		height: 180px;
 		border-radius: 12px;
 		overflow: hidden;
 	}
-	
+
 	/* 通告消息栏样式 */
 	.notice-section {
 		margin: 10px 16px;
 		border-radius: 8px;
 		overflow: hidden;
-		box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 	}
+
 	.section {
 		margin: 10px 0;
 		background: #fff;
 		border-radius: 12px;
-		box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 		padding: 16px;
 	}
+
 	.section-header {
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		margin-bottom: 12px;
 	}
+
 	.section-title {
 		font-size: 18px;
 		font-weight: 600;
 		color: #333;
 	}
+
 	.update-time {
 		margin-left: auto;
 		font-size: 12px;
 		color: #999;
 	}
+
 	.ingredients-scroll {
 		width: 100%;
 		overflow-x: auto;
 		white-space: nowrap;
 	}
+
 	.ingredients-container {
 		display: flex;
 		gap: 12px;
 	}
+
 	.big-number {
 		font-size: 32px;
 		font-weight: 700;
 		color: #007aff;
 	}
+
 	.text {
 		text-align: center;
 		font-size: 16px;
@@ -931,6 +948,7 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		display: flex;
 		align-items: center;
 		margin-left: 12px;
+
 		.mode-icon {
 			margin-left: 8px;
 			cursor: pointer;
@@ -962,6 +980,7 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		color: #333;
 		flex: 1;
 	}
+
 	.ingredient-popup-publisher {
 		display: flex;
 		align-items: center;
@@ -969,19 +988,23 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		padding: 8rpx 40rpx 0 40rpx;
 		margin-bottom: 8rpx;
 	}
+
 	.publisher-avatar {
 		width: 36rpx;
 		height: 36rpx;
 		border-radius: 50%;
 		object-fit: cover;
 	}
+
 	.publisher-name {
 		font-size: 24rpx;
 		color: #666;
 	}
+
 	.ingredient-popup-content {
 		padding: 0 40rpx 40rpx 40rpx;
 	}
+
 	.ingredient-image-fixed {
 		width: 100%;
 		height: 400rpx;
@@ -989,6 +1012,7 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		border-radius: 12rpx;
 		background: #f5f5f5;
 	}
+
 	.ingredient-description {
 		text-align: left;
 		font-size: 28rpx;
@@ -997,22 +1021,25 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		padding: 20rpx 0 0 0;
 		margin-bottom: 10rpx;
 	}
+
 	.ingredient-comment {
 		background: #f8f9fa;
 		border-radius: 14rpx;
 		margin: 18rpx 0 0 0;
 		padding: 18rpx 18rpx 12rpx 18rpx;
-		box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 		display: flex;
 		flex-direction: column;
 		gap: 8rpx;
 	}
+
 	.comment-user {
 		display: flex;
 		align-items: center;
 		gap: 10rpx;
 		margin-bottom: 4rpx;
 	}
+
 	.comment-avatar {
 		width: 36rpx;
 		height: 36rpx;
@@ -1020,11 +1047,13 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		object-fit: cover;
 		background: #eee;
 	}
+
 	.comment-username {
 		font-size: 26rpx;
 		color: #1976d2;
 		font-weight: 600;
 	}
+
 	.comment-content {
 		font-size: 24rpx;
 		color: #333;
@@ -1032,6 +1061,7 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		line-height: 1.5;
 		word-break: break-all;
 	}
+
 	.comment-tags {
 		display: flex;
 		gap: 8rpx;
@@ -1044,6 +1074,7 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		touch-action: none !important;
 		overscroll-behavior: none !important;
 	}
+
 	.popup-open .content-wrapper {
 		overflow: hidden !important;
 		touch-action: none !important;
@@ -1053,20 +1084,23 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 	.hot-tasks-section {
 		margin-bottom: 16px;
 	}
+
 	.hot-tasks-scroll {
 		width: 100%;
 		white-space: nowrap;
 		padding-bottom: 8px;
 	}
+
 	.hot-tasks-container {
 		display: flex;
 		flex-direction: row;
 		gap: 12px;
 	}
+
 	.hot-task-item {
 		background: #fff;
 		border-radius: 10px;
-		box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 		padding: 10px;
 		min-width: 180px;
 		max-width: 200px;
@@ -1074,6 +1108,7 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		flex-direction: column;
 		align-items: flex-start;
 	}
+
 	.hot-task-image {
 		width: 100%;
 		height: 80px;
@@ -1081,15 +1116,18 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		border-radius: 8px;
 		margin-bottom: 6px;
 	}
+
 	.hot-task-info {
 		width: 100%;
 	}
+
 	.hot-task-title {
 		font-size: 15px;
 		font-weight: bold;
 		color: #333;
 		margin-bottom: 2px;
 	}
+
 	.hot-task-desc {
 		font-size: 13px;
 		color: #666;
@@ -1098,15 +1136,18 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
+
 	.hot-task-meta {
 		font-size: 12px;
 		color: #f56c6c;
 		margin-bottom: 4px;
 	}
+
 	.hot-task-actions {
 		display: flex;
 		gap: 8px;
 	}
+
 	.hot-task-btn {
 		background: #f5f5f5;
 		color: #1976d2;
@@ -1122,6 +1163,7 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		width: 100%;
 		background: #f8f8f8;
 	}
+
 	.masonry-row {
 		display: flex;
 		flex-direction: row;
@@ -1131,11 +1173,13 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		padding: 2px 0;
 		box-sizing: border-box;
 	}
+
 	.masonry-col {
 		width: 49%;
 		margin: 0 auto;
 		box-sizing: border-box;
 	}
+
 	.more-card {
 		display: flex !important;
 		align-items: center !important;
@@ -1146,19 +1190,23 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		background: #f5f7fa;
 		cursor: pointer;
 	}
+
 	.more-card-content {
 		display: flex;
 		flex-direction: row;
 		justify-content: center;
 	}
+
 	.more-card-content .uni-icons {
-		 margin-bottom: 0 !important;	
+		margin-bottom: 0 !important;
 	}
+
 	.more-card-text {
 		font-size: 16px;
 		color: #1976d2;
 		font-weight: 600;
 	}
+
 	/* 宫格功能区样式补充 */
 	.grid-item-box {
 		flex: 1;
@@ -1169,30 +1217,35 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		padding: 15px 0;
 		background-color: #fff;
 		border-radius: 8px;
-		box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 		margin: 4px;
 	}
+
 	.big-number {
 		font-size: 32px;
 		font-weight: 700;
 		color: #007aff;
 	}
+
 	.text {
 		text-align: center;
 		font-size: 16px;
 		margin-top: 6px;
 	}
+
 	.grid-section {
 		padding: 0;
 		background: transparent;
 		box-shadow: none;
 		margin: 10px 0 0 0;
 	}
+
 	.grid-swiper {
 		width: 100%;
 		/* height 由style绑定动态控制 */
 		background: transparent;
 	}
+
 	.grid-page {
 		width: 100%;
 		height: 100%;
@@ -1202,6 +1255,7 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		align-items: center;
 		background: transparent;
 	}
+
 	.grid-row {
 		display: flex;
 		flex-direction: row;
@@ -1209,12 +1263,14 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		justify-content: space-around;
 		margin-bottom: 0;
 	}
+
 	.grid-col {
 		flex: 1;
 		display: flex;
 		justify-content: center;
 		align-items: center;
 	}
+
 	.grid-item {
 		display: flex;
 		flex-direction: column;
@@ -1229,9 +1285,11 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		transition: background 0.2s;
 		cursor: pointer;
 	}
+
 	.grid-item:active {
 		background: #f5f5f5;
 	}
+
 	.grid-item-icon {
 		width: 40px;
 		height: 40px;
@@ -1239,14 +1297,37 @@ const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 		border-radius: 8px;
 		background: #f8f8f8;
 	}
+
 	.grid-item-text {
 		font-size: 14px;
 		color: #333;
 		margin-top: 2px;
 		text-align: center;
 	}
+
 	/* 优化uni-swiper-dot横杠切换动画 */
 	:deep(.uni-swiper__dots-long) {
-	transition: width 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s;
+		transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s;
 	}
-</style> 
+
+	.back-to-top-btn {
+		position: fixed;
+		right: 24px;
+		bottom: 100px;
+		width: 48px;
+		height: 48px;
+		background: #1976d2;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+		z-index: 9999;
+		cursor: pointer;
+		transition: opacity 0.2s;
+	}
+
+	.back-to-top-btn:active {
+		opacity: 0.7;
+	}
+</style>
