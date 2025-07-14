@@ -74,7 +74,6 @@
       <uni-forms-item label="所属地区" name="location" required>
         <uni-data-picker :localdata="areaPickerData" popup-title="请选择地区" placeholder="请选择省市区" v-model="form.location"
           @change="onAreaChange" />
-        <view v-if="form.location" class="picker-value">{{ form.location }}</view>
       </uni-forms-item>
       <!-- 图片/视频上传 -->
       <view class="form-item">
@@ -138,7 +137,8 @@ const form = ref({
   price: '',
   start_time: '',
   end_time: '',
-  location: '',
+  location: [], // 省市区 value 数组
+  location_text: [], // 省市区文本数组
   max_participants: ''
 })
 const rules = {
@@ -206,23 +206,31 @@ function onTypeChange(e) {
 }
 // 三级联动数据适配
 function parseAreaList(areaList) {
+  // 省
   const provinces = Object.entries(areaList.provinces).map(([code, name]) => ({
     text: name,
     value: code,
     children: []
   }))
-  const cities = areaList.cities
-  const areas = areaList.areas
+  // 市
+  const cities = Object.entries(areaList.cities).map(([code, name]) => ({
+    text: name,
+    value: code,
+    provinceCode: code.slice(0, 2) + '0000', // 前2位+0000
+    children: []
+  }))
+  // 区
+  const areas = Object.entries(areaList.counties).map(([code, name]) => ({
+    text: name,
+    value: code,
+    cityCode: code.slice(0, 4) + '00' // 前4位+00
+  }))
+  // 组装
   provinces.forEach(province => {
-    province.children = Object.entries(cities)
-      .filter(([code, city]) => city.provinceCode === province.value)
-      .map(([code, city]) => ({
-        text: city.name,
-        value: code,
-        children: Object.entries(areas)
-          .filter(([aCode, area]) => area.cityCode === code)
-          .map(([aCode, area]) => ({ text: area.name, value: aCode }))
-      }))
+    province.children = cities.filter(city => city.provinceCode === province.value)
+    province.children.forEach(city => {
+      city.children = areas.filter(area => area.cityCode === city.value)
+    })
   })
   return provinces
 }
@@ -230,11 +238,20 @@ const areaPickerData = parseAreaList(areaList)
 function onAreaChange(e) {
   // 清空
   if (!e.detail.value || e.detail.value.length === 0) {
-    form.value.location = ''
+    form.value.location = []
+    form.value.location_text = []
     return
   }
-  // 三级联动，拼接省市区
-  form.value.location = e.detail.value.map(item => item.text).join(' ')
+  // 三级联动，存储 value 数组和文本数组
+  form.value.location = e.detail.value.map(item => item.value)
+  form.value.location_text = e.detail.value.map(item => item.text)
+}
+// 获取省市区文本
+function getAreaTextByIndex(idx, code) {
+  if (idx === 0) return areaList.provinces[code] || ''
+  if (idx === 1) return areaList.cities[code] || ''
+  if (idx === 2 && areaList.counties) return areaList.counties[code] || ''
+  return ''
 }
 // 分位与输入框第一位对齐
 const amountInput = ref(null)
@@ -397,6 +414,7 @@ const canSubmit = computed(() => {
     form.value.description &&
     form.value.image &&
     form.value.location &&
+    form.value.location.length > 0 &&
     form.value.typeIdx !== -1 &&
     ((form.value.mode === 'score' && form.value.score) || (form.value.mode === 'price' && form.value.price)) &&
     form.value.start_time &&
