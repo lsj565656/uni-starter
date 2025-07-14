@@ -76,21 +76,10 @@
           @change="onAreaChange" />
       </uni-forms-item>
       <!-- 图片/视频上传 -->
-      <view class="form-item">
-        <text class="label">图片/视频 *</text>
-        <button @click="chooseMedia">上传</button>
-        <view class="media-preview">
-          <view v-for="(img, idx) in form.media" :key="'img' + idx" class="media-item">
-            <image :src="img" class="media-img" />
-            <view class="media-remove" @click="removeMedia(idx)">×</view>
-          </view>
-          <view v-if="form.video" class="media-item">
-            <video :src="form.video" class="media-video" controls />
-            <view class="media-remove" @click="removeVideo">×</view>
-          </view>
-        </view>
-        <view class="media-rule">上传规则：图片最多上传6张，且每张不超过2MB；视频最多上传1个，且时长不超过20秒</view>
-      </view>
+      <uni-forms-item label="图片/视频" name="media" required>
+        <media-uploader v-model="form.media" :maxImages="3" :maxImageSize="2 * 1024 * 1024" :maxVideoSize="10 * 1024 * 1024"
+          :maxVideoDuration="30" />
+      </uni-forms-item>
       <button class="submit-btn" @click="submit">确认提交</button>
     </view>
   </uni-forms>
@@ -101,6 +90,7 @@ import { ref, computed, nextTick } from 'vue'
 import { formatAmountUnits, numberToChinese, formatDuration } from '@/utils/tools.js'
 import { categories } from '@/utils/categories.js'
 import { areaList } from '@/common/areaList.js'
+import MediaUploader from '@/components/media-uploader/media-uploader.vue'
 
 const formRef = ref(null)
 const datePickerRef = ref(null)
@@ -181,6 +171,15 @@ const rules = {
   max_participants: [
     { required: true, message: '请输入最大参与人数', trigger: 'blur' },
     { pattern: /^([1-9]|[1-9]\d)$/, message: '请输入1~99的正整数', trigger: 'blur' }
+  ],
+  media: [
+    { required: true, message: '请上传图片/视频', trigger: 'change' },
+    {
+      validator: (rule, value, callback) => {
+        if (!value || !Array.isArray(value) || value.length === 0) return callback('请上传图片/视频');
+        return callback();
+      }, trigger: 'change'
+    }
   ]
 }
 
