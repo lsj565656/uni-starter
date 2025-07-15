@@ -3,7 +3,7 @@
   "required": ["name", "description", "media", "media_detail", "category", "isActive", "mode", "location", "max_participants", "is_publisher_joined"],
   "permission": {
     "read": true,
-    "create": "'CREATE_KL_TASKS' in auth.permission",
+    "create": "auth.uid != null",
     "update": "'UPDATE_KL_TASKS' in auth.permission",
     "delete": "'DELETE_KL_TASKS' in auth.permission"
   },

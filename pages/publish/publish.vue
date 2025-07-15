@@ -541,6 +541,35 @@ function prepareSubmitData() {
   }
   return data
 }
+const isUploading = ref(false)
+
+// 获取文件扩展名
+function getExt(url) {
+  const idx = url.lastIndexOf('.')
+  return idx !== -1 ? url.slice(idx) : ''
+}
+
+// 批量上传所有本地媒体文件，返回全部为云端url的media_detail
+async function uploadAllMedia(mediaDetailArr) {
+  const uploaded = []
+  for (const item of mediaDetailArr) {
+    if (typeof item.url === 'string' && (item.url.startsWith('http') || item.url.startsWith('https'))) {
+      uploaded.push(item)
+    } else {
+      try {
+        const res = await uniCloud.uploadFile({
+          filePath: item.url,
+          cloudPath: 'kl-tasks/' + Date.now() + '_' + Math.random().toString(36).slice(2) + getExt(item.url)
+        })
+        uploaded.push({ ...item, url: res.fileID || res.url })
+      } catch (e) {
+        throw new Error('文件上传失败: ' + (item.url || '未知文件'))
+      }
+    }
+  }
+  return uploaded
+}
+
 async function submit() {
   if (!store.hasLogin) {
     uni.showToast({ title: '请先登录', icon: 'none' });
@@ -548,25 +577,38 @@ async function submit() {
   }
   try {
     await formRef.value.validate(rules);
+    // 优化判空逻辑：必须至少有一张图片
+    const mediaArr = Array.isArray(form.media_detail) ? form.media_detail : [];
+    const hasImage = mediaArr.some(item => item.type === 'image');
+    if (!hasImage) {
+      uni.showToast({ title: '请至少上传一张图片', icon: 'none' });
+      return;
+    }
+    isUploading.value = true
+    // 1. 上传所有本地文件到云存储
+    const uploadedMediaDetail = await uploadAllMedia(form.media_detail)
+    form.media_detail = uploadedMediaDetail
+    form.media = uploadedMediaDetail.map(item => item.url)
+    isUploading.value = false
+    // 2. 组装数据并提交
     const user_id = store.userInfo && store.userInfo._id;
-    console.log('user_id :', user_id);
     const data = {
       ...prepareSubmitData(),
       user_id: user_id,
       isActive: true,
       create_date: Date.now()
     };
-    console.log('submit data:', data);
-    console.log('do add !')
-    return
-    // await uniCloud.database().collection('kl-tasks').add(data);
-    // uni.showToast({ title: '发布成功', icon: 'success' });
-    // uni.navigateBack();
+    await uniCloud.database().collection('kl-tasks').add(data);
+    uni.showToast({ title: '发布成功', icon: 'success' });
+    uni.navigateBack();
   } catch (err) {
-    // 校验失败，不执行提交
-    console.error('validate error:', err);
+    isUploading.value = false
+    // 校验失败或上传失败，不执行提交
+    console.error('validate/upload error:', err);
     let msg = '请完善表单';
-    if (err && Array.isArray(err) && err[0] && err[0].message) {
+    if (err && err.message) {
+      msg = err.message;
+    } else if (err && Array.isArray(err) && err[0] && err[0].message) {
       msg = err[0].message;
     }
     uni.showToast({ title: msg, icon: 'none' });
