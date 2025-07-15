@@ -62,17 +62,24 @@
         <view class="input-row">
           <uni-easyinput v-model="maxParticipantsProxy" type="number" maxlength="2" placeholder="最大参与人数 1~99">
             <template #right>
-              <button
-                class="join-toggle-btn"
-                type="button"
-                :class="isPublisherJoined ? 'joined' : 'not-joined'"
+              <!-- 原有按钮替换为自定义开关 -->
+              <view
+                class="custom-switch"
+                :class="{ active: form.is_publisher_joined }"
                 @click="togglePublisherJoin"
-                style="margin-left:8px;min-width:70px;font-size:13px;padding:2px 8px;border-radius:6px;border:none;outline:none;cursor:pointer;"
               >
-                {{ isPublisherJoined ? '我也加入' : '我不加入' }}
-              </button>
+                <view class="switch-track"></view>
+                <view class="switch-thumb">
+                  <text>
+                    {{ form.is_publisher_joined ? '参与' : '不参' }}
+                  </text>
+                </view>
+              </view>
             </template>
           </uni-easyinput>
+        </view>
+        <view class="desc-text" style="margin-top:8px;color:#888;font-size:13px;">
+          {{ form.is_publisher_joined ? '发布者将作为参与者加入任务' : '发布者不参与，仅发布任务' }}
         </view>
       </uni-forms-item>
       <!-- 时间选择 -->
@@ -95,7 +102,7 @@
         </view>
       </uni-forms-item>
       <!-- 任务类型 -->
-      <uni-forms-item label="任务类型" name="typeIdx" required>
+      <uni-forms-item label="任务类型" name="category" required>
         <uni-data-picker :localdata="typeOptions" popup-title="请选择任务类型" placeholder="请选择任务类型" v-model="form.category"
           @change="onTypeChange" />
         <view v-if="form.category !== -1" class="picker-value">
@@ -111,7 +118,7 @@
       </uni-forms-item>
       <!-- 图片/视频上传 -->
       <uni-forms-item label="图片/视频" name="media">
-        <media-uploader v-model="form.media" :maxImages="3" :maxImageSize="2 * 1024 * 1024"
+        <media-uploader v-model="form.media_detail" :maxImages="3" :maxImageSize="2 * 1024 * 1024"
           :maxVideoSize="10 * 1024 * 1024" :maxVideoDuration="30" />
       </uni-forms-item>
       <button class="submit-btn" @click="submit">确认提交</button>
@@ -120,7 +127,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, nextTick, onMounted } from 'vue'
+import { reactive, ref, computed, nextTick, onMounted, watch } from 'vue'
 import { onReady } from '@dcloudio/uni-app'
 import { formatAmountUnits, numberToChinese, formatDuration } from '@/utils/tools.js'
 import { categories } from '@/utils/categories.js'
@@ -153,9 +160,10 @@ const calendarStart = getTodayZeroStr();
 const form = reactive({
   name: '',
   description: '',
-  media: [],
-  category_name: '', // 原 type
-  category: -1,      // 原 typeIdx
+  media: [], // 用于提交的媒体数组
+  media_detail: [], // 用于上传的媒体详情数组
+  category_name: '',
+  category: -1,
   mode: 'score',
   score: 0,
   price: 0.00,
@@ -165,7 +173,9 @@ const form = reactive({
   location: [],        // 省市区 value 数组
   location_text: [],   // 省市区文本数组
   max_participants: 1,
-  is_publisher_joined: false
+  is_publisher_joined: false,
+  joined_count: 0,
+  isActive: true
 })
 const rules = {
   name: {
@@ -265,7 +275,8 @@ const rules = {
     rules: [
       { required: true, errorMessage: '请输入最大参与人数', trigger: 'blur' },
       {
-        validator: (rule, value, callback) => {
+        validateFunction: (rule, value, data, callback) => {
+          console.log('do max_participants validateFunction');
           const min = isPublisherJoined.value ? 2 : 1
           if (!value || isNaN(Number(value)) || Number(value) < min) {
             callback(isPublisherJoined.value ? '发布者加入时，参与人数至少2人' : '参与人数至少1人')
@@ -499,11 +510,16 @@ function formatDateTimeHM(str) {
 const typeText = computed(() => {
   return typeOptions.find(opt => opt.value === form.category)?.text || ''
 })
-// 提交前数据转换
+// 优化 toTimestamp，统一输出13位毫秒时间戳
 function toTimestamp(str) {
   if (!str) return ''
-  if (typeof str === 'number') return str
-  return Math.floor(new Date(str.replace(/-/g, '/')).getTime() / 1000)
+  if (typeof str === 'number') {
+    // 如果是10位，自动转为13位
+    if (str < 1e12) return str * 1000
+    return str
+  }
+  // 字符串转13位毫秒
+  return new Date(str.replace(/-/g, '/')).getTime()
 }
 function prepareSubmitData() {
   const data = { ...form }
@@ -511,25 +527,27 @@ function prepareSubmitData() {
     data.start_time = toTimestamp(data.timeRange[0])
     data.end_time = toTimestamp(data.timeRange[1])
   }
-  delete data.timeRange
+  if (data.is_publisher_joined) {
+    data.joined_count = 1
+  }
+  // 确保 media 和 media_detail 都包含在提交数据中
+  data.media = form.media
+  data.media_detail = form.media_detail
+  // 统一 create_date 为13位毫秒
+  data.create_date = Date.now()
+  // 确保 timeRange 字段不会被提交到数据库
+  if ('timeRange' in data) {
+    delete data.timeRange
+  }
   return data
 }
 async function submit() {
-  console.log('当前rules:', rules);
-  console.log('form:', form);
   if (!store.hasLogin) {
     uni.showToast({ title: '请先登录', icon: 'none' });
     return;
   }
   try {
     await formRef.value.validate(rules);
-    // 优化判空逻辑：必须至少有一张图片
-    const mediaArr = Array.isArray(form.media) ? form.media : [];
-    const hasImage = mediaArr.some(item => item.type === 'image');
-    if (!hasImage) {
-      uni.showToast({ title: '请至少上传一张图片', icon: 'none' });
-      return;
-    }
     const user_id = store.userInfo && store.userInfo._id;
     console.log('user_id :', user_id);
     const data = {
@@ -538,6 +556,7 @@ async function submit() {
       isActive: true,
       create_date: Date.now()
     };
+    console.log('submit data:', data);
     console.log('do add !')
     return
     // await uniCloud.database().collection('kl-tasks').add(data);
@@ -604,6 +623,15 @@ onReady(() => {
     formRef.value.setRules(rules)
   }
 })
+
+function syncMediaFields() {
+  // media_detail 是对象数组，media 只存 url
+  form.media = Array.isArray(form.media_detail)
+    ? form.media_detail.map(item => item.url)
+    : []
+}
+// 在图片/视频上传后自动同步
+watch(() => form.media_detail, syncMediaFields, { deep: true })
 </script>
 
 <style>
@@ -803,5 +831,56 @@ onReady(() => {
   border-radius: 6px;
   border: 1px solid #eee;
   padding: 0 12px;
+}
+.custom-switch {
+  width: 64px;
+  height: 32px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #bbb;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s, border 0.2s;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  box-sizing: border-box;
+}
+.custom-switch.active {
+  background: #1976d2;
+  border-color: #1976d2;
+}
+.switch-track {
+  position: absolute;
+  left: 0; top: 0; right: 0; bottom: 0;
+  border-radius: 16px;
+  z-index: 0;
+}
+.switch-thumb {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff;
+  color: #1976d2;
+  font-size: 11px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: left 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s;
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  text-align: center;
+  white-space: nowrap;
+  padding: 0 1px;
+  overflow: visible;
+}
+.custom-switch.active .switch-thumb {
+  left: 28px;
+  background: #fff;
+  color: #1976d2;
+  border-color: #fff;
+  box-shadow: 0 4px 16px rgba(25,118,210,0.3);
 }
 </style>

@@ -1,6 +1,6 @@
 {
   "bsonType": "object",
-  "required": ["name", "description", "image", "type", "isActive", "mode"],
+  "required": ["name", "description", "media", "media_detail", "category", "isActive", "mode", "location", "max_participants", "is_publisher_joined"],
   "permission": {
     "read": true,
     "create": "'CREATE_KL_TASKS' in auth.permission",
@@ -11,7 +11,6 @@
     "_id": { "description": "任务ID，系统自动生成" },
     "name": { "bsonType": "string", "title": "任务标题" },
     "description": { "bsonType": "string", "title": "任务描述" },
-    "image": { "bsonType": "string", "title": "主图" },
     "media": { "bsonType": "array", "items": { "bsonType": "string" }, "title": "图片/视频" },
     "media_detail": { "bsonType": "array", "items": { "bsonType": "object" }, "title": "图片/视频详情" },
     "category": { "bsonType": "int", "title": "分类ID", "description": "任务分类ID" },
