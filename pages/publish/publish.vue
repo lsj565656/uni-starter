@@ -16,34 +16,42 @@
           <text class="input-count">{{ form.description.length }}/80</text>
         </view>
       </uni-forms-item>
-      <!-- 奖励模式 -->
-      <uni-forms-item label="奖励模式" name="mode" required>
-        <view class="form-item">
-          <view class="input-row" style="align-items: center;">
-            <text class="label">{{ form.mode === 'score' ? '积分' : '金额' }}</text>
-            <text class="mode-switch-btn" @click="setMode(form.mode === 'score' ? 'price' : 'score')">
-              切换为{{ form.mode === 'score' ? '金额' : '积分' }}模式
-            </text>
-          </view>
-          <view v-if="form.mode === 'score'" class="reward-input">
-            <uni-easyinput v-model="form.score" type="number" maxlength="5" placeholder="请输入积分" @input="onScoreInput" />
-            <view class="max-unit" v-if="scoreMaxUnit && scoreMaxUnit != '个'">{{ scoreMaxUnit }}</view>
-          </view>
-          <view v-else class="reward-input">
-            <uni-easyinput v-model="form.price" type="digit" maxlength="8" placeholder="请输入金额" @input="onPriceInput"
-              @blur="onPriceInput" />
-            <view class="max-unit" v-if="amountMaxUnit && amountMaxUnit != '个'">{{ amountMaxUnit }}</view>
-          </view>
+      <!-- 奖励模式输入框，切换按钮放在输入框 right 插槽，外部包裹全部移除 -->
+      <uni-forms-item v-if="form.mode === 'score'" label="任务积分" name="score" :required="true">
+        <view class="reward-input">
+          <uni-easyinput v-model="scoreProxy" type="number" maxlength="5" placeholder="请输入积分">
+            <template #right>
+              <view class="mode-switch-btn" @click.stop="setMode('price')"
+                style="display:flex;align-items:center;cursor:pointer;">
+                <uni-icons type="wallet" size="18" color="#1976d2" style="margin-right:2px;" />
+                <text>金额结算</text>
+              </view>
+            </template>
+          </uni-easyinput>
+          <view class="max-unit" v-if="scoreMaxUnit && scoreMaxUnit != '个'">{{ scoreMaxUnit }}</view>
+        </view>
+      </uni-forms-item>
+      <uni-forms-item v-else label="任务金额" name="price" :required="true">
+        <view class="reward-input">
+          <uni-easyinput v-model="priceProxy" type="digit" maxlength="8" placeholder="请输入金额">
+            <template #right>
+              <view class="mode-switch-btn" @click.stop="setMode('score')"
+                style="display:flex;align-items:center;cursor:pointer;">
+                <uni-icons type="medal" size="18" color="#1976d2" style="margin-right:2px;" />
+                <text>积分结算</text>
+              </view>
+            </template>
+          </uni-easyinput>
+          <view class="max-unit" v-if="amountMaxUnit && amountMaxUnit != '个'">{{ amountMaxUnit }}</view>
         </view>
       </uni-forms-item>
       <!-- 参与人数 -->
       <uni-forms-item label="参与人数" name="max_participants" required>
-        <uni-easyinput v-model="form.max_participants" type="number" maxlength="2" placeholder="最大参与人数 1~99"
-          @input="onMaxInput" />
+        <uni-easyinput v-model="maxParticipantsProxy" type="number" maxlength="2" placeholder="最大参与人数 1~99" />
       </uni-forms-item>
       <!-- 时间选择 -->
       <uni-forms-item label="任务时段" name="timeRange" required>
-        <uni-datetime-picker :key="timeRangeKey" ref="datePickerRef" type="datetimerange" v-model="timeRange.value"
+        <uni-datetime-picker :key="timeRangeKey" ref="datePickerRef" type="datetimerange" v-model="form.timeRange"
           :start="calendarStart" :end="endDateStr" :hide-second="true" @change="onTimeRangeChange">
           <template #default>
             <view class="custom-time-input" @click="onTimeInputClick">
@@ -76,9 +84,9 @@
           @change="onAreaChange" />
       </uni-forms-item>
       <!-- 图片/视频上传 -->
-      <uni-forms-item label="图片/视频" name="media" required>
-        <media-uploader v-model="form.media" :maxImages="3" :maxImageSize="2 * 1024 * 1024" :maxVideoSize="10 * 1024 * 1024"
-          :maxVideoDuration="30" />
+      <uni-forms-item label="图片/视频" name="media">
+        <media-uploader v-model="form.media" :maxImages="3" :maxImageSize="2 * 1024 * 1024"
+          :maxVideoSize="10 * 1024 * 1024" :maxVideoDuration="30" />
       </uni-forms-item>
       <button class="submit-btn" @click="submit">确认提交</button>
     </view>
@@ -86,11 +94,13 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { reactive, ref, computed, nextTick } from 'vue'
+import { onReady } from '@dcloudio/uni-app'
 import { formatAmountUnits, numberToChinese, formatDuration } from '@/utils/tools.js'
 import { categories } from '@/utils/categories.js'
 import { areaList } from '@/common/areaList.js'
 import MediaUploader from '@/components/media-uploader/media-uploader.vue'
+import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 
 const formRef = ref(null)
 const datePickerRef = ref(null)
@@ -114,7 +124,7 @@ function getTodayZeroStr() {
   return `${y}-${m}-${d} 00:00:00`;
 }
 const calendarStart = getTodayZeroStr();
-const form = ref({
+const form = reactive({
   name: '',
   description: '',
   image: '',
@@ -123,64 +133,120 @@ const form = ref({
   type: '',
   typeIdx: -1,
   mode: 'score',
-  score: '',
-  price: '',
+  score: 0,
+  price: 0.00,
+  timeRange: ['', ''],
   start_time: '',
   end_time: '',
   location: [], // 省市区 value 数组
   location_text: [], // 省市区文本数组
-  max_participants: ''
+  max_participants: 1
 })
 const rules = {
-  name: [
-    { required: true, message: '请输入任务标题', trigger: 'blur' },
-    { min: 1, max: 15, message: '最多15字', trigger: 'blur' }
-  ],
-  description: [
-    { required: true, message: '请输入任务描述', trigger: 'blur' },
-    { min: 1, max: 80, message: '最多80字', trigger: 'blur' },
-    {
-      validator: (rule, value, callback) => {
-        if (!value) return callback();
-        const str = (value.match(ALLOWED_DESC_REGEX) || []).join('');
-        if (str.length !== value.length) return callback('仅限常用中英文及标点');
-        return callback();
-      }, trigger: 'blur'
-    }
-  ],
-  price: [
-    { required: function () { return form.value.mode === 'price'; }, message: '请输入金额', trigger: 'blur' },
-    { pattern: /^(0|[1-9]\d{0,4})(\.\d{1,2})?$/, message: '金额格式不正确', trigger: 'blur' }
-  ],
-  score: [
-    { required: function () { return form.value.mode === 'score'; }, message: '请输入积分', trigger: 'blur' },
-    { pattern: /^([1-9]\d{0,4}|100000)$/, message: '积分为1~100000的正整数', trigger: 'blur' }
-  ],
-  typeIdx: [
-    { required: true, message: '请选择任务类型', trigger: 'change' }
-  ],
-  start_time: [
-    { required: true, message: '请选择开始时间', trigger: 'change' }
-  ],
-  end_time: [
-    { required: true, message: '请选择结束时间', trigger: 'change' }
-  ],
-  location: [
-    { required: true, message: '请选择地区', trigger: 'change' }
-  ],
-  max_participants: [
-    { required: true, message: '请输入最大参与人数', trigger: 'blur' },
-    { pattern: /^([1-9]|[1-9]\d)$/, message: '请输入1~99的正整数', trigger: 'blur' }
-  ],
-  media: [
-    { required: true, message: '请上传图片/视频', trigger: 'change' },
-    {
-      validator: (rule, value, callback) => {
-        if (!value || !Array.isArray(value) || value.length === 0) return callback('请上传图片/视频');
-        return callback();
-      }, trigger: 'change'
-    }
-  ]
+  name: {
+    rules: [
+      { required: true, errorMessage: '请填写姓名' },
+      { min: 1, max: 15, errorMessage: '最多15字' }
+    ]
+  },
+  description: {
+    rules: [
+      { required: true, errorMessage: '请输入任务描述', trigger: 'blur' },
+      { min: 1, max: 80, errorMessage: '最多80字', trigger: 'blur' },
+      {
+        validator: (rule, value, callback) => {
+          if (!value) return callback();
+          const str = (value.match(ALLOWED_DESC_REGEX) || []).join('');
+          if (str.length !== value.length) return callback('仅限常用中英文及标点');
+          return callback();
+        }, trigger: 'blur'
+      }
+    ]
+  },
+  price: {
+    rules: [
+      { required: () => form.mode === 'price', errorMessage: '请输入金额', trigger: 'blur' },
+      { pattern: /^(0|[1-9]\d{0,4})(\.\d{1,2})?$/, errorMessage: '金额格式不正确', trigger: 'blur' }
+    ]
+  },
+  score: {
+    rules: [
+      { required: () => form.mode === 'score', errorMessage: '请输入积分', trigger: 'blur' },
+      { pattern: /^([1-9]\d{0,4}|100000)$/, errorMessage: '积分为1~100000的正整数', trigger: 'blur' }
+    ]
+  },
+  typeIdx: {
+    rules: [
+      {
+        pattern: /^(?!-1$).+/, // 只要不是-1即可
+        errorMessage: '请选择任务类型',
+        trigger: 'change'
+      }
+    ]
+  },
+  timeRange: {
+    rules: [
+      {
+        required: true,
+        errorMessage: '请选择任务时段',
+      },
+      {
+        validateFunction: function (rule, value, data, callback) {
+          if (!Array.isArray(value) || value.length !== 2 || !value[0] || !value[1]) {
+            callback('请选择任务时段');
+            return;
+          }
+          const now = new Date();
+          const minStart = new Date(now.getTime() + 15 * 60 * 1000);
+          let start = new Date(value[0].replace(/-/g, '/'));
+          let end = new Date(value[1].replace(/-/g, '/'));
+          let fixed = false;
+          if (start < minStart) {
+            start = minStart;
+            fixed = true;
+          }
+          const minEnd = new Date(start.getTime() + 30 * 60 * 1000);
+          if (end < minEnd) {
+            end = minEnd;
+            fixed = true;
+          }
+          function format(dt) {
+            const y = dt.getFullYear();
+            const m = String(dt.getMonth() + 1).padStart(2, '0');
+            const d = String(dt.getDate()).padStart(2, '0');
+            const h = String(dt.getHours()).padStart(2, '0');
+            const min = String(dt.getMinutes()).padStart(2, '0');
+            return `${y}-${m}-${d} ${h}:${min}`;
+          }
+          if (fixed) {
+            // 自动修正并赋值
+            data.timeRange = [format(start), format(end)];
+            data.start_time = format(start);
+            data.end_time = format(end);
+            callback();
+            return;
+          }
+          callback();
+        }
+      }
+    ]
+  },
+  location: {
+    rules: [
+      { required: true, errorMessage: '请选择地区', trigger: 'change' }
+    ]
+  },
+  max_participants: {
+    rules: [
+      { required: true, errorMessage: '请输入最大参与人数', trigger: 'blur' },
+      { pattern: /^([1-9]|[1-9]\d)$/, errorMessage: '请输入1~99的正整数', trigger: 'blur' }
+    ]
+  },
+  media: {
+    rules: [
+      { required: true, errorMessage: '请至少上传一张图片', trigger: 'change' }
+    ]
+  }
 }
 
 const typeOptions = categories
@@ -189,19 +255,19 @@ const typeOptions = categories
     ...c,
     value: c.catId
   }))
-form.value.typeIdx = -1 // 未选
+form.typeIdx = -1 // 未选
 function onTypeChange(e) {
   // 清空
   if (!e.detail.value || e.detail.value.length === 0) {
-    form.value.typeIdx = -1
-    form.value.type = ''
+    form.typeIdx = -1
+    form.type = ''
     return
   }
   // 正常选择
   const catId = e.detail.value[0].value
   const idx = typeOptions.findIndex(opt => opt.value === catId)
-  form.value.typeIdx = catId
-  form.value.type = typeOptions[idx]?.text || ''
+  form.typeIdx = catId
+  form.type = typeOptions[idx]?.text || ''
 }
 // 三级联动数据适配
 function parseAreaList(areaList) {
@@ -237,13 +303,13 @@ const areaPickerData = parseAreaList(areaList)
 function onAreaChange(e) {
   // 清空
   if (!e.detail.value || e.detail.value.length === 0) {
-    form.value.location = []
-    form.value.location_text = []
+    form.location = []
+    form.location_text = []
     return
   }
   // 三级联动，存储 value 数组和文本数组
-  form.value.location = e.detail.value.map(item => item.value)
-  form.value.location_text = e.detail.value.map(item => item.text)
+  form.location = e.detail.value.map(item => item.value)
+  form.location_text = e.detail.value.map(item => item.text)
 }
 // 获取省市区文本
 function getAreaTextByIndex(idx, code) {
@@ -269,101 +335,93 @@ function updateMaxUnitPosition(type) {
   })
 }
 const amountMaxUnit = computed(() => {
-  const intPart = Number((form.value.price || '').split('.')[0] || 0);
+  const intPart = Number((form.price || '').split('.')[0] || 0);
   const arr = formatAmountUnits(intPart);
   return arr.length ? arr[0].unit : '';
 })
 const scoreMaxUnit = computed(() => {
-  const arr = formatAmountUnits(Number(form.value.score));
+  const arr = formatAmountUnits(Number(form.score));
   return arr.length ? arr[0].unit : '';
 })
-const scoreChinese = computed(() => form.value.score ? numberToChinese(Number(form.value.score)) + '积分' : '')
-const durationText = computed(() => formatDuration(form.value.start_time, form.value.end_time))
-const startTimeDisplay = computed(() => formatDateTimeHM(form.value.start_time))
-const endTimeDisplay = computed(() => formatDateTimeHM(form.value.end_time))
+const durationText = computed(() => formatDuration(form.start_time, form.end_time))
 const durationTextDisplay = computed(() => durationText.value)
+const maxParticipantsProxy = computed({
+  get() {
+    return form.max_participants === null ? '' : String(form.max_participants)
+  },
+  set(val) {
+    if (val === '' || val === null) {
+      form.max_participants = null
+    } else {
+      const num = Number(val.toString().replace(/[^0-9]/g, ''))
+      form.max_participants = isNaN(num) ? null : num
+    }
+  }
+})
+const scoreProxy = computed({
+  get() {
+    return form.score === null || form.score === undefined ? '' : String(form.score)
+  },
+  set(val) {
+    if (val === '' || val === null) {
+      form.score = null
+    } else {
+      const num = Number(val.toString().replace(/[^0-9]/g, ''))
+      form.score = isNaN(num) ? null : num
+    }
+  }
+})
+const priceProxy = computed({
+  get() {
+    return form.price === null || form.price === undefined ? '' : String(form.price)
+  },
+  set(val) {
+    if (val === '' || val === null) {
+      form.price = null
+    } else {
+      let num = val.toString().replace(/[^\d.]/g, '')
+      num = num.replace(/^0+(?=\d)/, '')
+      if (num.indexOf('.') !== -1) {
+        num = num.split('.').slice(0, 2).join('.')
+        num = num.replace(/(\.\d{2})\d+$/, '$1')
+      }
+      form.price = num
+    }
+  }
+})
 function onTitleInput(e) {
-  if (form.value.name.length > 15) form.value.name = form.value.name.slice(0, 15)
+  if (form.name.length > 15) form.name = form.name.slice(0, 15)
 }
 function onDescInput(e) {
-  let str = (form.value.description.match(ALLOWED_DESC_REGEX) || []).join('');
+  let str = (form.description.match(ALLOWED_DESC_REGEX) || []).join('');
   str = str.replace(/^\s+|\s+$/g, '').replace(/\s{2,}/g, ' ');
-  form.value.description = str.slice(0, 80);
+  form.description = str.slice(0, 80);
 }
 function setMode(mode) {
-  form.value.mode = mode
-  if (mode === 'score') form.value.price = ''
-  else form.value.score = ''
+  form.mode = mode
+  if (mode === 'score') form.price = 0.00
+  else form.score = 0
 }
-function onScoreInput(e) {
-  let val = e.detail.value.replace(/[^0-9]/g, '').slice(0, 5)
-  form.value.score = val
-  updateMaxUnitPosition('score')
-}
-function onPriceInput(e) {
-  // 兼容 input/blur 事件
-  let val = (e && e.detail && e.detail.value !== undefined) ? e.detail.value : form.value.price || '';
-  // 禁止负号
-  if (val.includes('-')) val = val.replace(/-/g, '');
-  // 只允许数字和小数点
-  val = val.replace(/[^\d.]/g, '');
-  // 只保留第一个小数点
-  val = val.replace(/\.{2,}/g, '.');
-  val = val.replace('.', '#').replace(/\./g, '').replace('#', '.');
-  // 拆分整数和小数
-  let [int, dec] = val.split('.');
-  // 处理整数部分
-  if (int) {
-    // 允许0开头的"0"或"0.xx"，但不允许"00x"或"01x"
-    if (int.length > 1 && int.startsWith('0')) int = int.replace(/^0+/, '') || '0';
-    int = int.slice(0, 5); // 整数最多5位
-  } else {
-    int = '';
-  }
-  // 处理小数部分
-  if (typeof dec !== 'undefined') {
-    dec = dec.slice(0, 2); // 小数最多2位
-    val = int + '.' + dec;
-  } else {
-    val = int;
-  }
-  // 如果只输入了小数点，自动补0
-  if (val === '.') val = '0.';
-  // 如果以0开头且没有小数点，只能是"0"
-  if (val.startsWith('0') && val.length > 1 && !val.startsWith('0.')) val = '0';
-  form.value.price = val;
-}
-function onMaxInput(e) {
-  let val = e.detail.value.replace(/[^0-9]/g, '')
-  if (val.startsWith('0')) val = val.replace(/^0+/, '')
-  if (val.length > 2) val = val.slice(0, 2)
-  if (val && (Number(val) < 1 || Number(val) > 99)) val = ''
-  form.value.max_participants = val
-}
-// 初始化timeRange
-const timeRange = ref(['', ''])
 const timeRangeKey = ref(0)
+// onTimeRangeChange 只做提示和显示，不再修正 form.timeRange
 function onTimeRangeChange(val) {
-  console.log('onTimeRangeChange val:', val, 'start:', val && val[0], 'end:', val && val[1])
   if (Array.isArray(val) && val.length === 2) {
-    // 新增逻辑：开始时间不能早于当前时间+15分钟，结束时间不能早于开始时间+30分钟
     const now = new Date();
-    const minStart = new Date(now.getTime() + 15 * 60 * 1000); // 当前时间+15分钟
+    const minStart = new Date(now.getTime() + 15 * 60 * 1000);
     let start = new Date(val[0].replace(/-/g, '/'));
     let end = new Date(val[1].replace(/-/g, '/'));
     let fixed = false;
-    // 如果开始时间早于当前时间+15分钟
     if (start < minStart) {
-      start = minStart;
       fixed = true;
     }
-    // 结束时间不能早于开始时间+30分钟
     const minEnd = new Date(start.getTime() + 30 * 60 * 1000);
     if (end < minEnd) {
-      end = minEnd;
       fixed = true;
     }
-    // 格式化为 yyyy-MM-dd HH:mm
+    if (fixed) {
+      uni.showToast({ title: '任务开始时间需顺延15分钟，且任务时长不少于30分钟，已自动修正', icon: 'none' });
+    }
+    // 只做提示和 start_time/end_time 显示
     function format(dt) {
       const y = dt.getFullYear();
       const m = String(dt.getMonth() + 1).padStart(2, '0');
@@ -372,16 +430,13 @@ function onTimeRangeChange(val) {
       const min = String(dt.getMinutes()).padStart(2, '0');
       return `${y}-${m}-${d} ${h}:${min}`;
     }
-    if (fixed) {
-      uni.showToast({ title: '任务开始时间需顺延15分钟，且任务时长不少于30分钟，已自动修正', icon: 'none' });
-    }
-    form.value.start_time = format(start);
-    form.value.end_time = format(end);
-    timeRange.value = [format(start), format(end)];
+    form.start_time = format(start);
+    form.end_time = format(end);
+    timeRangeKey.value++;
   } else {
-    form.value.start_time = ''
-    form.value.end_time = ''
-    timeRange.value = ['', '']
+    form.start_time = '';
+    form.end_time = '';
+    timeRangeKey.value++;
   }
 }
 // 计算 30 天后的日期字符串（yyyy-MM-dd HH:mm:ss）
@@ -407,78 +462,59 @@ function formatDateTimeHM(str) {
     return str.slice(0, 16);
   }
 }
-const canSubmit = computed(() => {
-  return (
-    form.value.name &&
-    form.value.description &&
-    form.value.image &&
-    form.value.location &&
-    form.value.location.length > 0 &&
-    form.value.typeIdx !== -1 &&
-    ((form.value.mode === 'score' && form.value.score) || (form.value.mode === 'price' && form.value.price)) &&
-    form.value.start_time &&
-    form.value.end_time &&
-    form.value.max_participants >= 1 && form.value.max_participants <= 99
-  )
+const typeText = computed(() => {
+  return typeOptions.find(opt => opt.value === form.typeIdx)?.text || ''
 })
-function chooseMedia() {
-  uni.chooseMedia({
-    count: 7,
-    mediaType: ['image', 'video'],
-    maxDuration: 20,
-    success: res => {
-      let images = res.tempFiles.filter(f => f.fileType === 'image' && f.size <= 2 * 1024 * 1024)
-      let videos = res.tempFiles.filter(f => f.fileType === 'video' && f.size <= 20 * 1024 * 1024 && f.duration <= 20)
-      if (images.length > 6) images = images.slice(0, 6)
-      if (videos.length > 1) videos = videos.slice(0, 1)
-      form.value.media = images.map(f => f.tempFilePath)
-      form.value.video = videos[0] ? videos[0].tempFilePath : ''
-      form.value.image = form.value.media[0] || form.value.video
-    }
-  })
-}
-function removeMedia(idx) {
-  form.value.media.splice(idx, 1)
-  if (form.value.media.length === 0 && !form.value.video) form.value.image = ''
-}
-function removeVideo() {
-  form.value.video = ''
-  if (form.value.media.length === 0) form.value.image = ''
-}
 async function submit() {
-  if (!getApp().globalData.userInfo) {
+  console.log('当前rules:', rules);
+  console.log('form:', form);
+  if (!store.hasLogin) {
     uni.showToast({ title: '请先登录', icon: 'none' });
     return;
   }
-  formRef.value.validate().then(async (valid) => {
-    if (!valid) return;
-    if (!form.value.image) {
-      uni.showToast({ title: '请上传图片/视频', icon: 'none' });
+  try {
+    await formRef.value.validate(rules);
+    // 优化判空逻辑：必须至少有一张图片
+    const mediaArr = Array.isArray(form.media) ? form.media : [];
+    const hasImage = mediaArr.some(item => item.type === 'image');
+    if (!hasImage) {
+      uni.showToast({ title: '请至少上传一张图片', icon: 'none' });
       return;
     }
-    const user_id = getApp().globalData.userInfo._id;
+    const user_id = store.userInfo && store.userInfo._id;
+    console.log('user_id :', user_id);
     const data = {
-      ...form.value,
-      type: typeOptions.find(opt => opt.value === form.value.typeIdx)?.text,
-      user_id: uniCloud.database().command.objectId(user_id),
+      ...form,
+      user_id: user_id,
       isActive: true,
       create_date: Date.now()
     };
-    await uniCloud.database().collection('kl-tasks').add(data);
-    uni.showToast({ title: '发布成功', icon: 'success' });
-    uni.navigateBack();
-  });
+    console.log('do add !')
+    return
+    // await uniCloud.database().collection('kl-tasks').add(data);
+    // uni.showToast({ title: '发布成功', icon: 'success' });
+    // uni.navigateBack();
+  } catch (err) {
+    // 校验失败，不执行提交
+    console.error('validate error:', err);
+    let msg = '请完善表单';
+    if (err && Array.isArray(err) && err[0] && err[0].message) {
+      msg = err[0].message;
+    }
+    uni.showToast({ title: msg, icon: 'none' });
+    return;
+  }
 }
 const timeRangeDisplay = computed(() => {
-  if (form.value.start_time && form.value.end_time) {
-    return `${formatDateTimeHM(form.value.start_time)} ~ ${formatDateTimeHM(form.value.end_time)}`
+  if (form.start_time && form.end_time) {
+    return `${formatDateTimeHM(form.start_time)} ~ ${formatDateTimeHM(form.end_time)}`
   }
   return '请选择任务时段'
 })
 function clearTimeRange() {
-  form.value.start_time = ''
-  form.value.end_time = ''
-  timeRange.value = ['', '']
+  form.start_time = ''
+  form.end_time = ''
+  form.timeRange = ['', '']
   timeRangeKey.value++
   // 重置旧的日期时间弹窗组件后立即再打开新的
   // nextTick(() => openDatePicker())
@@ -505,6 +541,11 @@ function onClearTimeRange() {
   console.log('do onClearTimeRange!');
   clearTimeRange();
 }
+onReady(() => {
+  if (formRef.value && formRef.value.setRules) {
+    formRef.value.setRules(rules)
+  }
+})
 </script>
 
 <style>
