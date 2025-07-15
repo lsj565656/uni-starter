@@ -11,8 +11,20 @@
       <!-- 描述 -->
       <uni-forms-item label="任务描述" name="description" required>
         <view class="input-row">
-          <uni-easyinput type="textarea" v-model="form.description" maxlength="80" placeholder="请输入任务描述"
-            @input="onDescInput" />
+          <uni-easyinput type="textarea" :trim="true" v-model="form.description" maxlength="80" placeholder="请输入任务描述"
+            @input="onDescInput">
+            <template #right>
+              <uni-icons
+                v-if="form.description"
+                type="clear"
+                size="22"
+                color="#c0c4cc"
+                @mousedown.prevent
+                @click="form.description = ''"
+                style="margin-right: 4px; cursor: pointer;"
+              />
+            </template>
+          </uni-easyinput>
           <text class="input-count">{{ form.description.length }}/80</text>
         </view>
       </uni-forms-item>
@@ -47,7 +59,21 @@
       </uni-forms-item>
       <!-- 参与人数 -->
       <uni-forms-item label="参与人数" name="max_participants" required>
-        <uni-easyinput v-model="maxParticipantsProxy" type="number" maxlength="2" placeholder="最大参与人数 1~99" />
+        <view class="input-row">
+          <uni-easyinput v-model="maxParticipantsProxy" type="number" maxlength="2" placeholder="最大参与人数 1~99">
+            <template #right>
+              <button
+                class="join-toggle-btn"
+                type="button"
+                :class="isPublisherJoined ? 'joined' : 'not-joined'"
+                @click="togglePublisherJoin"
+                style="margin-left:8px;min-width:70px;font-size:13px;padding:2px 8px;border-radius:6px;border:none;outline:none;cursor:pointer;"
+              >
+                {{ isPublisherJoined ? '我也加入' : '我不加入' }}
+              </button>
+            </template>
+          </uni-easyinput>
+        </view>
       </uni-forms-item>
       <!-- 时间选择 -->
       <uni-forms-item label="任务时段" name="timeRange" required>
@@ -70,12 +96,12 @@
       </uni-forms-item>
       <!-- 任务类型 -->
       <uni-forms-item label="任务类型" name="typeIdx" required>
-        <uni-data-picker :localdata="typeOptions" popup-title="请选择任务类型" placeholder="请选择任务类型" v-model="form.typeIdx"
+        <uni-data-picker :localdata="typeOptions" popup-title="请选择任务类型" placeholder="请选择任务类型" v-model="form.category"
           @change="onTypeChange" />
-        <view v-if="form.typeIdx !== -1" class="picker-value">
-          <image v-if="typeOptions.find(opt => opt.value === form.typeIdx)?.icon"
-            :src="typeOptions.find(opt => opt.value === form.typeIdx)?.icon" class="type-icon" />
-          {{typeOptions.find(opt => opt.value === form.typeIdx)?.text}}
+        <view v-if="form.category !== -1" class="picker-value">
+          <image v-if="typeOptions.find(opt => opt.value === form.category)?.icon"
+            :src="typeOptions.find(opt => opt.value === form.category)?.icon" class="type-icon" />
+          {{typeOptions.find(opt => opt.value === form.category)?.text}}
         </view>
       </uni-forms-item>
       <!-- 地区选择 -->
@@ -94,7 +120,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, nextTick } from 'vue'
+import { reactive, ref, computed, nextTick, onMounted } from 'vue'
 import { onReady } from '@dcloudio/uni-app'
 import { formatAmountUnits, numberToChinese, formatDuration } from '@/utils/tools.js'
 import { categories } from '@/utils/categories.js'
@@ -127,20 +153,19 @@ const calendarStart = getTodayZeroStr();
 const form = reactive({
   name: '',
   description: '',
-  image: '',
   media: [],
-  video: '',
-  type: '',
-  typeIdx: -1,
+  category_name: '', // 原 type
+  category: -1,      // 原 typeIdx
   mode: 'score',
   score: 0,
   price: 0.00,
-  timeRange: ['', ''],
-  start_time: '',
-  end_time: '',
-  location: [], // 省市区 value 数组
-  location_text: [], // 省市区文本数组
-  max_participants: 1
+  timeRange: ['', ''], // 选择用
+  start_time: '',      // 存储用
+  end_time: '',        // 存储用
+  location: [],        // 省市区 value 数组
+  location_text: [],   // 省市区文本数组
+  max_participants: 1,
+  is_publisher_joined: false
 })
 const rules = {
   name: {
@@ -175,7 +200,7 @@ const rules = {
       { pattern: /^([1-9]\d{0,4}|100000)$/, errorMessage: '积分为1~100000的正整数', trigger: 'blur' }
     ]
   },
-  typeIdx: {
+  category: {
     rules: [
       {
         pattern: /^(?!-1$).+/, // 只要不是-1即可
@@ -239,6 +264,17 @@ const rules = {
   max_participants: {
     rules: [
       { required: true, errorMessage: '请输入最大参与人数', trigger: 'blur' },
+      {
+        validator: (rule, value, callback) => {
+          const min = isPublisherJoined.value ? 2 : 1
+          if (!value || isNaN(Number(value)) || Number(value) < min) {
+            callback(isPublisherJoined.value ? '发布者加入时，参与人数至少2人' : '参与人数至少1人')
+            return
+          }
+          callback()
+        },
+        trigger: 'blur'
+      },
       { pattern: /^([1-9]|[1-9]\d)$/, errorMessage: '请输入1~99的正整数', trigger: 'blur' }
     ]
   },
@@ -255,19 +291,17 @@ const typeOptions = categories
     ...c,
     value: c.catId
   }))
-form.typeIdx = -1 // 未选
+form.category = -1 // 未选
 function onTypeChange(e) {
-  // 清空
   if (!e.detail.value || e.detail.value.length === 0) {
-    form.typeIdx = -1
-    form.type = ''
+    form.category = -1
+    form.category_name = ''
     return
   }
-  // 正常选择
   const catId = e.detail.value[0].value
   const idx = typeOptions.findIndex(opt => opt.value === catId)
-  form.typeIdx = catId
-  form.type = typeOptions[idx]?.text || ''
+  form.category = catId
+  form.category_name = typeOptions[idx]?.text || ''
 }
 // 三级联动数据适配
 function parseAreaList(areaList) {
@@ -463,8 +497,23 @@ function formatDateTimeHM(str) {
   }
 }
 const typeText = computed(() => {
-  return typeOptions.find(opt => opt.value === form.typeIdx)?.text || ''
+  return typeOptions.find(opt => opt.value === form.category)?.text || ''
 })
+// 提交前数据转换
+function toTimestamp(str) {
+  if (!str) return ''
+  if (typeof str === 'number') return str
+  return Math.floor(new Date(str.replace(/-/g, '/')).getTime() / 1000)
+}
+function prepareSubmitData() {
+  const data = { ...form }
+  if (data.timeRange && data.timeRange.length === 2) {
+    data.start_time = toTimestamp(data.timeRange[0])
+    data.end_time = toTimestamp(data.timeRange[1])
+  }
+  delete data.timeRange
+  return data
+}
 async function submit() {
   console.log('当前rules:', rules);
   console.log('form:', form);
@@ -484,7 +533,7 @@ async function submit() {
     const user_id = store.userInfo && store.userInfo._id;
     console.log('user_id :', user_id);
     const data = {
-      ...form,
+      ...prepareSubmitData(),
       user_id: user_id,
       isActive: true,
       create_date: Date.now()
@@ -541,6 +590,15 @@ function onClearTimeRange() {
   console.log('do onClearTimeRange!');
   clearTimeRange();
 }
+const isPublisherJoined = ref(false)
+function togglePublisherJoin() {
+  isPublisherJoined.value = !isPublisherJoined.value
+  form.is_publisher_joined = isPublisherJoined.value
+}
+// 初始化时同步form.is_publisher_joined
+onMounted(() => {
+  isPublisherJoined.value = !!form.is_publisher_joined
+})
 onReady(() => {
   if (formRef.value && formRef.value.setRules) {
     formRef.value.setRules(rules)
