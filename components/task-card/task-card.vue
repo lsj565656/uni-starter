@@ -1,7 +1,13 @@
 <template>
   <view class="masonry-card">
     <view class="custom-cover" @click="goDetail">
-      <image class="cover-image" :src="task.image" mode="aspectFill" />
+      <swiper v-if="imageList.length > 1" class="cover-swiper" :indicator-dots="true" :autoplay="false" :circular="true">
+        <swiper-item v-for="(img, idx) in imageList" :key="img.url">
+          <image class="cover-image" :src="img.url" mode="aspectFill" />
+        </swiper-item>
+      </swiper>
+      <image v-else-if="imageList.length === 1" class="cover-image" :src="imageList[0].url" mode="aspectFill" />
+      <view v-else class="cover-image no-image"></view>
       <view class="cover-content">
         <text class="uni-subtitle uni-white">{{ task.name }}</text>
       </view>
@@ -43,10 +49,16 @@ export default {
       default: true
     }
   },
+  computed: {
+    imageList() {
+      // 只取图片
+      return Array.isArray(this.task.media_detail) ? this.task.media_detail.filter(m => m.type === 'image') : []
+    }
+  },
   methods: {
     goDetail() {
       // 合并任务和用户的所有核心字段
-      const { _id, name, image, description, like_count, is_liked, joined_count, max_participants, score, price, mode, location, start_time, end_time, category_name, create_date} = this.task;
+      const { _id, name, image, description, like_count, is_liked, joined_count, max_participants, score, price, mode, location, start_time, end_time, category_name, create_date, media_detail, location_text } = this.task;
       const ownerUserId = this.user?._id || '';
       const ownerNickname = this.user?.nickname || '';
       const ownerAvatarUrl = this.user?.avatar_file?.url || '';
@@ -70,11 +82,14 @@ export default {
         ownerUserId,
         ownerNickname,
         ownerAvatarUrl,
-        create_date
+        create_date,
+        // 新增字段
+        media_detail: media_detail ? encodeURIComponent(JSON.stringify(media_detail)) : '',
+        location_text: location_text ? encodeURIComponent(JSON.stringify(location_text)) : ''
       };
       // 构建 url 查询字符串
       const query = Object.keys(params)
-        .map(key => `${key}=${encodeURIComponent(params[key] == null ? '' : params[key])}`)
+        .map(key => `${key}=${params[key] == null ? '' : params[key]}`)
         .join('&');
       uni.navigateTo({
         url: `/pages/list/detail?${query}`
@@ -129,4 +144,6 @@ export default {
   padding: 2px 8px;
   margin-left: 4px;
 }
+.cover-swiper { width: 100%; height: 120px; border-radius: 8px 8px 0 0; overflow: hidden; }
+.no-image { background: #f5f5f5; }
 </style> 

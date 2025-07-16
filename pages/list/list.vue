@@ -935,6 +935,12 @@
 				}
 				uni.removeStorageSync('listTabCategory')
 			}
+			// 新增：同步搜索内容
+			const searchText = getApp().globalData.searchText
+			if (searchText && searchText !== this.keyword) {
+				this.keyword = searchText
+				this.applyRealTimeFilter()
+			}
 		},
 		onPullDownRefresh() {
 			this.useCache = false;

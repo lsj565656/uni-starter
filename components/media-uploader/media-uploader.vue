@@ -4,9 +4,10 @@
       <template v-for="(item, idx) in mediaList" :key="item.url">
         <view class="media-item" :class="{ 'is-video': item.type === 'video' }">
           <image v-if="item.type === 'image'" :src="item.url" class="media-thumb" @click="onPreview(idx)"
-            :draggable="true" />
+            :draggable="true" mode="aspectFill" />
           <view v-else class="video-thumb" @click="onPreview(idx)">
-            <image :src="item.cover || defaultVideoCover" class="media-thumb" @error="onImageError($event, idx)" />
+            <image :src="item.cover || defaultVideoCover" class="media-thumb" @error="onImageError($event, idx)"
+             :draggable="true" mode="aspectFill" />
           </view>
           <view class="delete-btn" @click.stop="onDelete(idx)">
             <view class="delete-x"></view>

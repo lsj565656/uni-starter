@@ -1,7 +1,45 @@
 <template>
 	<view class="detail-container">
-    <!-- 顶部图片 -->
-    <image class="detail-image" :src="task.image" mode="aspectFill" />
+    <!-- 顶部图片/视频轮播 -->
+    <swiper class="detail-swiper" :indicator-dots="true" :autoplay="false" :circular="true">
+      <swiper-item v-for="(item, idx) in task.media_detail" :key="item.url">
+        <image
+          v-if="item.type === 'image'"
+          :src="item.url"
+          class="detail-image"
+          mode="aspectFill"
+          @click="previewImage(idx)"
+        />
+        <view v-else class="detail-video-wrap" @click="openVideo(item.url, item.cover)">
+          <image :src="item.cover || defaultVideoCover" class="detail-image video-cover" mode="aspectFill" />
+        </view>
+      </swiper-item>
+    </swiper>
+    <!-- 全屏video弹窗 -->
+    <view v-if="showVideo" class="fullscreen-video">
+      <video
+        ref="detailVideoRef"
+        :key="videoKey"
+        :src="currentVideoUrl"
+        class="fullscreen-video-player"
+        :initial-time="initialTime"
+        :controls="true"
+        :autoplay="true"
+        :loop="false"
+        :muted="true"
+        :page-gesture="true"
+        :vslide-gesture="true"
+        :show-center-play-btn="true"
+        :enable-play-gesture="true"
+        :show-loading="false"
+        :show-mute-btn="true"
+        :show-fullscreen-btn="false"
+        :object-fit="'contain'"
+        style="width: 100vw; height: 100vh; background: #000;"
+        @ended="onVideoEnded"
+        @play="onVideoPlay"
+      />
+    </view>
 
     <!-- 积分/价格、已加入人数 -->
     <view class="detail-header-row">
@@ -23,7 +61,7 @@
     <!-- 地点、时间 -->
     <view class="task-meta">
       <uni-icons type="location" size="18" color="#ff6666" />
-      <text class="meta-text">{{ task.location }}</text>
+      <text class="meta-text">{{ (task.location_text || []).join('-') }}</text>
 					</view>
     <view class="task-meta">
       <uni-icons type="calendar" size="18" color="#ff6666" />
@@ -83,7 +121,7 @@
 import { formatTime } from '@/utils/tools.js';
 import { mockComments } from '@/utils/comments.js'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
-
+import { onBackPress } from '@dcloudio/uni-app'
 	export default {
 		data() {
 			return {
@@ -107,7 +145,8 @@ import { store } from '@/uni_modules/uni-id-pages/common/store.js'
           },
           create_date: '',
           is_liked: false,
-          like_count: 0
+          like_count: 0,
+          media_detail: [] // 新增媒体详情
         },
         comments: [],
         // comments: mockComments,
@@ -119,7 +158,14 @@ import { store } from '@/uni_modules/uni-id-pages/common/store.js'
         currentPage: 1,
         pageSize: 20,
         // 存储每个评论的回复分页状态
-        replyPaginationMap: new Map()
+        replyPaginationMap: new Map(),
+        showVideo: false,
+        currentVideoUrl: '',
+        currentVideoCover: '',
+        initialTime: 0,
+        videoKey: 0,
+        videoEnded: false,
+        defaultVideoCover: '/static/icons/playCover.png',
       }
     },
     watch: {
@@ -138,6 +184,14 @@ import { store } from '@/uni_modules/uni-id-pages/common/store.js'
     },
 		mounted() {
       this.loadComments();
+      // 拦截物理返回键，优先关闭视频弹窗
+      onBackPress((e) => {
+        if (this.showVideo) {
+          this.closeVideo();
+          return true;
+        }
+        return false;
+      });
 		},
 		methods: {
       formatTime,
@@ -481,6 +535,55 @@ import { store } from '@/uni_modules/uni-id-pages/common/store.js'
         } finally {
           this.$set(comment, 'loadingReplies', false);
         }
+      },
+
+      previewImage(idx) {
+        // 只预览图片
+        const imgs = (this.task.media_detail || []).filter(m => m.type === 'image').map(m => m.url)
+        // idx 需转换为图片在图片数组中的下标
+        const imgIdx = (this.task.media_detail || []).filter((m, i) => m.type === 'image' && i <= idx).length - 1
+        uni.previewImage({
+          urls: imgs,
+          current: imgs[imgIdx] || imgs[0]
+        })
+      },
+
+      onVideoEnded() {
+        // 记录视频已结束
+        this.videoEnded = true;
+      },
+      onVideoPlay() {
+        // 如果上次是ended后又play，说明是重播按钮
+        if (this.videoEnded) {
+          this.initialTime = 0;
+          this.videoKey++;
+          this.videoEnded = false;
+        }
+      },
+      openVideo(url, cover) {
+        this.currentVideoUrl = url
+        this.currentVideoCover = cover || ''
+        this.showVideo = true
+        this.$nextTick(() => {
+          // 自动播放并重置到0
+          const video = this.$refs.detailVideoRef;
+          if (video && video[0]) {
+            video[0].pause && video[0].pause();
+            video[0].currentTime = 0;
+            video[0].load && video[0].load();
+            setTimeout(() => { video[0].play && video[0].play(); }, 100);
+          }
+        })
+      },
+      closeVideo() {
+        this.showVideo = false
+        // 重置播放进度
+        const video = this.$refs.detailVideoRef;
+        if (video && video[0]) {
+          video[0].pause && video[0].pause();
+          video[0].currentTime = 0;
+          video[0].load && video[0].load();
+        }
       }
   },
   onLoad(options) {
@@ -508,6 +611,9 @@ import { store } from '@/uni_modules/uni-id-pages/common/store.js'
       end_time: options.end_time ? Number(options.end_time) : '',
       create_date: options.create_date ? Number(options.create_date) : '',
       category_name: options.category_name ? decodeURIComponent(options.category_name) : '',
+      media_detail: options.media_detail ? JSON.parse(decodeURIComponent(options.media_detail)) : [], // 解析媒体详情
+      // 新增：解析location_text
+      location_text: options.location_text ? JSON.parse(decodeURIComponent(options.location_text)) : []
       // 可继续加其它字段 
     };
   },
@@ -539,12 +645,76 @@ import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 .detail-container {
 	min-height: 100vh;
 	background-color: #fff;
+  padding-top: var(--status-bar-height, 0px);
   padding-bottom: 70px;
 }
-.detail-image {
+.detail-swiper { width: 100vw; height: 320px; }
+.detail-image { width: 100vw; height: 320px; object-fit: cover; }
+.video-cover { width: 100vw; height: 320px; background-color: #eee;}
+.detail-video-wrap {
   width: 100vw;
-  height: 220px;
-  object-fit: cover;
+  height: 320px;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.fullscreen-video {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fullscreen-video-player {
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+  background: #000;
+}
+
+.close-video-btn {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+.close-x {
+  width: 18px;
+  height: 18px;
+  position: relative;
+}
+.close-x::before,
+.close-x::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  width: 2px;
+  height: 18px;
+  background: #fff;
+  border-radius: 1px;
+}
+.close-x::before {
+  transform: rotate(45deg);
+}
+.close-x::after {
+  transform: rotate(-45deg);
 }
 .detail-header-row {
 			display: flex;
