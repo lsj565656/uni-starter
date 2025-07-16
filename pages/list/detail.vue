@@ -122,6 +122,7 @@ import { formatTime } from '@/utils/tools.js';
 import { mockComments } from '@/utils/comments.js'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { onBackPress } from '@dcloudio/uni-app'
+import { toggleTaskLike } from '@/utils/taskLike.js'
 	export default {
 		data() {
 			return {
@@ -295,33 +296,21 @@ import { onBackPress } from '@dcloudio/uni-app'
       },
       
       onLike() {
-        const wasLiked = !!this.task.is_liked;
-        const oldLikeCount = typeof this.task.like_count === 'number' ? this.task.like_count : 0;
-        // 乐观更新
-        if (wasLiked) {
-          this.task.is_liked = false;
-          this.task.like_count = Math.max(oldLikeCount - 1, 0);
-        } else {
-          this.task.is_liked = true;
-          this.task.like_count = oldLikeCount + 1;
-        }
-        uniCloud.callFunction({
-          name: 'likeTask',
-          data: { task_id: this.id }
-        }).then(res => {
-          const result = res.result;
-          if (result && result.code === 0) {
-            // 成功后不处理，UI已响应
-          } else {
-            // 失败回滚
-            this.task.is_liked = wasLiked;
-            this.task.like_count = oldLikeCount;
-          }
-        }).catch(() => {
-          // 网络异常回滚
-          this.task.is_liked = wasLiked;
-          this.task.like_count = oldLikeCount;
-        });
+        const oldLiked = this.task.is_liked
+        const oldCount = this.task.like_count
+        // 乐观UI
+        this.task.is_liked = !oldLiked
+        this.task.like_count = oldLiked ? oldCount - 1 : oldCount + 1
+        toggleTaskLike(this.id, oldLiked)
+          .then(({ isLiked, likeCount }) => {
+            this.task.is_liked = isLiked
+            this.task.like_count = likeCount
+          })
+          .catch(e => {
+            this.task.is_liked = oldLiked
+            this.task.like_count = oldCount
+            uni.showToast({ title: e.message || '操作失败', icon: 'none' })
+          })
       },
       
       onComment() {

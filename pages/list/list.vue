@@ -235,6 +235,7 @@
 	let cdbRef;
 	import statusBar from "@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar";
 	import { categories } from '@/utils/categories'
+	import { toggleTaskLike } from '@/utils/taskLike.js'
 
 	export default {
 		components: {
@@ -571,7 +572,7 @@
 					if (!item._id) return;
 					const taskId = (item._id && item._id.$oid) ? item._id.$oid : item._id;
 					const isLiked = this.likesTaskIds.includes(taskId);
-					// 维护本地 likesTaskIds 和 likesCountDelta
+					// 乐观UI
 					if (!this.likesCountDelta) this.likesCountDelta = {};
 					if (isLiked) {
 						this.likesTaskIds = this.likesTaskIds.filter(id => id !== taskId);
@@ -580,17 +581,18 @@
 						this.likesTaskIds.push(taskId);
 						this.likesCountDelta[taskId] = (this.likesCountDelta[taskId] || 0) + 1;
 					}
-					// 后台请求
-					uniCloud.callFunction({
-						name: 'likeTask',
-						data: { task_id: taskId }
-					}).then(res => {
-						const result = res.result;
-						if (result.code === 0) {
-							console.log('likeTask result:', result);
-							// 成功后不做额外处理，UI已响应
-						} else {
-							// 回滚本地 likesTaskIds 和 likesCountDelta
+					toggleTaskLike(taskId, isLiked)
+						.then(({ isLiked: newLiked, likeCount }) => {
+							// 强制同步本地状态
+							if (newLiked) {
+								if (!this.likesTaskIds.includes(taskId)) this.likesTaskIds.push(taskId);
+							} else {
+								this.likesTaskIds = this.likesTaskIds.filter(id => id !== taskId);
+							}
+							this.likesCountDelta[taskId] = likeCount - (item.like_count || 0);
+						})
+						.catch(e => {
+							// 回滚
 							if (isLiked) {
 								this.likesTaskIds.push(taskId);
 								this.likesCountDelta[taskId] = (this.likesCountDelta[taskId] || 0) + 1;
@@ -598,19 +600,8 @@
 								this.likesTaskIds = this.likesTaskIds.filter(id => id !== taskId);
 								this.likesCountDelta[taskId] = (this.likesCountDelta[taskId] || 0) - 1;
 							}
-							console.log('likeTask failed:', result.msg || '操作失败');
-						}
-					}).catch(() => {
-						// 回滚本地 likesTaskIds 和 likesCountDelta
-						if (isLiked) {
-							this.likesTaskIds.push(taskId);
-							this.likesCountDelta[taskId] = (this.likesCountDelta[taskId] || 0) + 1;
-						} else {
-							this.likesTaskIds = this.likesTaskIds.filter(id => id !== taskId);
-							this.likesCountDelta[taskId] = (this.likesCountDelta[taskId] || 0) - 1;
-						}
-						console.log('likeTask 网络异常');
-					});
+							uni.showToast({ title: e.message || '操作失败', icon: 'none' });
+						});
 				} else {
 					uni.showToast({ title: `${type}功能开发中`, icon: 'none' });
 				}

@@ -22,15 +22,26 @@ exports.main = async (event, context) => {
 
   // 检查是否已点赞
   const exist = await likeColl.where({ user_id, task_id }).get();
+  let isLiked;
   if (exist.data && exist.data.length > 0) {
     // 已点赞，执行取消点赞
     await likeColl.where({ user_id, task_id }).remove();
     await taskColl.doc(task_id).update({ like_count: db.command.inc(-1) });
-    return { code: 0, action: 'unlike' };
+    isLiked = false;
   } else {
     // 未点赞，执行点赞
     await likeColl.add({ user_id, task_id });
     await taskColl.doc(task_id).update({ like_count: db.command.inc(1) });
-    return { code: 0, action: 'like' };
+    isLiked = true;
   }
+  // 查询最新 likeCount
+  const taskDoc = await taskColl.doc(task_id).get();
+  const likeCount = (taskDoc.data && taskDoc.data[0] && typeof taskDoc.data[0].like_count === 'number') ? taskDoc.data[0].like_count : 0;
+  return {
+    code: 0,
+    data: {
+      isLiked,
+      likeCount
+    }
+  };
 };

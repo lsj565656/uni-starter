@@ -50,7 +50,7 @@
         <view v-else>
           <view v-if="data && data.length" class="masonry-row">
             <view class="masonry-col" v-for="(col, colIdx) in columns(data)" :key="colIdx">
-              <task-card v-for="item in col" :key="item._id" :task="item" />
+              <task-card v-for="item in col" :key="item._id" :task="withLikeStatus(item)" @like="onLike(item)" />
             </view>
           </view>
           <view v-else class="empty">暂无任务</view>
@@ -76,13 +76,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { onLoad, onPullDownRefresh, onReachBottom, onPageScroll } from '@dcloudio/uni-app'
 import taskCard from '@/components/task-card/task-card.vue'
 import uniIcons from '@/uni_modules/uni-icons/components/uni-icons/uni-icons.vue'
 import uniPopup from '@/uni_modules/uni-popup/components/uni-popup/uni-popup.vue'
 import uniLoadState from '@/components/uni-load-state/uni-load-state.vue'
 import uniSearchBar from '@/uni_modules/uni-search-bar/components/uni-search-bar/uni-search-bar.vue'
+import { toggleTaskLike } from '@/utils/taskLike.js'
 
 const catId = ref(0)
 const catName = ref('')
@@ -94,6 +95,31 @@ const pageSize = 20
 const udbRef = ref(null)
 const sortPopupRef = ref(null)
 const taskMode = ref('') // 用于判断当前分类的任务类型
+const likesTaskIds = ref([])
+
+// 获取当前用户已点赞的任务ID列表
+async function fetchLikesTaskIds() {
+  const userId = uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo().uid;
+  if (!userId) {
+    likesTaskIds.value = [];
+    return;
+  }
+  const res = await uniCloud.database()
+    .collection('kl-tasks-likes')
+    .where(`user_id == "${userId}"`)
+    .field('task_id')
+    .get();
+  likesTaskIds.value = (res.result.data || []).map(item => (item.task_id && item.task_id.$oid) ? item.task_id.$oid : item.task_id);
+}
+
+// 渲染 task-card 时根据 likesTaskIds 判断 is_liked
+function withLikeStatus(item) {
+  const idStr = (item._id && item._id.$oid) ? item._id.$oid : item._id;
+  return {
+    ...item,
+    is_liked: likesTaskIds.value.includes(idStr)
+  };
+}
 
 const CUSTOM_NAVBAR_HEIGHT = 48
 const filterBarOffset = ref(0)
@@ -191,6 +217,23 @@ function refresh() {
 function loadMore() {
   if (udbRef.value) udbRef.value.loadMore()
 }
+function onLike(item) {
+  const oldLiked = item.is_liked
+  const oldCount = item.like_count
+  // 乐观UI
+  item.is_liked = !oldLiked
+  item.like_count = oldLiked ? oldCount - 1 : oldCount + 1
+  toggleTaskLike(item._id, oldLiked)
+    .then(({ isLiked, likeCount }) => {
+      item.is_liked = isLiked
+      item.like_count = likeCount
+    })
+    .catch(e => {
+      item.is_liked = oldLiked
+      item.like_count = oldCount
+      uni.showToast({ title: e.message || '操作失败', icon: 'none' })
+    })
+}
 onLoad((options) => {
   catId.value = Number(options.catId) || 0
   catName.value = options.catName || ''
@@ -204,6 +247,9 @@ onPullDownRefresh(() => {
 onReachBottom(() => {
   loadMore()
 })
+onMounted(() => {
+  fetchLikesTaskIds();
+});
 </script>
 
 <style scoped>
