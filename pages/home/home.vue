@@ -92,15 +92,15 @@
 				<uni-icons type="fire" size="20" color="#007aff" />
 				<text class="section-title">热门任务</text>
 			</view>
-			<unicloud-db collection="kl-tasks" :where="'isActive == true && isHot == true'"
-				field="image,name,description,like_count,category,category_name,mode,score,price,joined_count,max_participants,isActive,user_id,_id,create_date,is_liked"
+			<unicloud-db collection="kl-tasks"
+				:where="'isActive == true && isHot == true'"
+				field="image,media,media_detail,location,location_text,name,description,like_count,category,category_name,mode,score,price,joined_count,max_participants,isActive,user_id,_id,create_date,is_liked,start_time,end_time"
 				:options="{ join: { 0: { leftKey: 'user_id', rightKey: '_id', from: 1, as: 'user_id', type: 'left' } } }"
 				orderby="create_date desc" :page-size="5" v-slot:default="{data, loading, error}">
 				<view class="masonry-scroll">
 					<view class="masonry-row">
 						<template v-if="!loading && data && data.length > 0">
-							<view class="masonry-col" v-for="(col, colIdx) in homeHotColumnsWithMoreCard(data)"
-								:key="colIdx">
+							<view class="masonry-col" v-for="(col, colIdx) in homeHotColumnsWithMoreCard(data)" :key="colIdx">
 								<template v-for="item in col">
 									<task-card v-if="!item._isMoreCard" :key="item._id" :task="item"
 										:user="getUserObj(item.user_id)" :showActions="false" @like="handleLikeTask" />
