@@ -20,11 +20,23 @@
 			</uni-grid-item>
 		</uni-grid>
 		<uni-list class="center-list" v-for="(sublist , index) in ucenterList" :key="index">
-			<uni-list-item v-for="(item,i) in sublist" :title="item.title" link :rightText="item.rightText" :key="i"
-				:clickable="true" :to="item.to" @click="ucenterListClick(item)" :show-extra-icon="true"
-				:extraIcon="{type:item.icon,color:'#999'}">
+			<uni-list-item
+				v-for="(item,i) in sublist"
+				:title="item.title"
+				:link="item.showArrow !== false"
+				:key="i"
+				:clickable="item.clickable !== false"
+				:to="item.to"
+				@click="ucenterListClick(item)"
+				:show-extra-icon="true"
+				:extraIcon="{type:item.icon,color:'#999'}"
+			>
 				<template v-slot:footer>
-					<view v-if="item.showBadge" class="item-footer">
+					<view v-if="item.showRefresh" class="item-footer">
+						<text class="item-footer-text">{{( userInfo.score || 0 ) + ' 积分'}}</text>
+						<uni-icons type="reload" size="22" color="#1976d2" @click="refreshScore" style="margin-left: 8px;" />
+					</view>
+					<view v-else-if="item.showBadge" class="item-footer">
 						<text class="item-footer-text">{{item.rightText}}</text>
 						<view class="item-footer-badge"></view>
 					</view>
@@ -105,8 +117,10 @@
 						{
 							"title": this.$t('mine.myScore'),
 							"to": '',
-							"event": 'getScore',
-							"icon": "paperplane"
+							"icon": "paperplane",
+							"showRefresh": true,
+							"showArrow": false,
+							"rightText": 0,
 						}
 						// #ifdef APP
 						, {
@@ -156,7 +170,25 @@
 			})
 			//#endif
 		},
-		onShow() {},
+		onShow() {
+			if (this.hasLogin) {
+				db.collection('uni-id-scores')
+					.where('user_id == $env.uid')
+					.orderBy('create_date', 'desc')
+					.limit(1)
+					.get()
+					.then(res => {
+						const data = res.result.data[0];
+						if (data) {
+							// 推荐写入 store.userInfo.score
+							store.userInfo.score = data.balance;
+						} else {
+							store.userInfo.score = 0;
+						}
+						console.log('store.userInfo:',store.userInfo)
+					});
+			}
+		},
 		computed: {
 			userInfo() {
 				return store.userInfo
@@ -240,35 +272,26 @@
 				}
 				// #endif
 			},
-			/**
-			 * 获取积分信息
-			 */
-			getScore() {
-				if (!this.userInfo) return uni.showToast({
-					title: this.$t('mine.checkScore'),
-					icon: 'none'
-				});
-				uni.showLoading({
-					mask: true
-				})
-				db.collection("uni-id-scores")
-					.where('"user_id" == $env.uid')
-					.field('score,balance')
-					.orderBy("create_date", "desc")
-					.limit(1)
-					.get()
-					.then((res) => {
-						console.log(res);
-						const data = res.result.data[0];
-						let msg = '';
-						msg = data ? (this.$t('mine.currentScore')+ data.balance) : this.$t('mine.noScore');
-						uni.showToast({
-							title: msg,
-							icon: 'none'
+			refreshScore() {
+				// 主动刷新积分余额
+				console.log('do refreshScore')
+				if (this.hasLogin) {
+					db.collection('uni-id-scores')
+						.where('user_id == $env.uid')
+						.orderBy('create_date', 'desc')
+						.limit(1)
+						.get()
+						.then(res => {
+							const data = res.result.data[0];
+							if (data) {
+								store.userInfo.score = data.balance;
+								uni.showToast({ title: '积分已刷新', icon: 'success' });
+							} else {
+								store.userInfo.score = 0;
+								uni.showToast({ title: '暂无积分', icon: 'none' });
+							}
 						});
-					}).finally(()=>{
-						uni.hideLoading()
-					})
+				}
 			},
 			async share() {
 				let {result} = await db.collection('uni-id-users').where("'_id' == $cloudEnv_uid").field('my_invite_code').get()

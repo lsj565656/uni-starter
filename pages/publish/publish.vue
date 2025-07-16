@@ -537,7 +537,7 @@ function prepareSubmitData() {
   data.create_date = Date.now()
   // 确保 timeRange 字段不会被提交到数据库
   if ('timeRange' in data) {
-    delete data.timeRange
+  delete data.timeRange
   }
   return data
 }

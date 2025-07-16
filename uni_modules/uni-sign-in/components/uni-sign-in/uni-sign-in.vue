@@ -46,6 +46,7 @@
 	const signInTable = db.action('signIn').collection('opendb-sign-in')
 	const date = new Date(new Date().toLocaleDateString()).getTime()
 	import AD from "../../utils/ad.js"
+	import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 	export default {
 		name: "uni-signIn",
 		data() {
@@ -82,18 +83,16 @@
 				let res = await this.getSignedInInfo();
 				console.log(res);
 				if (res && res.length == 0) {
-					let {
-						_id: userId
-					} = uni.getStorageSync('userInfo')
-					console.log(userId, uni.getStorageSync('userInfo'));
-					if (!userId) {
+					console.log('store.hasLogin:', store.hasLogin);
+					let userId = store.userInfo.id;
+					if (!store.hasLogin) {
 						return uni.navigateTo({
 							url: "/pages/ucenter/login-page/index/index"
 						})
 					}
 					// 调用后会显示 loading 界面
 					AD.show({
-						adpid: 1733738477, // HBuilder 基座测试广告位
+						adpid: 1111111112, // HBuilder 基座测试广告位  1733738477
 						adType: "RewardedVideo",
 						urlCallback: {
 							userId,
