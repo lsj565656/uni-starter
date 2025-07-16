@@ -114,6 +114,24 @@
 				"navigationStyle": "custom",
 				"enablePullDownRefresh": false
 			}
+		},
+		{
+			"path": "pages/ucenter/point/index",
+			"style": {
+				"navigationBarTitleText": "积分中心"
+			}
+		},
+		{
+			"path": "pages/ucenter/point/detail",
+			"style": {
+				"navigationBarTitleText": "积分明细"
+			}
+		},
+		{
+			"path": "pages/ucenter/point/lottery",
+			"style": {
+				"navigationBarTitleText": "积分抽奖"
+			}
 		}
 	],
 	"subPackages": [{

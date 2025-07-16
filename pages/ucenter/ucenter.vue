@@ -23,18 +23,17 @@
 			<uni-list-item
 				v-for="(item,i) in sublist"
 				:title="item.title"
-				:link="item.showArrow !== false"
+				link clickable showArrow
 				:key="i"
-				:clickable="item.clickable !== false"
 				:to="item.to"
-				@click="ucenterListClick(item)"
+				@click="ucenterListClick(item, $event)"
 				:show-extra-icon="true"
 				:extraIcon="{type:item.icon,color:'#999'}"
 			>
 				<template v-slot:footer>
-					<view v-if="item.showRefresh" class="item-footer">
-						<text class="item-footer-text">{{( userInfo.score || 0 ) + ' 积分'}}</text>
-						<uni-icons type="reload" size="22" color="#1976d2" @click="refreshScore" style="margin-left: 8px;" />
+					<view v-if="item.showRefresh" class="item-footer" @click.stop>
+						<text class="item-footer-text" @click="refreshScore">{{( userInfo.score || 0 ) + ' 积分'}}</text>
+						<uni-icons type="reload" size="22" color="#1976d2" @click="refreshScore" style="margin-right: 12px;" />
 					</view>
 					<view v-else-if="item.showBadge" class="item-footer">
 						<text class="item-footer-text">{{item.rightText}}</text>
@@ -116,7 +115,7 @@
 						},
 						{
 							"title": this.$t('mine.myScore'),
-							"to": '',
+							"to": '/pages/ucenter/point/index',
 							"icon": "paperplane",
 							"showRefresh": true,
 							"showArrow": false,
@@ -128,7 +127,7 @@
 							"event": 'share',
 							"icon": "redo"
 						}
-						// #endif
+						// #endif	
 					],
 					[{
 						"title": this.$t('mine.feedback'),
@@ -161,12 +160,13 @@
 		},
 		onLoad() {
 			//#ifdef APP-PLUS
+			const appVersion = this.appVersion;
 			this.ucenterList[this.ucenterList.length - 2].unshift({
-				title:this.$t('mine.checkUpdate'),// this.this.$t('mine.checkUpdate')"检查更新"
-				rightText: this.appVersion.version + '-' + this.appVersion.versionCode,
+				title: this.$t('mine.checkUpdate'),
+				rightText: appVersion ? (appVersion.version + '-' + appVersion.versionCode) : '',
 				event: 'checkVersion',
 				icon: 'loop',
-				showBadge: this.appVersion.hasNew
+				showBadge: appVersion ? appVersion.hasNew : false
 			})
 			//#endif
 		},
@@ -198,7 +198,7 @@
 			},
 			// #ifdef APP-PLUS
 			appVersion() {
-				return getApp().appVersion
+				return getApp().appVersion || { version: '', versionCode: '', hasNew: false }
 			},
 			// #endif
 			appConfig() {
@@ -272,8 +272,10 @@
 				}
 				// #endif
 			},
+			/**
+			 * 主动刷新积分余额
+			 */
 			refreshScore() {
-				// 主动刷新积分余额
 				console.log('do refreshScore')
 				if (this.hasLogin) {
 					db.collection('uni-id-scores')
@@ -469,7 +471,7 @@
 
 	.item-footer-text {
 		color: #999;
-		font-size: 24rpx;
+		font-size: 32rpx;
 		padding-right: 10rpx;
 	}
 
