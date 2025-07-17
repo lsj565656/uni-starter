@@ -132,6 +132,14 @@
 			"style": {
 				"navigationBarTitleText": "积分抽奖"
 			}
+		},
+		{
+			"path": "pages/ucenter/myFav",
+			"style": {
+				"navigationBarTitleText": "我点赞的",
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": true
+			}
 		}
 	],
 	"subPackages": [{

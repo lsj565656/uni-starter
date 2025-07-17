@@ -9,4 +9,15 @@
 // 详细JQL语法，请参考：https://uniapp.dcloud.net.cn/uniCloud/jql.html
 
 // 下面示例查询uni-id-users表的所有数据
-db.collection('uni-id-users').get();
+db.collection('kl-tasks-likes').aggregate()
+  .lookup({
+    from: 'kl-tasks',
+    let: { tid: '$task_id' },
+    pipeline: [
+      { $match: { $expr: { $eq: ['$_id', '$$tid'] } } }
+    ],
+    as: 'task'
+  })
+  .end()
+  
+  db.collection('kl-tasks').doc('6876a86865234175623f967a').get()

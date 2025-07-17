@@ -109,9 +109,10 @@
 						},
 						//#endif
 						{
-							"title":this.$t('mine.readArticles'),
-							"to": '/pages/ucenter/read-news-log/read-news-log',
-							"icon": "flag"
+							"title": this.$t('mine.myFav') || '我点赞的',
+							"to": '/pages/ucenter/myFav',
+							"icon": "heart",
+							"iconColor": "#e74c3c"
 						},
 						{
 							"title": this.$t('mine.myScore'),
@@ -185,7 +186,6 @@
 						} else {
 							store.userInfo.score = 0;
 						}
-						console.log('store.userInfo:',store.userInfo)
 					});
 			}
 		},
