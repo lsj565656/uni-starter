@@ -236,6 +236,7 @@
 	import statusBar from "@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar";
 	import { categories } from '@/utils/categories'
 	import { toggleTaskLike } from '@/utils/taskLike.js'
+	import { useTaskLikeStore } from '@/store/taskLike.js'
 
 	export default {
 		components: {
@@ -325,7 +326,6 @@
 				displayData: [], // 新增：用于缓存命中时渲染
 				lastRequestedCategoryId: 0, // 新增：记录本次请求的分类id
 				lastCacheWriteScene: '', // 新增：记录本次缓存写入场景
-				likesCountDelta: {}, // 新增：用于存储点赞数的变化量
 				categoryScrollLeft: 0,
 				showBackToAllBtn: false, // 新增：是否显示返回全部按钮
 			}
@@ -570,36 +570,21 @@
 			actionsClick(type, item) {
 				if (type === '点赞') {
 					if (!item._id) return;
+					const taskLikeStore = useTaskLikeStore();
 					const taskId = (item._id && item._id.$oid) ? item._id.$oid : item._id;
-					const isLiked = this.likesTaskIds.includes(taskId);
+					const likeInfo = taskLikeStore.getLike(taskId);
+					const isLiked = likeInfo ? likeInfo.isLiked : false;
 					// 乐观UI
-					if (!this.likesCountDelta) this.likesCountDelta = {};
-					if (isLiked) {
-						this.likesTaskIds = this.likesTaskIds.filter(id => id !== taskId);
-						this.likesCountDelta[taskId] = (this.likesCountDelta[taskId] || 0) - 1;
-					} else {
-						this.likesTaskIds.push(taskId);
-						this.likesCountDelta[taskId] = (this.likesCountDelta[taskId] || 0) + 1;
-					}
 					toggleTaskLike(taskId, isLiked)
 						.then(({ isLiked: newLiked, likeCount }) => {
 							// 强制同步本地状态
 							if (newLiked) {
-								if (!this.likesTaskIds.includes(taskId)) this.likesTaskIds.push(taskId);
+								taskLikeStore.setLike(taskId, true, likeCount, { ...item, is_liked: true, like_count: likeCount });
 							} else {
-								this.likesTaskIds = this.likesTaskIds.filter(id => id !== taskId);
+								taskLikeStore.removeLike(taskId);
 							}
-							this.likesCountDelta[taskId] = likeCount - (item.like_count || 0);
 						})
 						.catch(e => {
-							// 回滚
-							if (isLiked) {
-								this.likesTaskIds.push(taskId);
-								this.likesCountDelta[taskId] = (this.likesCountDelta[taskId] || 0) + 1;
-							} else {
-								this.likesTaskIds = this.likesTaskIds.filter(id => id !== taskId);
-								this.likesCountDelta[taskId] = (this.likesCountDelta[taskId] || 0) - 1;
-							}
 							uni.showToast({ title: e.message || '操作失败', icon: 'none' });
 						});
 				} else {
@@ -649,6 +634,7 @@
 					this.showFilterDrawer = false;
 				}
 			},
+			// 移除所有批量 setLike 相关逻辑，只保留 likesTaskIds 的 fetch 和首次渲染。
 			async fetchLikesTaskIds() {
 				const userId = uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo().uid;
 				if (!userId) {
@@ -666,7 +652,6 @@
 				this.isFiltering = true;
 				this.displayData = []; // 新增：拉取新数据前清空
 				this.lastRequestedCategoryId = categoryId !== undefined ? categoryId : this.getCurrentCategoryId(); // 新增：记录本次请求的分类id
-				await this.fetchLikesTaskIds();
 				let where = 'isActive == true';
 				if (this.currentCategory !== 0) {
 					where += ` && category == ${this.currentCategory}`;
@@ -757,16 +742,22 @@
 				});
 				return cols;
 			},
-			// 新增：渲染 task-card 时直接判断 is_liked 和 like_count
+			// 新增：渲染 task-card 时直接判断 is_liked 和 like_count 
 			withLikeStatus(item) {
+				// 1. 首次渲染时，likesTaskIds 是权威点赞列表
 				const idStr = (item._id && item._id.$oid) ? item._id.$oid : item._id;
-				const isLiked = this.likesTaskIds.includes(idStr);
-				const delta = this.likesCountDelta && this.likesCountDelta[idStr] ? this.likesCountDelta[idStr] : 0;
+				let isLiked = item.is_liked;
+				if (this.likesTaskIds && this.likesTaskIds.length) {
+					isLiked = this.likesTaskIds.includes(idStr);
+				}
+				// 2. 后续用 store 里的 isLiked/likeCount 优先生效
+				const taskLikeStore = useTaskLikeStore();
+				const likeInfo = taskLikeStore.getLike(idStr);
 				return {
 					...item,
-					is_liked: isLiked,
-					like_count: Math.max((typeof item.like_count === 'number' ? item.like_count : 0) + delta, 0)
-				};
+					is_liked: likeInfo ? likeInfo.isLiked : isLiked,
+					like_count: likeInfo ? likeInfo.likeCount : item.like_count
+				}
 			},
 			// 新增：slot 内部处理缓存写入
 			cacheDataForCategory(data) {
@@ -897,6 +888,21 @@
 				this.categoryScrollLeft = 0;
 				// 隐藏返回全部按钮
 				this.showBackToAllBtn = false;
+			},
+			async fetchLikesTaskIdsAndInitStore(data) {
+				const userId = uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo().uid;
+				if (!userId) {
+					this.likesTaskIds = [];
+					return;
+				}
+				const res = await uniCloud.database()
+					.collection('kl-tasks-likes')
+					.where(`user_id == "${userId}"`)
+					.field('task_id')
+					.get();
+				this.likesTaskIds = (res.result.data || []).map(item => (item.task_id && item.task_id.$oid) ? item.task_id.$oid : item.task_id);
+				// 拿到 likesTaskIds 后，批量初始化 store
+				// this.batchInitTaskLikeStore(data, this.likesTaskIds); // 移除批量 setLike
 			},
 		},
 		mounted() {

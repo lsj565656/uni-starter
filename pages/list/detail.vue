@@ -123,6 +123,7 @@ import { mockComments } from '@/utils/comments.js'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { onBackPress } from '@dcloudio/uni-app'
 import { toggleTaskLike } from '@/utils/taskLike.js'
+import { useTaskLikeStore } from '@/store/taskLike.js'
 	export default {
 		data() {
 			return {
@@ -296,21 +297,28 @@ import { toggleTaskLike } from '@/utils/taskLike.js'
       },
       
       onLike() {
-        const oldLiked = this.task.is_liked
-        const oldCount = this.task.like_count
+        const taskLikeStore = useTaskLikeStore();
+        const oldLiked = this.task.is_liked;
+        const oldCount = this.task.like_count;
         // 乐观UI
-        this.task.is_liked = !oldLiked
-        this.task.like_count = oldLiked ? oldCount - 1 : oldCount + 1
+        this.task.is_liked = !oldLiked;
+        this.task.like_count = oldLiked ? oldCount - 1 : oldCount + 1;
+        // 立即同步 pinia store（乐观）
+        taskLikeStore.setLike(this.id, this.task.is_liked, this.task.like_count, { ...this.task });
         toggleTaskLike(this.id, oldLiked)
           .then(({ isLiked, likeCount }) => {
-            this.task.is_liked = isLiked
-            this.task.like_count = likeCount
+            this.task.is_liked = isLiked;
+            this.task.like_count = likeCount;
+            // 再次同步 pinia store（以后端为准）
+            taskLikeStore.setLike(this.id, isLiked, likeCount, { ...this.task });
           })
           .catch(e => {
-            this.task.is_liked = oldLiked
-            this.task.like_count = oldCount
-            uni.showToast({ title: e.message || '操作失败', icon: 'none' })
-          })
+            this.task.is_liked = oldLiked;
+            this.task.like_count = oldCount;
+            // 回滚 pinia store
+            taskLikeStore.setLike(this.id, oldLiked, oldCount, { ...this.task });
+            uni.showToast({ title: e.message || '操作失败', icon: 'none' });
+          });
       },
       
       onComment() {
