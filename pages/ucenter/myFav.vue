@@ -21,6 +21,7 @@
             clearButton="auto"
             placeholder="请输入搜索内容"
             @clear="resetKeyword"
+            @cancel="resetKeyword"
             @confirm="onSearch"
             :height="36"
           />

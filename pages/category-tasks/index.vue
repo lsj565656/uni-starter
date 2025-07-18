@@ -21,6 +21,7 @@
             clearButton="auto"
             :placeholder="'请输入搜索内容'"
             @clear="resetKeyword"
+            @cancel="resetKeyword"
             @confirm="onSearch"
             :height="36"
           />
@@ -35,34 +36,25 @@
     </view>
     <!-- 列表内容 -->
     <view class="task-list-masonry" :style="listMasonryStyle">
-      <unicloud-db
-        ref="udbRef"
-        :collection="'kl-tasks'"
-        :where="where"
-        :orderby="orderBy"
-        v-slot:default="{data, loading, error, pagination, hasMore}"
-        :page-size="pageSize"
-        :getcount="true"
-        @data-change="onDbDataChange"
-      >
-        <view v-if="loading" class="loading">加载中...</view>
-        <view v-else-if="error" class="error">加载失败</view>
-        <view v-else>
-          <view v-if="data && data.length" class="masonry-row">
-            <view class="masonry-col" v-for="(col, colIdx) in columns(data)" :key="colIdx">
-              <task-card v-for="item in col" :key="item._id" :task="withLikeStatus(item)" @like="onLike(item)" />
-            </view>
+      <view v-if="loading" class="loading">加载中...</view>
+      <view v-else-if="error" class="error">{{ error }}</view>
+      <view v-else>
+        <view v-if="columns(tasksList)[0].length || columns(tasksList)[1].length" class="masonry-row">
+          <view class="masonry-col" v-for="(col, colIdx) in columns(tasksList)" :key="colIdx">
+            <template v-for="item in col" :key="item._id">
+              <task-card :task="withLikeStatus(item)" @like="onLike(item)" />
+            </template>
           </view>
-          <view v-else class="empty">暂无任务</view>
-          <uni-load-state
-            class="load-state"
-            :state="{data,pagination,hasMore,loading,error}"
-            @loadMore="loadMore"
-            @networkResume="refresh"
-            noMoreText="没有更多了"
-          />
         </view>
-      </unicloud-db>
+        <view v-else class="empty">暂无任务</view>
+        <uni-load-state
+          class="load-state"
+          :state="{data:tasksList,pagination,hasMore,loading,error}"
+          @loadMore="loadMore"
+          @networkResume="refresh"
+          noMoreText="没有更多了"
+        />
+      </view>
       <uni-popup ref="sortPopupRef" type="bottom" :is-mask-click="true">
         <view class="sort-popup-content">
           <view class="sort-popup-option" v-for="option in sortOptions" :key="option.value" :class="{active: sortKey===option.value}" @click="selectSortOrder(option.value)">
@@ -84,6 +76,7 @@ import uniPopup from '@/uni_modules/uni-popup/components/uni-popup/uni-popup.vue
 import uniLoadState from '@/components/uni-load-state/uni-load-state.vue'
 import uniSearchBar from '@/uni_modules/uni-search-bar/components/uni-search-bar/uni-search-bar.vue'
 import { toggleTaskLike } from '@/utils/taskLike.js'
+import { useTaskLikeStore } from '@/store/taskLike.js'
 
 const catId = ref(0)
 const catName = ref('')
@@ -92,34 +85,14 @@ const keyword = ref('')
 const statusBarHeight = ref(0)
 const FILTER_BAR_HEIGHT = 88 // 搜索栏+排序栏总高，按实际调整
 const pageSize = 20
-const udbRef = ref(null)
 const sortPopupRef = ref(null)
 const taskMode = ref('') // 用于判断当前分类的任务类型
-const likesTaskIds = ref([])
-
-// 获取当前用户已点赞的任务ID列表
-async function fetchLikesTaskIds() {
-  const userId = uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo().uid;
-  if (!userId) {
-    likesTaskIds.value = [];
-    return;
-  }
-  const res = await uniCloud.database()
-    .collection('kl-tasks-likes')
-    .where(`user_id == "${userId}"`)
-    .field('task_id')
-    .get();
-  likesTaskIds.value = (res.result.data || []).map(item => (item.task_id && item.task_id.$oid) ? item.task_id.$oid : item.task_id);
-}
-
-// 渲染 task-card 时根据 likesTaskIds 判断 is_liked
-function withLikeStatus(item) {
-  const idStr = (item._id && item._id.$oid) ? item._id.$oid : item._id;
-  return {
-    ...item,
-    is_liked: likesTaskIds.value.includes(idStr)
-  };
-}
+const tasksList = ref([])
+const loading = ref(false)
+const error = ref('')
+const hasMore = ref(true)
+const pagination = ref({})
+const page = ref(1)
 
 const CUSTOM_NAVBAR_HEIGHT = 48
 const filterBarOffset = ref(0)
@@ -145,14 +118,6 @@ const sortLabel = computed(() => {
 const containerStyle = computed(() => {
   return 'background:#f8f9fa;min-height:100vh;'
 })
-const listMarginTop = computed(() => {
-  // #ifdef APP
-  return `margin-top: ${statusBarHeight.value + CUSTOM_NAVBAR_HEIGHT + 48}px;`
-  // #endif
-  // #ifndef APP
-  return `margin-top: ${CUSTOM_NAVBAR_HEIGHT + 48}px;`
-  // #endif
-})
 const listMasonryStyle = computed(() => {
   // #ifdef APP
   return `margin-top: ${statusBarHeight.value + CUSTOM_NAVBAR_HEIGHT + 48}px; top: ${statusBarHeight.value + CUSTOM_NAVBAR_HEIGHT}px;`
@@ -161,19 +126,84 @@ const listMasonryStyle = computed(() => {
   return `margin-top: ${CUSTOM_NAVBAR_HEIGHT + 48}px; top: ${CUSTOM_NAVBAR_HEIGHT}px;`
   // #endif
 })
-const where = computed(() => {
-  let w = `isActive == true && category == ${catId.value}`
-  if (keyword.value) w += ` && /${keyword.value}/.test(name)`
-  return w
-})
-const orderBy = computed(() => {
-  if (sortKey.value === 'time') return 'create_date desc'
-  if (sortKey.value === 'value') {
-    // 这里假设所有任务同一分类类型一致，实际可根据后端数据调整
-    return taskMode.value === 'score' ? 'score desc' : 'price desc'
+
+function getOrderByArray() {
+  const arr = [];
+  // 1. 积分/价格排序（互斥，优先级最高）
+  if (taskMode.value === 'score' && sortKey.value === 'value') {
+    arr.push({ field: 'score', order: 'desc' });
+  } else if (taskMode.value === 'price' && sortKey.value === 'value') {
+    arr.push({ field: 'price', order: 'desc' });
   }
-  return 'create_date desc'
-})
+  // 2. 时间排序
+  if (sortKey.value === 'time') {
+    arr.push({ field: 'create_date', order: 'desc' });
+  }
+  // 可扩展更多排序
+  if (arr.length === 0) {
+    arr.push({ field: 'create_date', order: 'desc' });
+  }
+  return arr;
+}
+
+async function fetchTasks({ reset = false } = {}) {
+  if (loading.value) return
+  loading.value = true
+  error.value = ''
+  if (reset) {
+    page.value = 1
+    tasksList.value = []
+    hasMore.value = true
+  }
+  try {
+    const userId = uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo().uid;
+    const orderByArr = getOrderByArray();
+    const res = await uniCloud.callFunction({
+      name: 'category-tasks',
+      data: {
+        userId,
+        catId: catId.value,
+        keyword: keyword.value,
+        orderBy: orderByArr,
+        page: page.value,
+        pageSize
+      }
+    })
+    if (res.result && res.result.code === 0) {
+      const rawList = res.result.data || []
+      if (reset) {
+        tasksList.value = rawList
+      } else {
+        tasksList.value = [...tasksList.value, ...rawList]
+      }
+      hasMore.value = res.result.hasMore
+      pagination.value = { total: res.result.total, page: res.result.page, pageSize: res.result.pageSize }
+      // 同步已点赞任务到 useTaskLikeStore
+      const taskLikeStore = useTaskLikeStore();
+      rawList.forEach(item => {
+        if (item.is_liked) {
+          taskLikeStore.setLike(item._id, true, item.like_count);
+        }
+      });
+    } else {
+      error.value = res.result?.message || '加载失败'
+    }
+  } catch (e) {
+    error.value = e.message || '加载失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+function columns(data) {
+  const cols = [[], []]
+  ;(data || []).forEach((item, idx) => {
+    cols[idx % 2].push(item)
+    if (!taskMode.value && item.mode) taskMode.value = item.mode
+  })
+  return cols
+}
+
 function openSortPopup() {
   sortPopupRef.value && sortPopupRef.value.open('bottom')
 }
@@ -192,47 +222,41 @@ function resetKeyword() {
   keyword.value = ''
   refresh()
 }
-function columns(data) {
-  const cols = [[], []]
-  ;(data || []).forEach((item, idx) => {
-    cols[idx % 2].push(item)
-    // 只要有一条数据，自动推断类型
-    if (!taskMode.value && item.mode) taskMode.value = item.mode
-  })
-  return cols
-}
-function onDbDataChange({ data }) {
-  // 这里可做缓存或其他处理
-}
 function refresh() {
-  if (udbRef.value) {
-    udbRef.value.loadData({ clear: true }, () => {
-      uni.stopPullDownRefresh()
-    })
-    setTimeout(() => { uni.stopPullDownRefresh() }, 3000)
-  } else {
-    uni.stopPullDownRefresh()
-  }
+  fetchTasks({ reset: true })
+  uni.stopPullDownRefresh()
 }
 function loadMore() {
-  if (udbRef.value) udbRef.value.loadMore()
+  if (hasMore.value && !loading.value) {
+    page.value += 1
+    fetchTasks()
+  }
+}
+function withLikeStatus(item) {
+  const taskLikeStore = useTaskLikeStore();
+  const likeInfo = taskLikeStore.getLike(item._id);
+  return {
+    ...item,
+    is_liked: likeInfo ? likeInfo.isLiked : item.is_liked,
+    like_count: likeInfo ? likeInfo.likeCount : item.like_count
+  }
 }
 function onLike(item) {
-  const oldLiked = item.is_liked
-  const oldCount = item.like_count
+  const taskLikeStore = useTaskLikeStore();
+  const oldLiked = item.is_liked;
+  const oldCount = item.like_count;
+  const newLiked = !oldLiked;
+  const newCount = oldLiked ? oldCount - 1 : oldCount + 1;
   // 乐观UI
-  item.is_liked = !oldLiked
-  item.like_count = oldLiked ? oldCount - 1 : oldCount + 1
+  taskLikeStore.setLike(item._id, newLiked, newCount);
   toggleTaskLike(item._id, oldLiked)
     .then(({ isLiked, likeCount }) => {
-      item.is_liked = isLiked
-      item.like_count = likeCount
+      taskLikeStore.setLike(item._id, isLiked, likeCount);
     })
     .catch(e => {
-      item.is_liked = oldLiked
-      item.like_count = oldCount
-      uni.showToast({ title: e.message || '操作失败', icon: 'none' })
-    })
+      taskLikeStore.setLike(item._id, oldLiked, oldCount);
+      uni.showToast({ title: e.message || '操作失败', icon: 'none' });
+    });
 }
 onLoad((options) => {
   catId.value = Number(options.catId) || 0
@@ -240,6 +264,7 @@ onLoad((options) => {
   // #ifdef APP
   statusBarHeight.value = uni.getSystemInfoSync().statusBarHeight || 0
   // #endif
+  fetchTasks({ reset: true })
 })
 onPullDownRefresh(() => {
   refresh()
@@ -248,8 +273,8 @@ onReachBottom(() => {
   loadMore()
 })
 onMounted(() => {
-  fetchLikesTaskIds();
-});
+  fetchTasks({ reset: true })
+})
 </script>
 
 <style scoped>
