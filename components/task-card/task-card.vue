@@ -58,10 +58,7 @@ export default {
   methods: {
     goDetail() {
       // 合并任务和用户的所有核心字段
-      const { _id, name, image, description, like_count, is_liked, joined_count, max_participants, score, price, mode, location, start_time, end_time, category_name, create_date, media_detail, location_text } = this.task;
-      const ownerUserId = this.user?._id || '';
-      const ownerNickname = this.user?.nickname || '';
-      const ownerAvatarUrl = this.user?.avatar_file?.url || '';
+      const { _id, name, image, description, like_count, is_liked, joined_count, max_participants, score, price, mode, location, start_time, end_time, category_name, create_date, media_detail, location_text, is_publisher_joined } = this.task;
       // 构建参数对象
       const params = {
         id: _id,
@@ -79,10 +76,9 @@ export default {
         start_time,
         end_time,
         category_name,
-        ownerUserId,
-        ownerNickname,
-        ownerAvatarUrl,
+        user: encodeURIComponent(JSON.stringify(this.user)),
         create_date,
+        is_publisher_joined,
         // 新增字段
         media_detail: media_detail ? encodeURIComponent(JSON.stringify(media_detail)) : '',
         location_text: location_text ? encodeURIComponent(JSON.stringify(location_text)) : ''

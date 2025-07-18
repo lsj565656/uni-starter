@@ -489,6 +489,7 @@ export default {
 			} finally {
 				this.loading = false;
 			}
+			console.log('this.tasksList:',this.tasksList);
 		},
 		loadMore() {
 			if (this.hasMore && !this.loading) {

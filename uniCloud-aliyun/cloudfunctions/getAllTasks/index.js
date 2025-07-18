@@ -85,6 +85,17 @@ exports.main = async (event, context) => {
     });
   }
 
+  // 聚合用户信息
+  agg = agg.lookup({
+    from: 'uni-id-users',
+    let: { userId: '$user_id' },
+    pipeline: [
+      { $match: { $expr: { $eq: ['$_id', '$$userId'] } } },
+      { $project: { _id: 1, nickname: 1, avatar_file: 1 } }
+    ],
+    as: 'userInfoArr'
+  });
+
   // 分页
   agg = agg.skip((pageNum - 1) * size).limit(size);
 
@@ -92,7 +103,8 @@ exports.main = async (event, context) => {
     const res = await agg.end();
     const list = (res.data || []).map(task => ({
       ...task,
-      is_liked: Array.isArray(task.my_like) && task.my_like.length > 0
+      is_liked: Array.isArray(task.my_like) && task.my_like.length > 0,
+      userInfo: Array.isArray(task.userInfoArr) && task.userInfoArr.length > 0 ? task.userInfoArr[0] : null
     }));
     // 查询总数
     const totalRes = await db.collection('kl-tasks').where(matchStage).count();

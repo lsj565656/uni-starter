@@ -140,6 +140,13 @@
 				"navigationStyle": "custom",
 				"enablePullDownRefresh": true
 			}
+		},
+		{
+			"path": "pages/task-confirm/task-confirm",
+			"style": {
+				"navigationBarTitleText": "加入任务确认",
+				"enablePullDownRefresh": false
+			}
 		}
 	],
 	"subPackages": [{

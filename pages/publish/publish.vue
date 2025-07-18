@@ -594,13 +594,24 @@ async function submit() {
     const user_id = store.userInfo && store.userInfo._id;
     const data = {
       ...prepareSubmitData(),
-      user_id: user_id,
       isActive: true,
       create_date: Date.now()
     };
-    await uniCloud.database().collection('kl-tasks').add(data);
-    uni.showToast({ title: '发布成功', icon: 'success' });
-    uni.navigateBack();
+    // 调用 publishTask 云函数
+    const res = await uniCloud.callFunction({
+      name: 'publishTask',
+      data: {
+        task: data,
+        autoJoin: !!form.is_publisher_joined,
+        userId: user_id
+      }
+    });
+    if (res.result && res.result.code === 0) {
+      uni.showToast({ title: '发布成功', icon: 'success' });
+      uni.navigateBack();
+    } else {
+      throw new Error(res.result?.message || '发布失败');
+    }
   } catch (err) {
     isUploading.value = false
     // 校验失败或上传失败，不执行提交

@@ -73,8 +73,8 @@
 
     <!-- 发布者 -->
     <view class="task-publisher">
-      <image class="publisher-avatar" :src="task.user?.ownerAvatarUrl?.url || '/static/logo.png'" />
-      <text class="publisher-nickname">{{ task.user?.ownerNickname }}</text>
+      <image class="publisher-avatar" :src="task.user?.avatar_file?.url || '/static/logo.png'" />
+      <text class="publisher-nickname">{{ task.user?.nickname }}</text>
       <text class="publisher-date">发布于{{ formatTime(task.create_date) }}</text>
 				</view>
 
@@ -85,7 +85,7 @@
       :comments="comments"
       :total-count="totalCommentCount"
       :author-id="this.userInfo._id"
-      :task-owner-id="this.task.user?.ownerUserId"
+      :task-owner-id="this.task.user?._id"
       :loading="commentLoading"
       :has-more="hasMoreComments"
       @submit="onCommentSubmit"
@@ -107,10 +107,6 @@
           <uni-icons :type="task.is_liked ? 'heart-filled' : 'heart'" size="22" :color="task.is_liked ? 'red' : '#888'" />
           <text>{{ task.like_count }}</text>
 				</view>
-        <!-- <view class="bar-btn" @click="onComment">
-          <uni-icons type="chat" size="22" color="#888" />
-          <text>{{ totalCommentCount }}</text>
-        </view> -->
         <button class="join-btn" @click="onJoin">加入</button>
 			</view>
 		</view>
@@ -119,7 +115,6 @@
 
 <script>
 import { formatTime } from '@/utils/tools.js';
-import { mockComments } from '@/utils/comments.js'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { onBackPress } from '@dcloudio/uni-app'
 import { toggleTaskLike } from '@/utils/taskLike.js'
@@ -142,13 +137,16 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
           start_time: '',
           end_time: '',
           user: {
-            nickname: '',
-            avatar_file: { url: '' }
+            ownerUserId: '',
+            ownerNickname: '',
+            ownerAvatarUrl: { url: '' }
           },
           create_date: '',
+          is_publisher_joined: false,
           is_liked: false,
           like_count: 0,
-          media_detail: [] // 新增媒体详情
+          media_detail: [], // 新增媒体详情
+          members: [], // 任务 参与成员数组
         },
         comments: [],
         // comments: mockComments,
@@ -320,13 +318,16 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
             uni.showToast({ title: e.message || '操作失败', icon: 'none' });
           });
       },
-      
-      onComment() {
-        uni.showToast({ title: '评论功能开发中', icon: 'none' });
-      },
-      
+
       onJoin() {
-        uni.showToast({ title: '加入功能开发中', icon: 'none' });
+        // 跳转到加入确认页，传递任务详情
+        const taskParam = encodeURIComponent(JSON.stringify({
+          ...this.task
+        }));
+        console.log('detail.vue onJoin user:', this.task.user);
+        uni.navigateTo({
+          url: `/pages/task-confirm/task-confirm?task=${taskParam}`
+        });
       },
       
       fetchTaskDetail(id) {
@@ -595,11 +596,7 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
       is_liked: options.is_liked == 1,
       joined_count: options.joined_count ? Number(options.joined_count) : 0,
       max_participants: options.max_participants ? Number(options.max_participants) : 1,
-      user: {
-        ownerUserId: options.ownerUserId ? decodeURIComponent(options.ownerUserId) : '',
-        ownerNickname: options.ownerNickname ? decodeURIComponent(options.ownerNickname) : '',
-        ownerAvatarUrl: { url: options.ownerAvatarUrl ? decodeURIComponent(options.ownerAvatarUrl) : '' }
-      },
+      user: options.user ? JSON.parse(decodeURIComponent(options.user)) : {},
       score: options.score ? Number(options.score) : 0,
       price: options.price ? Number(options.price) : 0,
       mode: options.mode ? options.mode : 'score',
@@ -609,10 +606,12 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
       create_date: options.create_date ? Number(options.create_date) : '',
       category_name: options.category_name ? decodeURIComponent(options.category_name) : '',
       media_detail: options.media_detail ? JSON.parse(decodeURIComponent(options.media_detail)) : [], // 解析媒体详情
+      is_publisher_joined: options.is_publisher_joined,
       // 新增：解析location_text
       location_text: options.location_text ? JSON.parse(decodeURIComponent(options.location_text)) : []
       // 可继续加其它字段 
     };
+    console.log('detail.vue onLoad this.task.user:', this.task.user);
   },
   onPullDownRefresh() {
     if (!this.id) return;
