@@ -19,6 +19,7 @@
 					disabled
 					:placeholder="inputPlaceholder"
 					@clear="resetKeyword"
+					@cancel="resetKeyword"
 				/>
 				<view
 					class="search-click-area"
@@ -40,6 +41,7 @@
 					disabled
 					:placeholder="inputPlaceholder"
 					@clear="resetKeyword"
+					@cancel="resetKeyword"
 				/>
 				<view
 					class="search-click-area"
@@ -187,777 +189,470 @@
 			</view>
 		</uni-drawer>
 
-		<unicloud-db ref='udb'
-			:key="colListKey"
-			v-slot:default="{data, pagination, hasMore, loading, error, options}"
-			@error="onqueryerror"
-			@data-change="onUdbDataChange"
-			:collection="colList"
-			:options="{ join: { 0: { leftKey: 'user_id', rightKey: '_id', from: 1, as: 'userInfo', type: 'left' }, 1: { leftKey: '_id', rightKey: 'task_id', from: 2, as: 'likes', type: 'left' } } }"
-			:page-size="10"
-			:getcount="true"
-			:where="where"
-			:orderby="orderBy">
-			<template v-if="handleUdbDataChange(data)"></template>
-			<view class="masonry-scroll">
-				<view class="masonry-row">
-					<view class="masonry-col" v-for="(col, colIdx) in getColumnsFiltered(useCache ? displayData : data)" :key="colIdx">
-						<task-card
-							v-for="item in col"
-							:key="item._id"
-							:task="withLikeStatus(item)"
-							:user="item.user_id[0]"
-							@favorite="actionsClick('收藏', $event)"
-							@comment="actionsClick('评论', $event)"
-							@join="actionsClick('加入', $event)"
-							@like="actionsClick('点赞', $event)"
-						/>
-					</view>
+		<view class="masonry-scroll">
+			<view class="masonry-row">
+				<view class="masonry-col" v-for="(col, colIdx) in getColumnsFiltered(tasksList)" :key="colIdx">
+					<task-card
+						v-for="item in col"
+						:key="item._id"
+						:task="withLikeStatus(item)"
+						:user="item.userInfo"
+						@favorite="actionsClick('收藏', $event)"
+						@comment="actionsClick('评论', $event)"
+						@join="actionsClick('加入', $event)"
+						@like="actionsClick('点赞', $event)"
+					/>
 				</view>
-				<!-- 空状态 -->
-				<view v-if="!data || data.length === 0" class="empty-state">
-					<text>暂无数据</text>
-				</view>
-				<!-- 加载更多/无更多/异常 -->
-				<uni-load-state
-					class="load-state"
-					:state="{data,pagination,hasMore,loading,error}"
-					@loadMore="loadMore"
-					@networkResume="refresh"
-					noMoreText="没有更多了"
-				/>
 			</view>
-		</unicloud-db>
+			<view v-if="loading" class="loading">加载中...</view>
+			<view v-else-if="error" class="error">{{ error }}</view>
+			<view v-else-if="!tasksList.length" class="empty">没有更多数据了</view>
+			<uni-load-state
+				class="load-state"
+				:state="{data:tasksList,pagination,hasMore,loading,error}"
+				@loadMore="loadMore"
+				@networkResume="refresh"
+				noMoreText="没有更多了"
+			/>
+		</view>
 	</view>
 </template>
 
 <script>
-	let cdbRef;
-	import statusBar from "@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar";
-	import { categories } from '@/utils/categories'
-	import { toggleTaskLike } from '@/utils/taskLike.js'
-	import { useTaskLikeStore } from '@/store/taskLike.js'
+import statusBar from "@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar";
+import taskCard from '@/components/task-card/task-card.vue';
+import { categories } from '@/utils/categories';
+import { toggleTaskLike } from '@/utils/taskLike.js';
+import { useTaskLikeStore } from '@/store/taskLike.js';
 
-	export default {
-		components: {
-			statusBar
+export default {
+	components: {
+		statusBar,
+		taskCard
+	},
+	data() {
+		return {
+			keyword: '',
+			currentCategory: 0,
+			mode: '',
+			selectedScoreOrPriceSort: '',
+			selectedLikeSort: '',
+			selectedDateSort: '',
+			selectedScaleSort: '',
+			page: 1,
+			pageSize: 20,
+			tasksList: [],
+			hasMore: true,
+			loading: false,
+			error: '',
+			isFiltering: false,
+			showFilterDrawer: false,
+			statusBarHeight: 0,
+			CUSTOM_NAVBAR_HEIGHT: 48,
+			FILTER_BAR_HEIGHT: 48,
+			filterBarOffset: 0,
+			lastScrollTop: 0,
+			colListKey: 0,
+			showBackToAllBtn: false,
+			categoryScrollLeft: 0,
+			categoryCache: {},
+			displayData: [],
+			lastRequestedCategoryId: 0,
+			lastCacheWriteScene: '',
+			pagination: {},
+			sortKey: 'time',
+			sortOptions: [
+				{ label: '时间优先', value: 'time' },
+				{ label: '价值优先', value: 'value' }
+			],
+			priceRangeOptions: [
+				{ value: '', text: '全部价格' },
+				{ value: '0-50', text: '0-50元' },
+				{ value: '50-100', text: '50-100元' },
+				{ value: '100-200', text: '100-200元' },
+				{ value: '200-500', text: '200-500元' },
+				{ value: '500+', text: '500元以上' }
+			],
+			scoreRangeOptions: [
+				{ value: '', text: '全部积分' },
+				{ value: '0-200', text: '0~200积分' },
+				{ value: '200-500', text: '200~500积分' },
+				{ value: '500+', text: '500积分以上' }
+			],
+			likeSortOptions: [
+				{ value: 'asc', text: '点赞数升序' },
+				{ value: 'desc', text: '点赞数降序' }
+			],
+			dateSortOptions: [
+				{ value: 'asc', text: '发布时间升序' },
+				{ value: 'desc', text: '发布时间降序' }
+			],
+			scaleSortOptions: [
+				{ value: 'asc', text: '规模升序' },
+				{ value: 'desc', text: '规模降序' }
+			],
+			taskCache: {},
+			cacheExpire: 120000, // 1分钟
+			// ... 其他筛选项 ...
+		}
+	},
+	computed: {
+		listCategories() {
+			return categories.filter(c => c.use_list)
 		},
-		data() {
-			return {
-				where: 'isActive == true',
-				orderBy: 'price asc',
-				keyword: "",
-				showRefresh: false,
-				listHight: 0,
-				dataList: [],
-				statusBarHeight: 0,
-				currentCategory: 0,
-				showFilterDrawer: false,
-				// 筛选相关数据
-				selectedPriceRange: '',
-				selectedPriceSort: '',
-				selectedLikeSort: '',
-				selectedScoreRange: '',
-				
-				// 筛选状态跟踪
-				originalFilters: {
-					priceRange: '',
-					priceSort: '',
-					likeSort: '',
-					scoreRange: ''
-				},
-				
-				// 价格范围选项
-				priceRangeOptions: [
-					{ value: '', text: '全部价格' },
-					{ value: '0-50', text: '0-50元' },
-					{ value: '50-100', text: '50-100元' },
-					{ value: '100-200', text: '100-200元' },
-					{ value: '200-500', text: '200-500元' },
-					{ value: '500+', text: '500元以上' }
-				],
-				
-				// 价格排序选项
-				priceSortOptions: [
-					{ value: 'asc', text: '价格升序' },
-					{ value: 'desc', text: '价格降序' }
-				],
-				
-				// 点赞数排序选项
-				likeSortOptions: [
-					{ value: 'asc', text: '点赞数升序' },
-					{ value: 'desc', text: '点赞数降序' }
-				],
-				
-				// 积分范围选项
-				scoreRangeOptions: [
-					{ value: '', text: '全部积分' },
-					{ value: '0-200', text: '0~200积分' },
-					{ value: '200-500', text: '200~500积分' },
-					{ value: '500+', text: '500积分以上' }
-				],
-				
-				// 积分排序选项
-				scoreSortOptions: [
-					{ value: 'asc', text: '积分升序' },
-					{ value: 'desc', text: '积分降序' }
-				],
-				
-				// 规模排序选项
-				scaleSortOptions: [
-					{ value: 'asc', text: '规模升序' },
-					{ value: 'desc', text: '规模降序' }
-				],
-				likesTaskIds: [], // 新增：存储当前用户点赞的所有任务id
-				mode: '', // 仅看积分/仅看价格
-				isFiltering: false, // 新增：刷新未完成时禁用筛选
-				selectedScoreOrPriceSort: '', // 新增：积分/价格排序
-				selectedDateSort: '', // 发布时间排序
-				dateSortOptions: [
-					{ value: 'asc', text: '发布时间升序' },
-					{ value: 'desc', text: '发布时间降序' }
-				],
-				selectedScaleSort: '',
-				colListKey: 0,
-				inited: false,
-				useCache: false,
-				categoryCache: {},
-				cacheExpire: 60000,
-				displayData: [], // 新增：用于缓存命中时渲染
-				lastRequestedCategoryId: 0, // 新增：记录本次请求的分类id
-				lastCacheWriteScene: '', // 新增：记录本次缓存写入场景
-				categoryScrollLeft: 0,
-				showBackToAllBtn: false, // 新增：是否显示返回全部按钮
-			}
+		categoryNames() {
+			return this.listCategories.map(c => c.text)
 		},
-		computed: {
-			colList() {
-				const db = uniCloud.database();
-				let where = this.where;
-				if (this.keyword && this.keyword.trim()) {
-					where += ` && /${this.keyword.trim()}/.test(name)`;
-				}
-				return [
-					db.collection('kl-tasks')
-						.where(where)
-						.orderBy(this.orderBy)
-						.getTemp(),
-					db.collection('uni-id-users')
-						.field('_id,nickname,avatar_file')
-						.getTemp()
-				];
-			},
-			inputPlaceholder(e) {
-				if (uni.getStorageSync('CURRENT_LANG') == "en") {
-					return 'Please enter the search content'
-				} else {
-					return '请输入搜索内容'
-				}
-			},
-			listCategories() {
-				// 只取 use_list 为 true 的分类
-				return categories.filter(c => c.use_list)
-			},
-			categoryNames() {
-				// 用于分类tab显示
-				return this.listCategories.map(c => c.text)
-			},
-			// 新增：动态计算分类项样式 - 一屏显示4.5个分类项
-			categoryItemStyle() {
-				// 获取屏幕宽度
-				const screenWidth = uni.getSystemInfoSync().windowWidth || 375;
-				// 一屏显示4.5个分类项，左右各露出半个分类项
-				const VISIBLE_COUNT = 4.5;
-				// 分类项左右margin
-				const marginPx = 8;
-				// 计算分类项宽度：(屏幕宽度 - 左右padding - 分类项间距) / 4.5
-				const itemWidth = Math.floor((screenWidth - 32 - (VISIBLE_COUNT - 1) * marginPx * 2) / VISIBLE_COUNT);
-				
-				return {
-					width: itemWidth + 'px',
-					margin: `0 ${marginPx}px`,
-					minWidth: itemWidth + 'px',
-					maxWidth: itemWidth + 'px',
-					flexShrink: '0'
-				};
-			},
-			// 新增：计算总内容宽度
-			totalCategoryWidth() {
-				const categoryCount = this.categoryNames.length;
-				const itemStyle = this.categoryItemStyle;
-				const itemWidth = parseInt(itemStyle.width);
-				const itemMargin = parseInt(itemStyle.margin.split(' ')[1]);
-				// 总宽度 = 分类项数量 × (分类项宽度 + 左右margin) + 虚拟留白宽度
-				const virtualBlankWidth = 16; // 虚拟留白宽度，与scroll-view的paddingRight一致
-				return categoryCount * (itemWidth + itemMargin * 2) + virtualBlankWidth;
-			},
-			filteredData() {
-				return this.dataList;
-			},
-			columnsFiltered() {
-				// 分列：对filteredData分两列
-				const cols = [[], []];
-				(this.filteredData || []).forEach((item, idx) => {
-					cols[idx % 2].push(item);
-				});
-				return cols;
-			},
-			activeFilterCount() {
-				let count = 0;
-				if (this.mode === 'price' || this.mode === 'score') {
-					count++;
-				}
-				if (this.selectedScoreOrPriceSort) count++;
-				if (this.selectedLikeSort) count++;
-				if (this.selectedDateSort) count++;
-				if (this.selectedScaleSort) count++;
-				return count;
-			},
-			currentFilterText() {
-				const filters = [];
-				if (this.mode === 'price') {
-					filters.push('仅看价格');
-					if (this.selectedScoreOrPriceSort) {
-						const opt = this.scoreOrPriceSortOptions.find(option => option.value === this.selectedScoreOrPriceSort);
-						if (opt) filters.push(opt.text);
-					}
-				} else if (this.mode === 'score') {
-					filters.push('仅看积分');
-					if (this.selectedScoreOrPriceSort) {
-						const opt = this.scoreOrPriceSortOptions.find(option => option.value === this.selectedScoreOrPriceSort);
-						if (opt) filters.push(opt.text);
-					}
-				}
-				if (this.selectedLikeSort) {
-					const opt = this.likeSortOptions.find(option => option.value === this.selectedLikeSort);
-					if (opt) filters.push('点赞' + (opt.value === 'asc' ? '升序' : '降序'));
-				}
-				if (this.selectedDateSort) {
-					const opt = this.dateSortOptions.find(option => option.value === this.selectedDateSort);
+		scoreOrPriceSortOptions() {
+			return this.mode === 'score'
+				? [ { value: 'asc', text: '积分升序' }, { value: 'desc', text: '积分降序' } ]
+				: [ { value: 'asc', text: '价格升序' }, { value: 'desc', text: '价格降序' } ];
+		},
+		activeFilterCount() {
+			let count = 0;
+			if (this.mode === 'price' || this.mode === 'score') count++;
+			if (this.selectedScoreOrPriceSort) count++;
+			if (this.selectedLikeSort) count++;
+			if (this.selectedDateSort) count++;
+			if (this.selectedScaleSort) count++;
+			return count;
+		},
+		currentFilterText() {
+			const filters = [];
+			if (this.mode === 'price') {
+				filters.push('仅看价格');
+				if (this.selectedScoreOrPriceSort) {
+					const opt = this.scoreOrPriceSortOptions.find(option => option.value === this.selectedScoreOrPriceSort);
 					if (opt) filters.push(opt.text);
 				}
-				if (this.selectedScaleSort) {
-					const opt = this.scaleSortOptions.find(option => option.value === this.selectedScaleSort);
-					if (opt) filters.push('最大参与人数' + (opt.value === 'asc' ? '升序' : '降序'));
-				}
-				return filters.join(', ');
-			},
-			hasActiveFilters() {
-				return this.activeFilterCount > 0;
-			},
-			scoreOrPriceSortOptions() {
-				return this.mode === 'score'
-					? [ { value: 'asc', text: '积分升序' }, { value: 'desc', text: '积分降序' } ]
-					: [ { value: 'asc', text: '价格升序' }, { value: 'desc', text: '价格降序' } ];
-			},
-			currentCatId() {
-				return 'cat-' + this.currentCategory
-			},
-		},
-		watch: {
-			keyword(keyword, oldValue) {
-				this.applyRealTimeFilter(); // 使用统一的筛选方法
-			},
-			// 实时筛选监听
-			selectedPriceRange(newValue) {
-				if (newValue) {
-					this.selectedScoreRange = '';
-				}
-				this.applyRealTimeFilter();
-			},
-			selectedScoreRange(newValue) {
-				if (newValue) {
-					this.selectedPriceRange = '';
-				}
-				this.applyRealTimeFilter();
-			},
-			selectedPriceSort(newValue) {
-				if (newValue) {
-					this.selectedScoreSort = '';
-				}
-				this.applyRealTimeFilter();
-			},
-			selectedScoreSort(newValue) {
-				if (newValue) {
-					this.selectedPriceSort = '';
-				}
-				this.applyRealTimeFilter();
-			},
-			selectedScaleSort(newValue) {
-				this.applyRealTimeFilter();
-			},
-			mode(newValue) {
-				if (newValue) {
-					this.selectedScoreOrPriceSort = '';
-					this.applyRealTimeFilter();
-				}
-			},
-			selectedLikeSort() {
-				this.applyRealTimeFilter();
-			},
-			selectedDateSort() {
-				this.applyRealTimeFilter();
-			},
-			selectedScoreOrPriceSort() {
-				this.applyRealTimeFilter();
-			},
-		},
-		methods: {
-			goToSearch() {
-				uni.hideKeyboard();
-				uni.navigateTo({ url: '/pages/list/search/search?keyword=' + encodeURIComponent(this.keyword),animationType: 'fade-in'})
-			},
-			onCategoryChange(e) {
-				const newCategoryIndex = e.currentIndex;
-				this.currentCategory = newCategoryIndex;
-				this.scrollCategoryToCenter(newCategoryIndex);
-				console.log('[onCategoryChange] 当前所有缓存快照:', JSON.parse(JSON.stringify(this.categoryCache)));
-				const newCategoryId = this.getCurrentCategoryId(newCategoryIndex);
-				const now = Date.now();
-				const cache = this.categoryCache[newCategoryId];
-				// 新增：如果有筛选条件，始终刷新
-				if (this.activeFilterCount > 0) {
-					this.displayData = [];
-					this.useCache = false;
-					this.currentCategory = newCategoryIndex;
-					this.lastCacheWriteScene = 'refresh';
-					this.applyRealTimeFilter(newCategoryId);
-					return;
-				}
-				if (
-					cache &&
-					cache.categoryId === newCategoryId &&
-					(now - cache.lastUpdate < this.cacheExpire) &&
-					Array.isArray(cache.dataList) && cache.dataList.length > 0
-				) {
-					const cacheDataStr = JSON.stringify(cache.dataList);
-					const displayDataStr = JSON.stringify(this.displayData);
-					if (displayDataStr !== cacheDataStr) {
-						this.displayData = this.deepClone(cache.dataList);
-					}
-					this.useCache = true; // 命中缓存时只用缓存渲染
-					this.currentCategory = newCategoryIndex;
-					return;
-				}
-				// 没有缓存，自动刷新并写缓存
-				this.displayData = [];
-				this.useCache = false; // 未命中缓存时用 unicloud-db 渲染
-				this.currentCategory = newCategoryIndex;
-				this.lastCacheWriteScene = 'refresh';
-				this.applyRealTimeFilter(newCategoryId);
-			},
-			retry() { this.refresh() },
-			refresh() {
-				if (this.$refs.udb) {
-					this.$refs.udb.loadData({ clear: true }, () => {
-						uni.stopPullDownRefresh()
-						this.showRefresh = false
-						uni.showToast({ title: '已刷新', icon: 'success', duration: 2000 })
-					})
-				}
-			},
-			loadMore() {
-				this.useCache = false;
-				this.displayData = [];
-				this.lastCacheWriteScene = 'loadMore';
-				if (this.$refs.udb) {
-					this.$refs.udb.loadMore();
-				}
-			},
-			onqueryerror(e) {
-				console.error('[onqueryerror] 类型:', typeof e);
-			},
-			actionsClick(type, item) {
-				if (type === '点赞') {
-					if (!item._id) return;
-					const taskLikeStore = useTaskLikeStore();
-					const taskId = (item._id && item._id.$oid) ? item._id.$oid : item._id;
-					const likeInfo = taskLikeStore.getLike(taskId);
-					const isLiked = likeInfo ? likeInfo.isLiked : false;
-					// 乐观UI
-					toggleTaskLike(taskId, isLiked)
-						.then(({ isLiked: newLiked, likeCount }) => {
-							// 强制同步本地状态
-							if (newLiked) {
-								taskLikeStore.setLike(taskId, true, likeCount, { ...item, is_liked: true, like_count: likeCount });
-							} else {
-								taskLikeStore.removeLike(taskId);
-							}
-						})
-						.catch(e => {
-							uni.showToast({ title: e.message || '操作失败', icon: 'none' });
-						});
-				} else {
-					uni.showToast({ title: `${type}功能开发中`, icon: 'none' });
-				}
-			},
-			toggleFilterDrawer() {
-				if (this.showFilterDrawer) {
-					if (this.$refs.filterDrawer) this.$refs.filterDrawer.close();
-					this.showFilterDrawer = false;
-				} else {
-					if (this.$refs.filterDrawer) this.$refs.filterDrawer.open();
-					this.showFilterDrawer = true;
-				}
-			},
-			openFilterDrawer() {
-				if (this.$refs.filterDrawer) {
-					// 保存当前筛选状态作为原始状态
-					this.originalFilters = {
-						priceRange: this.selectedPriceRange,
-						priceSort: this.selectedPriceSort,
-						likeSort: this.selectedLikeSort,
-						scoreRange: this.selectedScoreRange
-					};
-					this.$refs.filterDrawer.open();
-				}
-			},
-			closeFilterDrawer() {
-				if (this.$refs.filterDrawer) {
-					this.$refs.filterDrawer.close();
-				}
-			},
-			onFilterDrawerOpen() {
-				this.showFilterDrawer = true;
-			},
-			onFilterDrawerClose() {
-				this.showFilterDrawer = false;
-				// 抽屉关闭时恢复筛选状态
-				this.selectedPriceRange = this.originalFilters.priceRange;
-				this.selectedPriceSort = this.originalFilters.priceSort;
-				this.selectedLikeSort = this.originalFilters.likeSort;
-				this.selectedScoreRange = this.originalFilters.scoreRange;
-			},
-			onDrawerContentClick() {
-				if (this.$refs.filterDrawer) {
-					this.$refs.filterDrawer.close();
-					this.showFilterDrawer = false;
-				}
-			},
-			// 移除所有批量 setLike 相关逻辑，只保留 likesTaskIds 的 fetch 和首次渲染。
-			async fetchLikesTaskIds() {
-				const userId = uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo().uid;
-				if (!userId) {
-					this.likesTaskIds = [];
-					return;
-				}
-				const res = await uniCloud.database()
-					.collection('kl-tasks-likes')
-					.where(`user_id == "${userId}"`)
-					.field('task_id')
-					.get();
-				this.likesTaskIds = (res.result.data || []).map(item => (item.task_id && item.task_id.$oid) ? item.task_id.$oid : item.task_id);
-			},
-			async applyRealTimeFilter(categoryId) {
-				this.isFiltering = true;
-				this.displayData = []; // 新增：拉取新数据前清空
-				this.lastRequestedCategoryId = categoryId !== undefined ? categoryId : this.getCurrentCategoryId(); // 新增：记录本次请求的分类id
-				let where = 'isActive == true';
-				if (this.currentCategory !== 0) {
-					where += ` && category == ${this.currentCategory}`;
-				}
-				if (this.keyword && this.keyword.trim()) {
-					where += ` && /${this.keyword.trim()}/.test(name)`;
-				}
-				if (this.mode == 'score' || this.mode == 'price') {
-					where += ` && mode == '${this.mode}'`;
-				}
-				this.where = where;
-				let orderByArr = [];
+			} else if (this.mode === 'score') {
+				filters.push('仅看积分');
 				if (this.selectedScoreOrPriceSort) {
-					orderByArr.push((this.mode === 'score' ? 'score' : 'price') + ' ' + this.selectedScoreOrPriceSort);
+					const opt = this.scoreOrPriceSortOptions.find(option => option.value === this.selectedScoreOrPriceSort);
+					if (opt) filters.push(opt.text);
 				}
-				if (this.selectedLikeSort) {
-					orderByArr.push('like_count ' + this.selectedLikeSort);
-				}
-				if (this.selectedDateSort) {
-					orderByArr.push('create_date ' + this.selectedDateSort);
-				}
-				if (this.selectedScaleSort) {
-					orderByArr.push('max_participants ' + this.selectedScaleSort);
-				}
-				if (orderByArr.length === 0) {
-					orderByArr.push('create_date desc');
-				}
-				this.orderBy = orderByArr.join(', ');
-				this.dataList = [];
-				if (this.inited) {
-					this.colListKey++;
-				}
-				this.$nextTick(() => {
-					this.isFiltering = false;
-				});
-			},
-			resetFilter() {
-				// 重置所有筛选条件
-				this.mode = '';
-				this.selectedScoreOrPriceSort = '';
-				this.selectedLikeSort = '';
-				this.selectedDateSort = '';
-				this.selectedScaleSort = '';
-				// 重置查询条件，但保留当前分类和关键词
-				let where = 'isActive == true';
-				if (this.currentCategory !== 0) {
-					where += ` && category == ${this.currentCategory}`;
-				}
-				if (this.keyword && this.keyword.trim()) {
-					where += ` && /${this.keyword.trim()}/.test(name)`;
-				}
-				this.where = where;
-				this.orderBy = 'create_date desc';
-				// 更新原始状态
-				this.originalFilters = {
-					priceRange: '',
-					priceSort: '',
-					likeSort: '',
-					scoreRange: ''
-				};
-				// 清空数据并刷新
-				this.dataList = [];
-				this.colListKey++;
-				this.showFilterDrawer = false;
-				this.closeFilterDrawer();
-				this.$nextTick(() => {
-					this.refresh();
-				});
-			},
-			onModeSwitch(mode) {
-				if (this.mode === mode) return;
-				this.mode = mode;
-				this.selectedPriceSort = '';
-				this.selectedScoreSort = '';
-				this.$nextTick(() => {
-					this.applyRealTimeFilter();
-				});
-			},
-			// 新增：获取当前分类 id
-			getCurrentCategoryId(categoryIndex = this.currentCategory) {
-				// 取 listCategories 的 catId
-				return this.listCategories[categoryIndex]?.catId ?? 0;
-			},
-			getColumnsFiltered(data) {
-				const cols = [[], []];
-				(data || []).forEach((item, idx) => {
-					cols[idx % 2].push(item);
-				});
-				return cols;
-			},
-			// 新增：渲染 task-card 时直接判断 is_liked 和 like_count 
-			withLikeStatus(item) {
-				// 1. 首次渲染时，likesTaskIds 是权威点赞列表
-				const idStr = (item._id && item._id.$oid) ? item._id.$oid : item._id;
-				let isLiked = item.is_liked;
-				if (this.likesTaskIds && this.likesTaskIds.length) {
-					isLiked = this.likesTaskIds.includes(idStr);
-				}
-				// 2. 后续用 store 里的 isLiked/likeCount 优先生效
-				const taskLikeStore = useTaskLikeStore();
-				const likeInfo = taskLikeStore.getLike(idStr);
-				return {
-					...item,
-					is_liked: likeInfo ? likeInfo.isLiked : isLiked,
-					like_count: likeInfo ? likeInfo.likeCount : item.like_count
-				}
-			},
-			// 新增：slot 内部处理缓存写入
-			cacheDataForCategory(data) {
-				if (Array.isArray(data) && data.length > 0) {
-					// 1. 先缓存"全部"分类（categoryId: 0）
-					const cacheAll = this.categoryCache[0];
-					const newAllDataStr = JSON.stringify(data);
-					const oldAllDataStr = cacheAll ? JSON.stringify(cacheAll.dataList) : null;
-					if (cacheAll && oldAllDataStr === newAllDataStr) {
-						cacheAll.lastUpdate = Date.now();
-					} else {
-						this.categoryCache[0] = {
-							categoryId: 0,
-							dataList: this.deepClone(data),
-							lastUpdate: Date.now(),
-							filterKey: ''
-						};
+			}
+			if (this.selectedLikeSort) {
+				const opt = this.likeSortOptions.find(option => option.value === this.selectedLikeSort);
+				if (opt) filters.push('点赞' + (opt.value === 'asc' ? '升序' : '降序'));
+			}
+			if (this.selectedDateSort) {
+				const opt = this.dateSortOptions.find(option => option.value === this.selectedDateSort);
+				if (opt) filters.push(opt.text);
+			}
+			if (this.selectedScaleSort) {
+				const opt = this.scaleSortOptions.find(option => option.value === this.selectedScaleSort);
+				if (opt) filters.push('最大参与人数' + (opt.value === 'asc' ? '升序' : '降序'));
+			}
+			return filters.join(', ');
+		},
+		hasActiveFilters() {
+			return this.activeFilterCount > 0;
+		},
+		categoryItemStyle() {
+			const screenWidth = uni.getSystemInfoSync().windowWidth || 375;
+			const VISIBLE_COUNT = 4.5;
+			const marginPx = 8;
+			const itemWidth = Math.floor((screenWidth - 32 - (VISIBLE_COUNT - 1) * marginPx * 2) / VISIBLE_COUNT);
+			return {
+				width: itemWidth + 'px',
+				margin: `0 ${marginPx}px`,
+				minWidth: itemWidth + 'px',
+				maxWidth: itemWidth + 'px',
+				flexShrink: '0'
+			};
+		},
+		inputPlaceholder() {
+			if (uni.getStorageSync('CURRENT_LANG') == "en") {
+				return 'Please enter the search content';
+			} else {
+				return '请输入搜索内容';
+			}
+		},
+	},
+	watch: {
+		keyword() { this.fetchTasks({ reset: true }) },
+		selectedScoreOrPriceSort() { this.fetchTasks({ reset: true }) },
+		selectedLikeSort() { this.fetchTasks({ reset: true }) },
+		selectedDateSort() { this.fetchTasks({ reset: true }) },
+		selectedScaleSort() { this.fetchTasks({ reset: true }) },
+		mode() { this.fetchTasks({ reset: true }) },
+		currentCategory() { this.fetchTasks({ reset: true }) },
+	},
+	methods: {
+		getOrderByArray() {
+			// 固定优先级顺序拼接排序数组
+			const arr = [];
+			// 1. 积分/价格排序（互斥，优先级最高）
+			if (this.mode === 'score' && this.selectedScoreOrPriceSort) {
+				arr.push({ field: 'score', order: this.selectedScoreOrPriceSort });
+			} else if (this.mode === 'price' && this.selectedScoreOrPriceSort) {
+				arr.push({ field: 'price', order: this.selectedScoreOrPriceSort });
+			}
+			// 2. 点赞排序
+			if (this.selectedLikeSort) {
+				arr.push({ field: 'like_count', order: this.selectedLikeSort });
+			}
+			// 3. 发布时间排序
+			if (this.selectedDateSort) {
+				arr.push({ field: 'create_date', order: this.selectedDateSort });
+			}
+			// 4. 最大参与人数排序
+			if (this.selectedScaleSort) {
+				arr.push({ field: 'max_participants', order: this.selectedScaleSort });
+			}
+			// 默认排序
+			if (arr.length === 0) {
+				arr.push({ field: 'create_date', order: 'desc' });
+			}
+			console.log('[getOrderByArray] 排序数组:', JSON.stringify(arr));
+			return arr;
+		},
+		async fetchTasks({ reset = false } = {}) {
+			const cacheKey = JSON.stringify({
+				keyword: this.keyword,
+				category: this.currentCategory,
+				mode: this.mode,
+				selectedScoreOrPriceSort: this.selectedScoreOrPriceSort,
+				selectedLikeSort: this.selectedLikeSort,
+				selectedDateSort: this.selectedDateSort,
+				selectedScaleSort: this.selectedScaleSort,
+				page: this.page,
+				pageSize: this.pageSize,
+				orderBy: this.getOrderByArray(),
+			});
+			const now = Date.now();
+			// 只缓存第一页
+			if (reset && this.taskCache[cacheKey] && (now - this.taskCache[cacheKey].ts < this.cacheExpire)) {
+				const cached = this.taskCache[cacheKey].data;
+				this.tasksList = cached.tasksList;
+				this.hasMore = cached.hasMore;
+				this.pagination = cached.pagination;
+				return;
+			}
+			this.loading = true;
+			this.error = '';
+			if (reset) {
+				this.page = 1;
+				this.tasksList = [];
+				this.hasMore = true;
+			}
+			try {
+				const userId = uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo().uid;
+				const category = this.currentCategory === 0 ? '' : this.listCategories[this.currentCategory]?.catId;
+				const orderByArr = this.getOrderByArray();
+				const res = await uniCloud.callFunction({
+					name: 'getAllTasks',
+					data: {
+						userId,
+						keyword: this.keyword,
+						orderBy: orderByArr,
+						page: this.page,
+						pageSize: this.pageSize,
+						category,
+						mode: this.mode,
+						// 其他筛选参数可加
 					}
-
-					// 2. 再按 category 分组缓存
-					const grouped = {};
-					data.forEach(item => {
-						const cat = item.category;
-						if (!grouped[cat]) grouped[cat] = [];
-						grouped[cat].push(item);
-					});
-					Object.keys(grouped).forEach(catId => {
-						const catNum = Number(catId);
-						const groupData = grouped[catId];
-						const cache = this.categoryCache[catNum];
-						const newDataStr = JSON.stringify(groupData);
-						const oldDataStr = cache ? JSON.stringify(cache.dataList) : null;
-						if (cache && oldDataStr === newDataStr) {
-							cache.lastUpdate = Date.now();
-						} else {
-							this.categoryCache[catNum] = {
-								categoryId: catNum,
-								dataList: this.deepClone(groupData),
-								lastUpdate: Date.now(),
-								filterKey: ''
-							};
+				});
+				if (res.result && res.result.code === 0) {
+					const rawList = res.result.data || [];
+					if (reset) {
+						this.tasksList = rawList;
+					} else {
+						this.tasksList = [...this.tasksList, ...rawList];
+					}
+					this.hasMore = res.result.hasMore;
+					this.pagination = { total: res.result.total, page: res.result.page, pageSize: res.result.pageSize };
+					// 缓存第一页快照
+					if (reset) {
+						this.taskCache[cacheKey] = {
+							ts: now,
+							data: {
+								tasksList: this.tasksList,
+								hasMore: this.hasMore,
+								pagination: this.pagination
+							}
+						}
+					}
+					// 同步已点赞任务到 useTaskLikeStore
+					const taskLikeStore = useTaskLikeStore();
+					rawList.forEach(item => {
+						if (item.is_liked) {
+							taskLikeStore.setLike(item._id, true, item.like_count);
 						}
 					});
 				} else {
-					console.log('[cacheDataForCategory] 未写入缓存，data 非数组或为空');
+					this.error = res.result?.message || '加载失败';
 				}
-				return '';
-			},
-			resetKeyword() {
-				this.keyword = '';
-			},
-			deepClone(obj) {
-				return JSON.parse(JSON.stringify(obj));
-			},
-			writeCurrentCategoryCache() {
-				const udb = this.$refs.udb;
-				if (!udb) return;
-				const data = udb.data || [];
-				this.cacheDataForCategory(data);
-			},
-			onUdbDataChange({ data }) {
-				if (this.lastCacheWriteScene && Array.isArray(data) && data.length > 0) {
-					this.cacheDataForCategory(data);
-					this.lastCacheWriteScene = '';
-				}
-			},
-			handleUdbDataChange(data) {
-				this.onUdbDataChange({ data });
-				return false;
-			},
-			scrollCategoryToCenter(index) {
-				if (index === 0) {
-					this.categoryScrollLeft = 0
-					return
-				}
-				
-				// 获取屏幕宽度和分类项样式
-				const screenWidth = uni.getSystemInfoSync().windowWidth || 375;
-				const itemStyle = this.categoryItemStyle;
-				const itemWidth = parseInt(itemStyle.width);
-				const itemMargin = parseInt(itemStyle.margin.split(' ')[1]);
-				const itemTotalWidth = itemWidth + itemMargin * 2;
-				
-				// 计算目标分类项在总内容中的绝对位置
-				const targetItemAbsoluteLeft = index * itemTotalWidth;
-				
-				// 计算scroll-view的可视宽度（减去左右padding）
-				const scrollViewVisibleWidth = screenWidth - 32; // 左右各16px padding
-				
-				// 计算目标滚动位置：让目标分类项居中显示
-				// 由于一屏显示4.5个分类项，目标分类项应该在第2.25个位置（从0开始算）
-				const targetPosition = scrollViewVisibleWidth * 0.5 - itemTotalWidth * 0.5;
-				let targetScrollLeft = targetItemAbsoluteLeft - targetPosition;
-				
-				// 边界检查
-				const totalWidth = this.totalCategoryWidth;
-				const maxScrollLeft = Math.max(0, totalWidth - scrollViewVisibleWidth);
-				
-				if (targetScrollLeft < 0) {
-					targetScrollLeft = 0;
-				} else if (targetScrollLeft > maxScrollLeft) {
-					targetScrollLeft = maxScrollLeft;
-				}
-				
-				// 应用滚动
-				this.categoryScrollLeft = targetScrollLeft;
-				
-				// 更新返回全部按钮显示状态
-				this.updateBackToAllBtnVisibility();
-			},
-			
-			// 新增：更新返回全部按钮显示状态
-			updateBackToAllBtnVisibility() {
-				const itemStyle = this.categoryItemStyle;
-				const itemWidth = parseInt(itemStyle.width);
-				const itemMargin = parseInt(itemStyle.margin.split(' ')[1]);
-				const itemTotalWidth = itemWidth + itemMargin * 2;
-				
-				// 当滚动距离大于一个分类项宽度时显示返回全部按钮
-				this.showBackToAllBtn = this.categoryScrollLeft > itemTotalWidth;
-			},
-			
-			// 新增：返回全部分类
-			backToAll() {
-				// 切换到全部分类
-				this.onCategoryChange({ currentIndex: 0 });
-				// 滚动到最左侧
+			} catch (e) {
+				this.error = e.message || '加载失败';
+			} finally {
+				this.loading = false;
+			}
+		},
+		loadMore() {
+			if (this.hasMore && !this.loading) {
+				this.page += 1;
+				this.fetchTasks();
+			}
+		},
+		refresh() {
+			this.fetchTasks({ reset: true });
+			uni.stopPullDownRefresh();
+		},
+		getColumnsFiltered(data) {
+			const cols = [[], []];
+			(data || []).forEach((item, idx) => {
+				cols[idx % 2].push(item);
+			});
+			return cols;
+		},
+		withLikeStatus(item) {
+			const taskLikeStore = useTaskLikeStore();
+			const likeInfo = taskLikeStore.getLike(item._id);
+			return {
+				...item,
+				is_liked: likeInfo ? likeInfo.isLiked : item.is_liked,
+				like_count: likeInfo ? likeInfo.likeCount : item.like_count
+			}
+		},
+		actionsClick(type, item) {
+			if (type === '点赞') {
+				if (!item._id) return;
+				const taskLikeStore = useTaskLikeStore();
+				const taskId = item._id;
+				const likeInfo = taskLikeStore.getLike(taskId);
+				const oldLiked = likeInfo ? likeInfo.isLiked : false;
+				const oldCount = likeInfo ? likeInfo.likeCount : item.like_count;
+				// 乐观UI
+				const newLiked = !oldLiked;
+				const newCount = oldLiked ? oldCount - 1 : oldCount + 1;
+				taskLikeStore.setLike(taskId, newLiked, newCount);
+				toggleTaskLike(taskId, oldLiked)
+					.then(({ isLiked, likeCount }) => {
+						taskLikeStore.setLike(taskId, isLiked, likeCount);
+					})
+					.catch(e => {
+						taskLikeStore.setLike(taskId, oldLiked, oldCount);
+						uni.showToast({ title: e.message || '操作失败', icon: 'none' });
+					});
+			} else {
+				uni.showToast({ title: `${type}功能开发中`, icon: 'none' });
+			}
+		},
+		goToSearch() {
+			uni.hideKeyboard();
+			uni.navigateTo({ url: '/pages/list/search/search?keyword=' + encodeURIComponent(this.keyword), animationType: 'fade-in' })
+		},
+		resetKeyword() {
+			console.log('resetKeyword !');
+			this.keyword = '';
+			getApp().globalData.searchText = '';
+			this.fetchTasks({ reset: true });
+		},
+		onCategoryChange(e) {
+			const newCategoryIndex = e.currentIndex;
+			this.currentCategory = newCategoryIndex;
+			this.scrollCategoryToCenter(newCategoryIndex);
+			this.fetchTasks({ reset: true });
+		},
+		onModeSwitch(mode) {
+			if (this.mode === mode) return;
+			this.mode = mode;
+			this.selectedScoreOrPriceSort = '';
+			this.fetchTasks({ reset: true });
+		},
+		toggleFilterDrawer() {
+			this.showFilterDrawer = !this.showFilterDrawer;
+			if (this.showFilterDrawer && this.$refs.filterDrawer) this.$refs.filterDrawer.open();
+			else if (!this.showFilterDrawer && this.$refs.filterDrawer) this.$refs.filterDrawer.close();
+		},
+		openFilterDrawer() {
+			if (this.$refs.filterDrawer) this.$refs.filterDrawer.open();
+		},
+		closeFilterDrawer() {
+			if (this.$refs.filterDrawer) this.$refs.filterDrawer.close();
+		},
+		onFilterDrawerOpen() {
+			this.showFilterDrawer = true;
+		},
+		onFilterDrawerClose() {
+			this.showFilterDrawer = false;
+		},
+		onDrawerContentClick() {
+			if (this.$refs.filterDrawer) {
+				this.$refs.filterDrawer.close();
+				this.showFilterDrawer = false;
+			}
+		},
+		resetFilter() {
+			this.mode = '';
+			this.selectedScoreOrPriceSort = '';
+			this.selectedLikeSort = '';
+			this.selectedDateSort = '';
+			this.selectedScaleSort = '';
+			this.fetchTasks({ reset: true });
+			this.showFilterDrawer = false;
+			this.closeFilterDrawer();
+		},
+		scrollCategoryToCenter(index) {
+			if (index === 0) {
 				this.categoryScrollLeft = 0;
-				// 隐藏返回全部按钮
-				this.showBackToAllBtn = false;
-			},
-			async fetchLikesTaskIdsAndInitStore(data) {
-				const userId = uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo().uid;
-				if (!userId) {
-					this.likesTaskIds = [];
-					return;
-				}
-				const res = await uniCloud.database()
-					.collection('kl-tasks-likes')
-					.where(`user_id == "${userId}"`)
-					.field('task_id')
-					.get();
-				this.likesTaskIds = (res.result.data || []).map(item => (item.task_id && item.task_id.$oid) ? item.task_id.$oid : item.task_id);
-				// 拿到 likesTaskIds 后，批量初始化 store
-				// this.batchInitTaskLikeStore(data, this.likesTaskIds); // 移除批量 setLike
-			},
-		},
-		mounted() {
-			cdbRef = this.$refs.udb;
-			this.statusBarHeight = uni.getSystemInfoSync().statusBarHeight || 0
-		},
-		onReachBottom() {
-			this.loadMore();
-		},
-		onReady() {
-			// #ifdef APP-NVUE
-			/* 可用窗口高度 - 搜索框高 - 状态栏高 */
-			this.listHight = uni.getSystemInfoSync().windowHeight - uni.getSystemInfoSync().statusBarHeight - 50 + 'px';
-			// #endif
-			// #ifndef APP-NVUE
-			this.listHight = 'auto'
-			// #endif
-		},
-		onShow() {
-			// 只处理外部跳转指定分类
-			const tabCategory = uni.getStorageSync('listTabCategory')
-			if (tabCategory) {
-				const idx = this.listCategories.findIndex(c => c.text === tabCategory)
-				if (idx !== -1) {
-					this.currentCategory = idx
-					this.applyRealTimeFilter();
-				}
-				uni.removeStorageSync('listTabCategory')
+				return;
 			}
-			// 新增：同步搜索内容
-			const searchText = getApp().globalData.searchText
-			if (searchText && searchText !== this.keyword) {
-				this.keyword = searchText
-				this.applyRealTimeFilter()
-			}
+			const screenWidth = uni.getSystemInfoSync().windowWidth || 375;
+			const itemStyle = this.categoryItemStyle;
+			const itemWidth = parseInt(itemStyle.width);
+			const itemMargin = parseInt(itemStyle.margin.split(' ')[1]);
+			const itemTotalWidth = itemWidth + itemMargin * 2;
+			const targetItemAbsoluteLeft = index * itemTotalWidth;
+			const scrollViewVisibleWidth = screenWidth - 32;
+			const targetPosition = scrollViewVisibleWidth * 0.5 - itemTotalWidth * 0.5;
+			let targetScrollLeft = targetItemAbsoluteLeft - targetPosition;
+			const totalWidth = this.categoryNames.length * (itemWidth + itemMargin * 2) + 16;
+			const maxScrollLeft = Math.max(0, totalWidth - scrollViewVisibleWidth);
+			if (targetScrollLeft < 0) targetScrollLeft = 0;
+			else if (targetScrollLeft > maxScrollLeft) targetScrollLeft = maxScrollLeft;
+			this.categoryScrollLeft = targetScrollLeft;
+			this.updateBackToAllBtnVisibility();
 		},
-		onPullDownRefresh() {
-			this.useCache = false;
-			this.displayData = []; 
-			this.lastCacheWriteScene = 'refresh';
-			this.applyRealTimeFilter().then(() => {
-				uni.stopPullDownRefresh();
-			});
+		updateBackToAllBtnVisibility() {
+			const itemStyle = this.categoryItemStyle;
+			const itemWidth = parseInt(itemStyle.width);
+			const itemMargin = parseInt(itemStyle.margin.split(' ')[1]);
+			const itemTotalWidth = itemWidth + itemMargin * 2;
+			this.showBackToAllBtn = this.categoryScrollLeft > itemTotalWidth;
 		},
-		onLoad(options) {
-			this.categoryCache = {};
-			this.useCache = false;
-			this.lastRequestedCategoryId = this.getCurrentCategoryId();
-			this.lastCacheWriteScene = 'init';
-			this.fetchLikesTaskIds().then(() => {
-				this.colListKey++;
-				this.inited = true;
-			});
+		backToAll() {
+			this.onCategoryChange({ currentIndex: 0 });
+			this.categoryScrollLeft = 0;
+			this.showBackToAllBtn = false;
 		},
-	}
+	},
+	onLoad() {
+		this.statusBarHeight = uni.getSystemInfoSync().statusBarHeight || 0;
+		// 同步全局搜索内容
+		const searchText = getApp().globalData.searchText;
+		if (searchText && searchText !== this.keyword) {
+			this.keyword = searchText;
+		}
+		this.fetchTasks({ reset: true });
+	},
+	onShow() {
+		// 每次页面显示时同步全局搜索内容
+		const searchText = getApp().globalData.searchText;
+		if (searchText !== undefined && searchText !== this.keyword) {
+			this.keyword = searchText;
+			this.fetchTasks({ reset: true });
+		}
+	},
+	onPullDownRefresh() {
+		this.refresh();
+	},
+	onReachBottom() {
+		this.loadMore();
+	},
+}
 </script>
 
 <style scoped>
