@@ -898,7 +898,7 @@ uni-button:after {
   font-weight: 600;
 }
 .login-notice-bar {
-  margin-top: 100px !important;
+  margin-top: 50px !important;
   top: var(--status-bar-height, 0px) !important;
 }
 </style>

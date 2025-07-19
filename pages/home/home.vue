@@ -1,4 +1,7 @@
 <template>
+	<view v-if="loginNoticeVisible" class="login-notice-bar" @click="handleLoginNoticeClick">
+		去登录 &gt;
+	</view>
 	<view class="home-container">
 		<!-- #ifdef APP -->
 		<statusBar></statusBar>
@@ -757,12 +760,31 @@
 
 	const showBackToTop = ref(false)
 
+	const loginNoticeVisible = ref(false)
+	let loginNoticeTimer = null
+	function showLoginNotice() {
+		loginNoticeVisible.value = true
+		if (loginNoticeTimer) clearTimeout(loginNoticeTimer)
+		loginNoticeTimer = setTimeout(() => {
+			loginNoticeVisible.value = false
+		}, 2000)
+	}
+	function handleLoginNoticeClick() {
+		loginNoticeVisible.value = false
+		uni.navigateTo({
+			url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
+		})
+	}
+
 	function goToPublish() {
-		if (checkLogin('发布')) {
-			uni.navigateTo({
-				url: '/pages/publish/publish'
-			})
+		const userInfo = store.userInfo
+		if (!userInfo || !userInfo._id) {
+			showLoginNotice();
+			return;
 		}
+		uni.navigateTo({
+			url: '/pages/publish/publish'
+		})
 	}
 
 	function scrollToTop() {
@@ -1416,5 +1438,11 @@
 		left: 0;
 		right: 0;
 		z-index: 999;
+	}
+
+	.login-notice-bar {
+		position: fixed;
+		margin-top: 10px !important;
+		right: 0;
 	}
 </style>

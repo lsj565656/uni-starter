@@ -207,9 +207,6 @@
 					/>
 				</view>
 			</view>
-			<view v-if="loading" class="loading">加载中...</view>
-			<view v-else-if="error" class="error">{{ error }}</view>
-			<view v-else-if="!tasksList.length" class="empty">没有更多数据了</view>
 			<uni-load-state
 				class="load-state"
 				:state="{data:tasksList,pagination,hasMore,loading,error}"
