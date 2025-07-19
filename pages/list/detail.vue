@@ -623,7 +623,13 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
   },
   onLoad(options) {
     if (options.id) this.id = options.id;
-    // 直接用所有参数初始化 task
+    // 处理 is_publisher_joined 类型，确保为布尔值
+    let isPublisherJoined = options.is_publisher_joined;
+    if (typeof isPublisherJoined === 'string') {
+      isPublisherJoined = isPublisherJoined === 'true';
+    } else {
+      isPublisherJoined = !!isPublisherJoined;
+    }
     this.task = {
       ...this.task,
       name: options.name ? decodeURIComponent(options.name) : '',
@@ -643,11 +649,12 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
       create_date: options.create_date ? Number(options.create_date) : '',
       category_name: options.category_name ? decodeURIComponent(options.category_name) : '',
       media_detail: options.media_detail ? JSON.parse(decodeURIComponent(options.media_detail)) : [], // 解析媒体详情
-      is_publisher_joined: options.is_publisher_joined,
+      is_publisher_joined: isPublisherJoined,
       // 新增：解析location_text
       location_text: options.location_text ? JSON.parse(decodeURIComponent(options.location_text)) : []
       // 可继续加其它字段 
     };
+
   },
   onPullDownRefresh() {
     if (!this.id) return;

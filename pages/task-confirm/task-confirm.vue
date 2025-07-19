@@ -109,8 +109,10 @@ export default {
     },
     penaltyText() {
       if (this.task.mode === 'score') {
+        // 积分四舍五入向上取整
         return Math.ceil(this.task.score * 0.5) + ' 积分';
       } else {
+        // 金额不做四舍五入
         return (this.task.price * 0.5).toFixed(2) + '元';
       }
     },
@@ -163,11 +165,19 @@ export default {
             throw new Error(res.result?.message || '加入失败');
           }
         } else {
-          // 发布者加入，不扣积分，直接本地跳转
-          uni.showToast({ title: '加入成功', icon: 'success' });
-          setTimeout(() => {
-            uni.redirectTo({ url: '/pages/list/detail?id=' + this.task._id });
-          }, 800);
+          // 发布者加入：需要更新任务表的加入人数和 is_publisher_joined 字段
+          const res = await uniCloud.callFunction({
+            name: 'joinTask',
+            data: { taskId: this.task._id, isPublisher: true }
+          });
+          if (res.result && res.result.code === 0) {
+            uni.showToast({ title: '加入成功', icon: 'success' });
+            setTimeout(() => {
+              uni.redirectTo({ url: '/pages/list/detail?id=' + this.task._id });
+            }, 800);
+          } else {
+            throw new Error(res.result?.message || '加入失败');
+          }
         }
       } catch (e) {
         uni.showToast({ title: e.message || '加入失败', icon: 'none' });
@@ -190,7 +200,6 @@ export default {
     if (options.task) {
       try {
         this.task = JSON.parse(decodeURIComponent(options.task));
-        console.log('task-confirm.vue onLoad task.user:', this.task.user);
       } catch (e) {}
     }
     this.fetchUserInfo();
