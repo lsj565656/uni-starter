@@ -1,5 +1,9 @@
 <template>
   <view class="category-tasks-container" :style="containerStyle">
+    <!-- 顶部状态栏、导航栏 ... -->
+    <view v-if="loginNoticeVisible" class="login-notice-bar" @click="handleLoginNoticeClick">
+      去登录 &gt;
+    </view>
     <!-- 自定义导航栏，最高层 -->
     <view class="custom-navbar-fixed" :style="`top:0;left:0;right:0;z-index:1001;padding-top:${statusBarHeight}px;`">
       <view class="custom-navbar">
@@ -93,6 +97,21 @@ const error = ref('')
 const hasMore = ref(true)
 const pagination = ref({})
 const page = ref(1)
+const loginNoticeVisible = ref(false)
+let loginNoticeTimer = null
+function showLoginNotice() {
+  loginNoticeVisible.value = true
+  if (loginNoticeTimer) clearTimeout(loginNoticeTimer)
+  loginNoticeTimer = setTimeout(() => {
+    loginNoticeVisible.value = false
+  }, 3000)
+}
+function handleLoginNoticeClick() {
+  loginNoticeVisible.value = false
+  uni.navigateTo({
+    url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
+  })
+}
 
 const CUSTOM_NAVBAR_HEIGHT = 48
 const filterBarOffset = ref(0)
@@ -242,6 +261,12 @@ function withLikeStatus(item) {
   }
 }
 function onLike(item) {
+  // 登录校验
+  const userInfo = getApp().globalData.userInfo || (uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo()) || {};
+  if (!userInfo._id) {
+    showLoginNotice();
+    return;
+  }
   const taskLikeStore = useTaskLikeStore();
   const oldLiked = item.is_liked;
   const oldCount = item.like_count;

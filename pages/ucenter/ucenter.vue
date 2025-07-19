@@ -1,47 +1,51 @@
 <template>
-	<view class="center">
-		<uni-sign-in ref="signIn"></uni-sign-in>
-		<view class="userInfo" @click.capture="toUserInfo">
-			<cloud-image width="150rpx" height="150rpx" v-if="hasLogin&&userInfo.avatar_file&&userInfo.avatar_file.url" :src="userInfo.avatar_file.url"></cloud-image>
-			
-			<view v-else class="defaultAvatarUrl">
-				<uni-icons color="#ffffff" size="50" type="person-filled" />
+	<view class="ucenter-container">
+		<!-- 顶部状态栏占位和渐变背景 -->
+		<view class="status-bar-placeholder" :style="{ height: statusBarHeight + 'px', background: statusBarBg }"></view>
+		<view class="center">
+			<uni-sign-in ref="signIn"></uni-sign-in>
+			<view class="userInfo" @click.capture="toUserInfo">
+				<cloud-image width="150rpx" height="150rpx" v-if="hasLogin&&userInfo.avatar_file&&userInfo.avatar_file.url" :src="userInfo.avatar_file.url"></cloud-image>
+				
+				<view v-else class="defaultAvatarUrl">
+					<uni-icons color="#ffffff" size="50" type="person-filled" />
+				</view>
+				
+				<view class="logo-title">
+					<text class="uer-name" v-if="hasLogin">{{userInfo.nickname||userInfo.username||userInfo.mobile}}</text>
+					<text class="uer-name" v-else>{{$t('mine.notLogged')}}</text>
+				</view>
 			</view>
-			
-			<view class="logo-title">
-				<text class="uer-name" v-if="hasLogin">{{userInfo.nickname||userInfo.username||userInfo.mobile}}</text>
-				<text class="uer-name" v-else>{{$t('mine.notLogged')}}</text>
-			</view>
+			<uni-grid class="home" :column="4" :showBorder="false" :square="true">
+				<uni-grid-item class="item" v-for="(item,index) in homeList" @click.native="tapHome(index)" :key="index">
+					<uni-icons class="icon" color="#007AFF" :type="item.icon" size="26"></uni-icons>
+					<text class="text">{{item.text}}</text>
+				</uni-grid-item>
+			</uni-grid>
+			<uni-list class="center-list" v-for="(sublist , index) in ucenterList" :key="index">
+				<uni-list-item
+					v-for="(item,i) in sublist"
+					:title="item.title"
+					link clickable showArrow
+					:key="i"
+					@click="ucenterListClick(item, $event)"
+					:show-extra-icon="true"
+					:extraIcon="{type:item.icon,color:'#999'}"
+				>
+					<template v-slot:footer>
+						<!-- 我的积分项：未登录时不显示刷新按钮和积分 -->
+						<view v-if="item.showRefresh && hasLogin" class="item-footer" @click.stop>
+							<text class="item-footer-text" @click="refreshScore">{{( userInfo.score || 0 ) + ' 积分'}}</text>
+							<uni-icons type="reload" size="22" color="#1976d2" @click="refreshScore" style="margin-right: 12px;" />
+						</view>
+						<view v-else-if="item.showBadge" class="item-footer">
+							<text class="item-footer-text">{{item.rightText}}</text>
+							<view class="item-footer-badge"></view>
+						</view>
+					</template>
+				</uni-list-item>
+			</uni-list>
 		</view>
-		<uni-grid class="home" :column="4" :showBorder="false" :square="true">
-			<uni-grid-item class="item" v-for="(item,index) in homeList" @click.native="tapHome(index)" :key="index">
-				<uni-icons class="icon" color="#007AFF" :type="item.icon" size="26"></uni-icons>
-				<text class="text">{{item.text}}</text>
-			</uni-grid-item>
-		</uni-grid>
-		<uni-list class="center-list" v-for="(sublist , index) in ucenterList" :key="index">
-			<uni-list-item
-				v-for="(item,i) in sublist"
-				:title="item.title"
-				link clickable showArrow
-				:key="i"
-				:to="item.to"
-				@click="ucenterListClick(item, $event)"
-				:show-extra-icon="true"
-				:extraIcon="{type:item.icon,color:'#999'}"
-			>
-				<template v-slot:footer>
-					<view v-if="item.showRefresh" class="item-footer" @click.stop>
-						<text class="item-footer-text" @click="refreshScore">{{( userInfo.score || 0 ) + ' 积分'}}</text>
-						<uni-icons type="reload" size="22" color="#1976d2" @click="refreshScore" style="margin-right: 12px;" />
-					</view>
-					<view v-else-if="item.showBadge" class="item-footer">
-						<text class="item-footer-text">{{item.rightText}}</text>
-						<view class="item-footer-badge"></view>
-					</view>
-				</template>
-			</uni-list-item>
-		</uni-list>
 	</view>
 </template>
 
@@ -57,6 +61,8 @@
 		store,
 		mutations
 	} from '@/uni_modules/uni-id-pages/common/store.js'
+	import { ref, computed, onMounted } from 'vue'
+	import { onPageScroll } from '@dcloudio/uni-app'
 	export default {
 		// #ifdef APP
 		onBackPress({from}) {
@@ -156,7 +162,9 @@
 						"style": "solid", // 边框样式
 						"radius": "100%" // 边框圆角，支持百分比
 					}
-				}
+				},
+				statusBarHeight: 0,
+				statusBarAlpha: 0.4,
 			}
 		},
 		onLoad() {
@@ -203,7 +211,21 @@
 			// #endif
 			appConfig() {
 				return getApp().globalData.config
+			},
+			statusBarBg() {
+				return `rgba(255,255,255,${this.statusBarAlpha})`;
 			}
+		},
+		mounted() {
+			const systemInfo = uni.getSystemInfoSync()
+			this.statusBarHeight = systemInfo.statusBarHeight || 0
+		},
+		created() {
+			onPageScroll((e) => {
+				let alpha = 0.4 + Math.min(e.scrollTop || 0, 100) / 100 * 0.7
+				if (alpha > 1) alpha = 1
+				this.statusBarAlpha = alpha
+			})
 		},
 		methods: {
 			toSettings() {
@@ -220,8 +242,21 @@
 			/**
 			 * 个人中心项目列表点击事件
 			 */
-			ucenterListClick(item) {
-				if (!item.to && item.event) {
+			 ucenterListClick(item) {
+				// 我的积分和我点赞的，未登录时直接跳转登录页并阻断原有跳转
+				if ((item.to === '/pages/ucenter/point/index' || item.to === '/pages/ucenter/myFav') && !this.hasLogin) {
+					uni.navigateTo({
+					url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
+					});
+					return;
+				}
+				// 其他有 to 的项，不登录也可跳转
+				if (item.to) {
+					uni.navigateTo({ url: item.to });
+					return;
+				}
+				// 事件型
+				if (item.event) {
 					this[item.event]();
 				}
 			},
@@ -374,6 +409,19 @@
 </script>
 
 <style lang="scss" scoped>
+.ucenter-container {
+	background: #f8f9fa;
+	min-height: 100vh;
+	padding-bottom: 10rpx;
+}
+.status-bar-placeholder {
+	transition: background 0.2s;
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 999;
+}
 	/* #ifndef APP-NVUE */
 	view {
 		display: flex;
@@ -387,6 +435,7 @@
 	/* #endif*/
 	
 	.center {
+		display: flex; 
 		flex: 1;
 		flex-direction: column;
 		background-color: #f8f8f8;

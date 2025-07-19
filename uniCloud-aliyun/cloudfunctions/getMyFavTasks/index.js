@@ -13,7 +13,7 @@ exports.main = async (event, context) => {
   } = event;
 
   if (!userId) {
-    return { code: 1, message: 'userId 必填', data: [] };
+    return { code: 1, message: '您当前未登录！', data: [] };
   }
 
   // 兼容 ObjectId 和字符串

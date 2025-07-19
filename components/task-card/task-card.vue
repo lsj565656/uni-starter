@@ -26,7 +26,7 @@
           {{ task.mode === 'score' ? (task.score + ' 积分') : (task.price + '¥') }}
         </text>
       </view>
-      <view class="card-actions-item" @click.stop="$emit('like', task)">
+      <view class="card-actions-item" @click.stop="onLikeClick">
         <uni-icons :type="task.is_liked ? 'heart-filled' : 'heart'" size="18" :color="task.is_liked ? 'red' : '#999'" />
         <text class="card-actions-item-text">{{ task.like_count || 0 }}</text>
       </view>
@@ -90,6 +90,9 @@ export default {
       uni.navigateTo({
         url: `/pages/list/detail?${query}`
       });
+    },
+    onLikeClick() {
+      this.$emit('like', this.task);
     }
   }
 }

@@ -607,8 +607,8 @@ async function submit() {
       }
     });
     if (res.result && res.result.code === 0) {
-      uni.showToast({ title: '发布成功', icon: 'success' });
-      uni.navigateBack();
+    uni.showToast({ title: '发布成功', icon: 'success' });
+    uni.navigateBack();
     } else {
       throw new Error(res.result?.message || '发布失败');
     }

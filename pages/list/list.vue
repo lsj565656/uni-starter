@@ -3,6 +3,9 @@
 		<!-- #ifndef H5 -->
 		<statusBar></statusBar>
 		<!-- #endif -->
+		<view v-if="loginNoticeVisible" class="login-notice-bar" @click="handleLoginNoticeClick">
+			去登录 &gt;
+		</view>
 
 		<!-- 自定义头部导航 -->
 		<view class="custom-navbar">
@@ -293,6 +296,8 @@ export default {
 			],
 			taskCache: {},
 			cacheExpire: 120000, // 1分钟
+			loginNoticeVisible: false,
+			loginNoticeTimer: null,
 			// ... 其他筛选项 ...
 		}
 	},
@@ -519,6 +524,12 @@ export default {
 		},
 		actionsClick(type, item) {
 			if (type === '点赞') {
+				// 登录校验
+				const userInfo = getApp().globalData.userInfo || (uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo()) || {};
+				if (!userInfo._id) {
+					this.showLoginNotice();
+					return;
+				}
 				if (!item._id) return;
 				const taskLikeStore = useTaskLikeStore();
 				const taskId = item._id;
@@ -628,6 +639,19 @@ export default {
 			this.onCategoryChange({ currentIndex: 0 });
 			this.categoryScrollLeft = 0;
 			this.showBackToAllBtn = false;
+		},
+		showLoginNotice() {
+			this.loginNoticeVisible = true;
+			if (this.loginNoticeTimer) clearTimeout(this.loginNoticeTimer);
+			this.loginNoticeTimer = setTimeout(() => {
+				this.loginNoticeVisible = false;
+			}, 2000);
+		},
+		handleLoginNoticeClick() {
+			this.loginNoticeVisible = false;
+			uni.navigateTo({
+				url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
+			});
 		},
 	},
 	onLoad() {

@@ -14,6 +14,11 @@
 		</view>
 		<!-- #endif -->
 
+		<!-- 状态栏占位和背景 -->
+		<!-- #ifndef MP-WEIXIN -->
+		<view class="status-bar-placeholder" :style="{ height: statusBarHeight + 'px', background: statusBarBg }"></view>
+		<!-- #endif -->
+
 		<!-- banner -->
 		<!-- <unicloud-db ref="bannerdb" v-slot:default="{data, loading, error, options}" collection="opendb-banner"
 			field="_id,bannerfile,open_url,title" @load="onqueryload" >
@@ -264,6 +269,42 @@
 	import {
 		onPageScroll
 	} from '@dcloudio/uni-app'
+	import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+
+	// 状态栏高度
+	const statusBarHeight = ref(0)
+
+	// 统一的登录校验方法
+	function checkLogin(actionName = '操作') {
+		const userInfo = store.userInfo
+		if (!userInfo || !userInfo._id) {
+			uni.showModal({
+				title: '提示',
+				content: `请先登录后再${actionName}`,
+				confirmText: '去登录',
+				cancelText: '取消',
+				success: (res) => {
+					if (res.confirm) {
+						// 统一配置登录页面路径
+						uni.navigateTo({
+							url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
+						});
+					}
+				}
+			});
+			return false;
+		}
+		return true;
+	}
+
+	const statusBarAlpha = ref(0.4) // 初始状态栏半透明色
+	function updateStatusBarAlpha(scrollTop) {
+		// 0~100px 线性从 0.4 到 1
+		let alpha = 0.4 + Math.min(scrollTop, 100) / 100 * 0.7
+		if (alpha > 1) alpha = 1
+		statusBarAlpha.value = alpha
+	}
+	const statusBarBg = computed(() => `rgba(255,255,255,${statusBarAlpha.value})`) // 白色渐变
 
 	const imageDatas = ref([{
 			id: 1,
@@ -693,6 +734,10 @@
 	let addNoticeTimer = null
 
 	onMounted(() => {
+		// 获取状态栏高度
+		const systemInfo = uni.getSystemInfoSync()
+		statusBarHeight.value = systemInfo.statusBarHeight || 0
+
 		// 每60秒添加一条新的随机通告
 		addNoticeTimer = setInterval(() => {
 			const newNotice = generateRandomNotice()
@@ -713,9 +758,11 @@
 	const showBackToTop = ref(false)
 
 	function goToPublish() {
-		uni.navigateTo({
-			url: '/pages/publish/publish'
-		})
+		if (checkLogin('发布')) {
+			uni.navigateTo({
+				url: '/pages/publish/publish'
+			})
+		}
 	}
 
 	function scrollToTop() {
@@ -727,6 +774,8 @@
 
 	// 直接注册页面滚动钩子
 	onPageScroll((e) => {
+		// 实时更新状态栏透明度
+		updateStatusBarAlpha(e.scrollTop || 0)
 		showBackToTop.value = (e.scrollTop || 0) > 300
 	})
 
@@ -760,7 +809,7 @@
 
 	function onFabMenuClick({ index, item }) {
 		if (item.text === '发布') {
-			uni.navigateTo({ url: '/pages/publish/publish' })
+			goToPublish()
 		} else if (item.text === '置顶' && !isAtTop.value) {
 			uni.pageScrollTo({ scrollTop: 0, duration: 300 })
 		}
@@ -912,6 +961,7 @@
 		background: #f8f9fa;
 		min-height: 100vh;
 		padding-bottom: 10rpx;
+		padding-top: 10rpx;
 	}
 
 	.banner-image {
@@ -1356,5 +1406,15 @@
 	::v-deep .uni-fab__circle {
 		background: rgba(255,255,255,0.6) !important;
 		box-shadow: none !important;
+	}
+
+	/* 状态栏占位样式 */
+	.status-bar-placeholder {
+		transition: background 0.2s;
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 999;
 	}
 </style>

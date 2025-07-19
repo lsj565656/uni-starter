@@ -118,4 +118,25 @@
 		}
 		/* #endif */
 	}
+	/* 登录提示导航栏 */
+	.login-notice-bar {
+		position: fixed;
+		width: 30vw;
+		border-radius: 5px;
+		right: 0 !important;
+		z-index: 9999;
+		background: #fffbe6;
+		color: #faad14;
+		text-align: center;
+		padding: 2px 8px !important;
+		font-size: 16px;
+		border-bottom: 1px solid #ffe58f;
+		cursor: pointer;
+		transition: opacity 0.2s;
+		margin-top: 80px !important;
+		top: var(--status-bar-height, 0px) !important;
+	}
+	.login-notice-bar:active {
+		background: #ffe58f;
+	}
 </style>

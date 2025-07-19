@@ -1,5 +1,8 @@
 <template>
 	<view class="detail-container">
+    <view v-if="loginNoticeVisible" class="login-notice-bar" @click="handleLoginNoticeClick">
+      去登录 &gt;
+    </view>
     <!-- 顶部图片/视频轮播 -->
     <swiper class="detail-swiper" :indicator-dots="true" :autoplay="false" :circular="true">
       <swiper-item v-for="(item, idx) in task.media_detail" :key="item.url">
@@ -166,6 +169,8 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
         videoKey: 0,
         videoEnded: false,
         defaultVideoCover: '/static/icons/playCover.png',
+        loginNoticeVisible: false,
+        loginNoticeTimer: null,
       }
     },
     watch: {
@@ -196,6 +201,28 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
 		methods: {
       formatTime,
       
+      // 统一的登录校验方法
+      showLoginNotice() {
+        this.loginNoticeVisible = true;
+        if (this.loginNoticeTimer) clearTimeout(this.loginNoticeTimer);
+        this.loginNoticeTimer = setTimeout(() => {
+          this.loginNoticeVisible = false;
+        }, 3000);
+      },
+      handleLoginNoticeClick() {
+        this.loginNoticeVisible = false;
+        uni.navigateTo({
+          url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
+        });
+      },
+      checkLogin(actionName = '操作') {
+        if (!this.userInfo || !this.userInfo._id) {
+          this.showLoginNotice();
+          return false;
+        }
+        return true;
+      },
+      
       // 加载评论列表
       async loadComments(page = 1) {
         if (this.commentLoading) return;
@@ -209,7 +236,7 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
               taskId: this.id,
               page,
               pageSize: this.pageSize,
-              currentUserId: this.userInfo._id
+              currentUserId: this.userInfo?._id || '' // 未登录时传空字符串
             }
           });
           
@@ -266,7 +293,7 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
               parentId: commentId,
               page,
               pageSize: 10,
-              currentUserId: this.userInfo._id
+              currentUserId: this.userInfo?._id || '' // 未登录时传空字符串
             }
           });
           
@@ -295,6 +322,8 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
       },
       
       onLike() {
+        if (!this.checkLogin('点赞')) return;
+
         const taskLikeStore = useTaskLikeStore();
         const oldLiked = this.task.is_liked;
         const oldCount = this.task.like_count;
@@ -320,6 +349,8 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
       },
 
       onJoin() {
+        if (!this.checkLogin('加入任务')) return;
+
         // 跳转到加入确认页，传递任务详情
         const taskParam = encodeURIComponent(JSON.stringify({
           ...this.task
@@ -410,6 +441,8 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
       },
       
       handleCommentLike(commentId) {
+        if (!this.checkLogin('点赞')) return;
+
         // 递归查找评论并处理点赞
         const findAndLikeComment = (commentList) => {
           for (const comment of commentList) {
@@ -433,6 +466,8 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
       },
       
       showCommentInputBar() {
+        if (!this.checkLogin('评论')) return;
+
         // 只需弹出输入框，v-model 会自动同步内容
         if (this.$refs.commentSection && this.$refs.commentSection.onReply) {
           this.$refs.commentSection.onReply({ id: '', commenter_name: '' })
@@ -446,6 +481,8 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
       },
       
       async onCommentSubmit({ content, replyTo }) {
+        if (!this.checkLogin('评论')) return;
+
         if (!content.trim()) {
           uni.showToast({
             title: '请输入评论内容',
@@ -463,9 +500,9 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
               pid: replyTo && replyTo.commentId ? replyTo.commentId : '0',
               targetName: replyTo && replyTo.commenterName ? replyTo.commenterName : null,
               currentUserId: this.userInfo._id,
-              currentUserName: this.userInfo.nickname, // 实际应从用户系统获取
-              currentUserAvatar: this.userInfo.avatar_file.url, // 实际应从用户系统获取
-              taskOwnerId: this.task.user?.ownerUserId
+              currentUserName: this.userInfo.nickname || '匿名用户', // 添加默认值
+              currentUserAvatar: this.userInfo.avatar_file?.url || '/static/logo.png', // 添加安全访问和默认值
+              taskOwnerId: this.task.user?._id // 修正为正确的用户ID字段
             }
           });
           
@@ -611,7 +648,6 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
       location_text: options.location_text ? JSON.parse(decodeURIComponent(options.location_text)) : []
       // 可继续加其它字段 
     };
-    console.log('detail.vue onLoad this.task.user:', this.task.user);
   },
   onPullDownRefresh() {
     if (!this.id) return;
@@ -801,9 +837,9 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
   z-index: 100;
 }
 .input-area {
-		flex: 1;
-			display: flex;
-			align-items: center;
+  flex: 1;
+  display: flex;
+  align-items: center;
   background: #f5f5f5;
   border-radius: 18px;
   padding: 4px 12px;
@@ -852,8 +888,8 @@ uni-button:after {
   justify-content: flex-end;
 }
 .join-btn {
-				background: linear-gradient(90deg, #ff9800, #ffc107);
-				color: #fff;
+  background: linear-gradient(90deg, #ff9800, #ffc107);
+  color: #fff;
   border: none;
   border-radius: 18px;
   padding: 0 18px;
@@ -861,5 +897,8 @@ uni-button:after {
   font-size: 16px;
   font-weight: 600;
 }
-/* 删除.float-input-bar及相关样式 */
+.login-notice-bar {
+  margin-top: 100px !important;
+  top: var(--status-bar-height, 0px) !important;
+}
 </style>
