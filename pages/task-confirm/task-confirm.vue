@@ -61,6 +61,7 @@
 <script>
 import { formatTime } from '@/utils/tools.js';
 import { store } from '@/uni_modules/uni-id-pages/common/store.js';
+import { fetchUserScore } from '@/utils/user.js'
 export default {
   data() {
     return {
@@ -203,6 +204,9 @@ export default {
       } catch (e) {}
     }
     this.fetchUserInfo();
+  },
+  onShow: async function() {
+    this.userScore = await fetchUserScore()
   }
 }
 </script>

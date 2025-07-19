@@ -63,6 +63,7 @@
 	} from '@/uni_modules/uni-id-pages/common/store.js'
 	import { ref, computed, onMounted } from 'vue'
 	import { onPageScroll } from '@dcloudio/uni-app'
+	import { fetchUserScore } from '@/utils/user.js'
 	export default {
 		// #ifdef APP
 		onBackPress({from}) {
@@ -165,6 +166,7 @@
 				},
 				statusBarHeight: 0,
 				statusBarAlpha: 0.4,
+				userScore: 0,
 			}
 		},
 		onLoad() {
@@ -179,7 +181,8 @@
 			})
 			//#endif
 		},
-		onShow() {
+		async onShow() {
+			this.userScore = await fetchUserScore()
 			if (this.hasLogin) {
 				db.collection('uni-id-scores')
 					.where('user_id == $env.uid')
@@ -189,7 +192,6 @@
 					.then(res => {
 						const data = res.result.data[0];
 						if (data) {
-							// 推荐写入 store.userInfo.score
 							store.userInfo.score = data.balance;
 						} else {
 							store.userInfo.score = 0;

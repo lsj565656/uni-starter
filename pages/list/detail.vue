@@ -355,7 +355,6 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
         const taskParam = encodeURIComponent(JSON.stringify({
           ...this.task
         }));
-        console.log('detail.vue onJoin user:', this.task.user);
         uni.navigateTo({
           url: `/pages/task-confirm/task-confirm?task=${taskParam}`
         });
