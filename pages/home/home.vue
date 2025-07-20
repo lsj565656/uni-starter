@@ -1061,12 +1061,12 @@
 		display: flex;
 		align-items: center;
 		margin-left: 12px;
+	}
 
-		.mode-icon {
-			margin-left: 8px;
-			cursor: pointer;
-			transition: color 0.2s;
-		}
+	.timeline-mode-switch .mode-icon {
+		margin-left: 8px;
+		cursor: pointer;
+		transition: color 0.2s;
 	}
 
 	/* 食材详情弹窗样式 */
