@@ -149,6 +149,7 @@ export default {
     },
     async onConfirmJoin() {
       if (this.joinDisabled) return;
+      console.log('onConfirmJoin this.task._id', this.task._id)
       this.joining = true;
       try {
         // 只在非发布者时才调用云函数扣积分

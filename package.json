@@ -105,6 +105,7 @@
   },
   "dependencies": {
     "qrcodejs2": "^0.0.2",
+    "vue": "^3.5.17",
     "vuedraggable": "^4.1.0"
   }
 }
