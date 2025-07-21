@@ -1,5 +1,6 @@
 import pagesJson from '@/pages.json'
 import config from '@/uni_modules/uni-id-pages/config.js'
+import { fetchUserScoreAndCache } from '@/utils/user.js'
 
 const uniIdCo = uniCloud.importObject("uni-id-co")
 const db = uniCloud.database();
@@ -143,6 +144,12 @@ export const mutations = {
 		}
     // 异步调用（更新用户信息）防止获取头像等操作阻塞页面返回
 		this.updateUserInfo()
+		// 登录成功后，拉取并缓存用户积分
+		const userId = (e && e.userInfo && e.userInfo._id) || (store.userInfo && store.userInfo._id)
+		if (userId) {
+			console.log('do fetchUserScoreAndCache!');
+			fetchUserScoreAndCache(userId)
+		}
 
 		uni.$emit('uni-id-pages-login-success')
 

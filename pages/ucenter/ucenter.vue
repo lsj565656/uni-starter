@@ -182,22 +182,8 @@
 			//#endif
 		},
 		async onShow() {
-			this.userScore = await fetchUserScore()
-			if (this.hasLogin) {
-				db.collection('uni-id-scores')
-					.where('user_id == $env.uid')
-					.orderBy('create_date', 'desc')
-					.limit(1)
-					.get()
-					.then(res => {
-						const data = res.result.data[0];
-						if (data) {
-							store.userInfo.score = data.balance;
-						} else {
-							store.userInfo.score = 0;
-						}
-					});
-			}
+			// this.userScore = await fetchUserScore()
+			this.userScore = store.userInfo.score || 0
 		},
 		computed: {
 			userInfo() {

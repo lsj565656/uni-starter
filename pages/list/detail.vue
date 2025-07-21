@@ -127,6 +127,7 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
 			return {
         id: '',
         task: {
+          _id: '', // 主要用作往后传递 _id值 本页面使用 id 就行
           image: '',
           score: 0,
           price: 0,
@@ -631,6 +632,7 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
     }
     this.task = {
       ...this.task,
+      _id: options.id || '',
       name: options.name ? decodeURIComponent(options.name) : '',
       image: options.image ? decodeURIComponent(options.image) : '',
       description: options.description ? decodeURIComponent(options.description) : '',

@@ -160,6 +160,8 @@ export default {
           });
           if (res.result && res.result.code === 0) {
             uni.showToast({ title: '加入成功', icon: 'success' });
+            // 加入成功后，刷新本地积分
+            this.userScore = await fetchUserScore();
             setTimeout(() => {
               uni.redirectTo({ url: '/pages/list/detail?id=' + this.task._id });
             }, 800);
@@ -192,8 +194,8 @@ export default {
         this.displayMembers[idx].avatar = this.defaultAvatar;
       }
     },
-    async fetchUserInfo() {
-      // 获取当前用户信息和积分
+    fetchUserInfo() {
+      // 只用本地缓存的积分
       this.userInfo = store.userInfo || {};
       this.userScore = this.userInfo.score || 0;
     }
@@ -204,10 +206,10 @@ export default {
         this.task = JSON.parse(decodeURIComponent(options.task));
       } catch (e) {}
     }
-    this.fetchUserInfo();
-  },
-  onShow: async function() {
-    this.userScore = await fetchUserScore()
+    // 只用本地缓存
+    this.userInfo = store.userInfo || {};
+    this.userScore = this.userInfo.score || 0;
+    console.log('task-confirm onLoad this.userInfo.score:',this.userInfo.score)
   }
 }
 </script>
