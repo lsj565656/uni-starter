@@ -85,6 +85,30 @@ exports.main = async (event, context) => {
     });
   }
 
+  // 动态聚合成员列表
+  agg = agg.lookup({
+    from: 'kl-users-join-task',
+    let: { taskId: '$_id' },
+    pipeline: [
+      { $match: { $expr: { $eq: ['$task_id', '$$taskId'] } } },
+      { $lookup: {
+          from: 'uni-id-users',
+          localField: 'user_id',
+          foreignField: '_id',
+          as: 'userInfo'
+        }
+      },
+      { $unwind: '$userInfo' },
+      { $project: {
+          _id: '$user_id',
+          avatar: '$userInfo.avatar_file.url',
+          nickname: '$userInfo.nickname'
+        }
+      }
+    ],
+    as: 'members'
+  });
+
   // 聚合用户信息
   agg = agg.lookup({
     from: 'uni-id-users',

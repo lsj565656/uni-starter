@@ -1,8 +1,9 @@
 // 云函数入口文件
 const db = uniCloud.database()
 exports.main = async (event, context) => {
-  const { taskId, isPublisher } = event
-  const userId = context.auth && context.auth.uid
+  const args = event.args || event
+  const { taskId, isPublisher, userId } = args
+  // let userId = context.auth && context.auth.uid
   if (!taskId || !userId) return { code: 1, msg: '参数缺失' }
   // 查任务
   const taskRes = await db.collection('kl-tasks').doc(taskId).get()
@@ -26,7 +27,13 @@ exports.main = async (event, context) => {
       task_id: taskId,
       user_id: userId,
       is_publisher: true,
-      join_date: Date.now()
+      status: 'joined',
+      join_time: Date.now(),
+      role: 'publisher',
+      guarantee_score: 0,
+      settle_score: 0,
+      guarantee_amount: 0,
+      settle_amount: 0
     })
     return { code: 0, msg: '发布者加入成功' }
   }
@@ -42,8 +49,13 @@ exports.main = async (event, context) => {
     task_id: taskId,
     user_id: userId,
     is_publisher: false,
-    join_date: Date.now(),
-    guarantee
+    status: 'joined',
+    join_time: Date.now(),
+    role: 'member',
+    guarantee_score: guarantee,
+    settle_score: 0,
+    guarantee_amount: 0,
+    settle_amount: 0
   })
   if (task.mode === 'score') {
     // 查积分

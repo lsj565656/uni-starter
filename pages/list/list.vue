@@ -667,6 +667,26 @@ export default {
 			this.keyword = searchText;
 			this.fetchTasks({ reset: true });
 		}
+		// 同步 latestTask 到缓存和 tasksList
+		const latestTask = getApp().globalData.latestTask;
+		if (latestTask && latestTask._id) {
+			// 遍历所有缓存快照，更新 tasksList
+			Object.keys(this.taskCache).forEach(cacheKey => {
+				const cache = this.taskCache[cacheKey];
+				if (cache && cache.data && Array.isArray(cache.data.tasksList)) {
+					const idx = cache.data.tasksList.findIndex(t => t._id === latestTask._id);
+					if (idx !== -1) {
+						this.taskCache[cacheKey].data.tasksList[idx] = { ...this.taskCache[cacheKey].data.tasksList[idx], ...latestTask };
+					}
+				}
+			});
+			// 更新当前 tasksList
+			const idx = this.tasksList.findIndex(t => t._id === latestTask._id);
+			if (idx !== -1) {
+				this.tasksList[idx] = { ...this.tasksList[idx], ...latestTask };
+			}
+			getApp().globalData.latestTask = null;
+		}
 	},
 	onPullDownRefresh() {
 		this.refresh();

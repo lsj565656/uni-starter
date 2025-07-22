@@ -147,37 +147,67 @@ export default {
     goBack() {
       uni.navigateBack();
     },
+    onBackToList() {
+      uni.switchTab({ url: '/pages/list/list' });
+    },
     async onConfirmJoin() {
       if (this.joinDisabled) return;
       console.log('onConfirmJoin this.task._id', this.task._id)
       this.joining = true;
       try {
-        // 只在非发布者时才调用云函数扣积分
+        let updatedTask = { ...this.task };
         if (!this.isPublisher) {
           const res = await uniCloud.callFunction({
             name: 'joinTask',
-            data: { taskId: this.task._id }
+            data: { taskId: this.task._id, userId: this.userInfo._id }
           });
           if (res.result && res.result.code === 0) {
             uni.showToast({ title: '加入成功', icon: 'success' });
-            // 加入成功后，刷新本地积分
+            // 更新本地 task 关键字段
+            updatedTask.joined_count = (this.task.joined_count || 0) + 1;
+            // 新增成员
+            if (!updatedTask.members) updatedTask.members = [];
+            updatedTask.members = [
+              ...updatedTask.members,
+              {
+                _id: this.userInfo._id,
+                avatar: this.userInfo.avatar_file?.url || this.defaultAvatar,
+                nickname: this.userInfo.nickname || '我'
+              }
+            ];
+            // 存入全局变量
+            getApp().globalData.latestTask = updatedTask;
+            // 刷新本地积分
             this.userScore = await fetchUserScore();
             setTimeout(() => {
-              uni.redirectTo({ url: '/pages/list/detail?id=' + this.task._id });
+              this.onBackToList(); // 回到 list.vue
             }, 800);
           } else {
             throw new Error(res.result?.message || '加入失败');
           }
         } else {
-          // 发布者加入：需要更新任务表的加入人数和 is_publisher_joined 字段
+          // 发布者加入
           const res = await uniCloud.callFunction({
             name: 'joinTask',
-            data: { taskId: this.task._id, isPublisher: true }
+            data: { taskId: this.task._id, isPublisher: true, userId: this.userInfo._id }
           });
           if (res.result && res.result.code === 0) {
             uni.showToast({ title: '加入成功', icon: 'success' });
+            updatedTask.is_publisher_joined = true;
+            updatedTask.joined_count = (this.task.joined_count || 0) + 1;
+            // 新增成员
+            if (!updatedTask.members) updatedTask.members = [];
+            updatedTask.members = [
+              ...updatedTask.members,
+              {
+                _id: this.userInfo._id,
+                avatar: this.userInfo.avatar_file?.url || this.defaultAvatar,
+                nickname: this.userInfo.nickname || '我'
+              }
+            ];
+            getApp().globalData.latestTask = updatedTask;
             setTimeout(() => {
-              uni.redirectTo({ url: '/pages/list/detail?id=' + this.task._id });
+             this.onBackToList(); // 回到 list.vue
             }, 800);
           } else {
             throw new Error(res.result?.message || '加入失败');
