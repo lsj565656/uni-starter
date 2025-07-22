@@ -652,10 +652,12 @@ import { useTaskLikeStore } from '@/store/taskLike.js'
       media_detail: options.media_detail ? JSON.parse(decodeURIComponent(options.media_detail)) : [], // 解析媒体详情
       is_publisher_joined: isPublisherJoined,
       // 新增：解析location_text
-      location_text: options.location_text ? JSON.parse(decodeURIComponent(options.location_text)) : []
+      location_text: options.location_text ? JSON.parse(decodeURIComponent(options.location_text)) : [],
+      members: options.members ? JSON.parse(decodeURIComponent(options.members)) : []
       // 可继续加其它字段 
     };
 
+    console.log('this.task onLoad detail.vue', this.task)
   },
   onPullDownRefresh() {
     if (!this.id) return;

@@ -58,7 +58,7 @@ export default {
   methods: {
     goDetail() {
       // 合并任务和用户的所有核心字段
-      const { _id, name, image, description, like_count, is_liked, joined_count, max_participants, score, price, mode, location, start_time, end_time, category_name, create_date, media_detail, location_text, is_publisher_joined } = this.task;
+      const { _id, name, image, description, like_count, is_liked, joined_count, max_participants, score, price, mode, location, start_time, end_time, category_name, create_date, media_detail, location_text, is_publisher_joined, members } = this.task;
       // 构建参数对象
       const params = {
         id: _id,
@@ -81,7 +81,8 @@ export default {
         is_publisher_joined,
         // 新增字段
         media_detail: media_detail ? encodeURIComponent(JSON.stringify(media_detail)) : '',
-        location_text: location_text ? encodeURIComponent(JSON.stringify(location_text)) : ''
+        location_text: location_text ? encodeURIComponent(JSON.stringify(location_text)) : '',
+        members: members ? encodeURIComponent(JSON.stringify(members)) : ''
       };
       // 构建 url 查询字符串
       const query = Object.keys(params)

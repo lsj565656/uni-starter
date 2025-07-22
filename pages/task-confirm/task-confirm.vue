@@ -22,12 +22,19 @@
         <text class="publisher-text">发布者{{ isPublisherJoined ? '已加入任务' : '未加入任务' }}</text>
       </view>
     </view>
+    <!-- 成员头像展示区 -->
     <view class="member-avatars">
-      <view v-for="(user, idx) in displayMembers" :key="user._id || idx" class="avatar-wrap" :style="{ left: idx * 24 + 'px', zIndex: 100 - idx }">
-        <image :src="user.avatar && user.avatar !== '' ? user.avatar : defaultAvatar" class="avatar-img" @error="onAvatarError($event, idx)" />
-        <view v-if="idx === 0" class="avatar-label">发布者</view>
+      <!-- 发布者头像 -->
+      <view class="avatar-wrap" :style="{ left: '0px', zIndex: 100 }">
+        <image :src="task.user?.avatar_file?.url || defaultAvatar" class="avatar-img" />
+        <view class="avatar-label">发布者</view>
       </view>
-      <view v-if="moreMemberCount > 0" class="avatar-more" :style="{ left: displayMembers.length * 24 + 'px' }">+{{ moreMemberCount }}</view>
+      <!-- 前4个成员头像（不含发布者） -->
+      <view v-for="(member, idx) in displayMembers" :key="member._id || idx" class="avatar-wrap" :style="{ left: (idx+1)*24 + 'px', zIndex: 99-idx }">
+        <image :src="member.avatar || defaultAvatar" class="avatar-img" @error="onAvatarError($event, idx)" />
+      </view>
+      <!-- 超出4个成员显示+N角标 -->
+      <view v-if="moreMemberCount > 0" class="avatar-more" :style="{ left: (displayMembers.length+1)*24 + 'px' }">+{{ moreMemberCount }}</view>
     </view>
     <view class="member-count">共 {{ task.joined_count }}/{{ task.max_participants }} 人已加入</view>
     <view class="reward-section">
@@ -95,18 +102,16 @@ export default {
   },
   computed: {
     displayMembers() {
-      // 发布者+前4个加入者
-      const arr = [];
-      if (this.task.user) arr.push({
-        _id: this.task.user._id,
-        avatar: this.task.user.avatar_file?.url || this.defaultAvatar,
-        nickname: this.task.user.nickname || '发布者'
-      });
-      (this.task.members || []).slice(0, 4).forEach(m => arr.push({ ...m, avatar: m.avatar || this.defaultAvatar }));
-      return arr;
+      // 只显示前4个成员（不含发布者）
+      if (!this.task.members) return [];
+      // 过滤掉发布者
+      const members = (this.task.members || []).filter(m => m._id !== this.task.user?._id);
+      return members.slice(0, 4);
     },
     moreMemberCount() {
-      return Math.max(0, (this.task.members?.length || 0) - 4);
+      if (!this.task.members) return 0;
+      const members = (this.task.members || []).filter(m => m._id !== this.task.user?._id);
+      return Math.max(0, members.length - 4);
     },
     penaltyText() {
       if (this.task.mode === 'score') {
@@ -132,10 +137,12 @@ export default {
     joinDisabled() {
       if (this.isPublisher && this.isPublisherJoined) return true;
       if (this.hasJoined) return true;
+      if (this.task.joined_count >= this.task.max_participants) return true;
       if (!this.isPublisher && this.task.mode === 'score' && this.userScore < Math.ceil(this.task.score * 0.5)) return true;
       return this.joining;
     },
     joinBtnText() {
+      if (this.task.joined_count >= this.task.max_participants) return '人数已满';
       if (this.isPublisher && this.isPublisherJoined) return '你已加入自己的任务';
       if (this.hasJoined) return '你已加入该任务';
       if (!this.isPublisher && this.task.mode === 'score' && this.userScore < Math.ceil(this.task.score * 0.5)) return '积分不足，无法加入';
@@ -239,7 +246,7 @@ export default {
     // 只用本地缓存
     this.userInfo = store.userInfo || {};
     this.userScore = this.userInfo.score || 0;
-    console.log('task-confirm onLoad this.userInfo.score:',this.userInfo.score)
+    console.log('task-confirm onLoad this.task:',this.task) // 打印任务信息
   }
 }
 </script>
