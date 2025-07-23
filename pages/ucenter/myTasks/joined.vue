@@ -56,7 +56,6 @@
               <view class="card-title-row">
                 <view class="stamp">{{ task.category_name }}</view>
                 <view v-if="task.user_id === userId && isUserAlsoMember(task)" class="stamp">发布并参与</view>
-                <view v-else class="stamp">仅参与</view>
                 <text class="reward-value">{{ task.mode === 'score' ? task.score + '积分' : task.price + '元' }}</text>
               </view>
               <view class="card-sub-row">
@@ -110,7 +109,7 @@ export default {
       defaultAvatar: '/static/logo.png',
       categoryScrollLeft: 0,
       showBackToAllBtn: false,
-      filterExtraOptions: ['不筛选', '仅看我发布的', '仅看我参与的'],
+      filterExtraOptions: ['全部', '仅我参与的', '我发布并参与的'],
       filterExtraIndex: 0,
       error: ''
     }
@@ -144,24 +143,14 @@ export default {
   },
   methods: {
     formatTime,
-    getStatus(task) {
-      const now = Date.now();
-      if (task.invalid) return 'invalid';
-      if (now < task.start_time) return 'not_started';
-      if (now >= task.start_time && now <= task.end_time) return 'in_progress';
-      if (task.finished) return 'finished';
-      if (task.evaluated) return 'evaluated';
-      return 'ended';
-    },
     getStatusText(task) {
-      const status = this.getStatus(task);
       return {
         not_started: '待开始',
         in_progress: '进行中',
         finished: '已完成',
         invalid: '已失效',
         evaluated: '已评价'
-      }[status] || '';
+      }[task.status] || '';
     },
     isUserAlsoMember(task) {
       return (task.members || []).some(m => m._id === this.userId);
@@ -176,7 +165,7 @@ export default {
       return Math.max(0, members.length - 4);
     },
     getSwipeOptions(task) {
-      const status = this.getStatus(task);
+      const status = task.status;
       const options = [];
       if (status === 'finished') {
         options.push({ text: '评价', style: { background: '#ff9800', color: '#fff' }, key: 'comment' });
@@ -192,16 +181,16 @@ export default {
       });
     },
     async fetchMyJoinedTasks({ reset = false } = {}) {
+      const cacheKey = this.getJoinedCacheKey();
+      const now = Date.now();
       if (reset) {
         this.page = 1;
         this.tasks = [];
         this.hasMore = true;
         this.pagination = {};
+        delete this.joinedTaskCache[cacheKey];
       }
-      const cacheKey = this.getJoinedCacheKey();
-      const now = Date.now();
-      // 只缓存第一页
-      if (reset && this.joinedTaskCache[cacheKey] && (now - this.joinedTaskCache[cacheKey].ts < this.cacheExpire)) {
+      if (!reset && this.page === 1 && this.joinedTaskCache[cacheKey] && (now - this.joinedTaskCache[cacheKey].ts < this.cacheExpire)) {
         const cached = this.joinedTaskCache[cacheKey].data;
         this.tasks = cached.tasks;
         this.hasMore = cached.hasMore;
@@ -223,7 +212,7 @@ export default {
         });
         if (res.result && res.result.code === 0) {
           const list = res.result.data || [];
-          if (reset) {
+          if (this.page === 1) {
             this.tasks = list;
           } else {
             this.tasks = this.tasks.concat(list);
@@ -234,9 +223,7 @@ export default {
             page: res.result.page,
             pageSize: res.result.pageSize
           };
-          this.page = res.result.page + 1;
-          // 写入缓存（只缓存第一页）
-          if (reset) {
+          if (this.page === 1) {
             this.joinedTaskCache[cacheKey] = {
               ts: now,
               data: {
@@ -246,6 +233,7 @@ export default {
               }
             }
           }
+          this.page = res.result.page + 1;
         }
       } finally {
         this.loading = false;
@@ -262,7 +250,11 @@ export default {
       if (this.filterIndex !== idx) {
         this.filterIndex = idx;
         this.scrollCategoryToCenter(idx);
-        this.refresh();
+        this.page = 1;
+        this.tasks = [];
+        this.hasMore = true;
+        this.pagination = {};
+        this.fetchMyJoinedTasks({ reset: false }); // 不清空缓存
       }
     },
     scrollCategoryToCenter(index) {
@@ -306,9 +298,15 @@ export default {
       this.$refs.filterDrawer.open('bottom');
     },
     onFilterExtra(idx) {
-      this.filterExtraIndex = idx;
-      this.$refs.filterDrawer.close();
-      this.refresh();
+      if (this.filterExtraIndex !== idx) {
+        this.filterExtraIndex = idx;
+        if (this.$refs.filterDrawer) this.$refs.filterDrawer.close();
+        this.page = 1;
+        this.tasks = [];
+        this.hasMore = true;
+        this.pagination = {};
+        this.fetchMyJoinedTasks({ reset: false }); // 不清空缓存
+      }
     },
     onSwipeAction(e, task) {
       if (e.key === 'comment') this.goToComment(task._id);

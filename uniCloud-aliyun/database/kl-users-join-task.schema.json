@@ -1,1 +1,65 @@
-{"bsonType":"object","required":["user_id","task_id","join_time","status"],"properties":{"_id":{"description":"主键id","bsonType":"objectId"},"user_id":{"description":"用户id","bsonType":"objectId"},"task_id":{"description":"任务id","bsonType":"objectId"},"join_time":{"description":"加入时间，时间戳","bsonType":"long"},"status":{"description":"参与状态：joined=已加入，quit=主动退出，completed=已完成，removed=被发起者\/管理员移除，timeout=超时（到了任务开始时间，除发起者外无人加入）","bsonType":"string"},"role":{"description":"成员角色：member=普通成员，publisher=发布者","bsonType":"string"},"guarantee_score":{"description":"担保积分，普通成员加入时暂扣","bsonType":"int"},"settle_score":{"description":"任务结算时返还\/奖励的积分","bsonType":"int"},"guarantee_amount":{"description":"担保金额，普通成员加入时暂扣，单位元","bsonType":"double"},"settle_amount":{"description":"任务结算时返还\/奖励的金额，单位元","bsonType":"double"},"extra":{"description":"扩展字段","bsonType":"object"}}}
+{
+    "bsonType": "object",
+    "required": [
+        "user_id",
+        "task_id",
+        "join_time",
+        "status"
+    ],
+    "properties": {
+        "_id": {
+            "description": "主键id",
+            "bsonType": "objectId"
+        },
+        "user_id": {
+            "description": "用户id",
+            "bsonType": "objectId"
+        },
+        "task_id": {
+            "description": "任务id",
+            "bsonType": "objectId"
+        },
+        "join_time": {
+            "description": "加入时间，时间戳",
+            "bsonType": "long"
+        },
+        "status": {
+            "description": "参与状态：joined=已加入，quit=主动退出，completed=已完成，removed=被移除，timeout=超时未参与，invalid=任务失效（主任务失效时同步），evaluated=已评价（个人已评价/结算）",
+            "bsonType": "string",
+            "enum": [
+                "joined",
+                "quit",
+                "completed",
+                "removed",
+                "timeout",
+                "invalid",
+                "evaluated"
+            ],
+            "defaultValue": "joined"
+        },
+        "role": {
+            "description": "成员角色：member=普通成员，publisher=发布者",
+            "bsonType": "string"
+        },
+        "guarantee_score": {
+            "description": "担保积分，普通成员加入时暂扣",
+            "bsonType": "int"
+        },
+        "settle_score": {
+            "description": "任务结算时返还\/奖励的积分",
+            "bsonType": "int"
+        },
+        "guarantee_amount": {
+            "description": "担保金额，普通成员加入时暂扣，单位元",
+            "bsonType": "double"
+        },
+        "settle_amount": {
+            "description": "任务结算时返还\/奖励的金额，单位元",
+            "bsonType": "double"
+        },
+        "extra": {
+            "description": "扩展字段",
+            "bsonType": "object"
+        }
+    }
+}

@@ -410,7 +410,7 @@ export default {
 			console.log('[getOrderByArray] 排序数组:', JSON.stringify(arr));
 			return arr;
 		},
-		async fetchTasks({ reset = false } = {}) {
+		async fetchTasks({ reset = false, force = false } = {}) {
 			const cacheKey = JSON.stringify({
 				keyword: this.keyword,
 				category: this.currentCategory,
@@ -425,7 +425,7 @@ export default {
 			});
 			const now = Date.now();
 			// 只缓存第一页
-			if (reset && this.taskCache[cacheKey] && (now - this.taskCache[cacheKey].ts < this.cacheExpire)) {
+			if (reset && !force && this.taskCache[cacheKey] && (now - this.taskCache[cacheKey].ts < this.cacheExpire)) {
 				const cached = this.taskCache[cacheKey].data;
 				this.tasksList = cached.tasksList;
 				this.hasMore = cached.hasMore;
@@ -500,7 +500,7 @@ export default {
 			}
 		},
 		refresh() {
-			this.fetchTasks({ reset: true });
+			this.fetchTasks({ reset: true, force: true });
 			uni.stopPullDownRefresh();
 		},
 		getColumnsFiltered(data) {

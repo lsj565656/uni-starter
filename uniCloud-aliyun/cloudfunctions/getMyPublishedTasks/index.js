@@ -3,7 +3,7 @@
 const db = uniCloud.database();
 const dbCmd = db.command;
 exports.main = async (event, context) => {
-  const { page = 1, pageSize = 10, filter = '全部' } = event;
+  const { page = 1, pageSize = 10, filter = '全部', extra = '全部' } = event;
   const uid = context.auth && context.auth.uid || event.userId;
   if (!uid) {
     return { code: 401, message: '未登录', data: [] };
@@ -15,19 +15,20 @@ exports.main = async (event, context) => {
     } catch (e) {}
   }
   let matchStage = { user_id: userObjectId };
-  // 可根据 filter 字段扩展筛选条件
-  if (filter === '进行中') {
-    matchStage.start_time = dbCmd.lte(Date.now());
-    matchStage.end_time = dbCmd.gte(Date.now());
+  // 根据 filter 字段筛选 status
+  if (filter === '待开始') {
+    matchStage.status = 'not_started';
+  } else if (filter === '进行中') {
+    matchStage.status = 'in_progress';
   } else if (filter === '已完成') {
-    matchStage.finished = true;
-  } else if (filter === '已结束') {
-    matchStage.end_time = dbCmd.lt(Date.now());
+    matchStage.status = 'finished';
   } else if (filter === '已失效') {
-    matchStage.invalid = true;
+    matchStage.status = 'invalid';
+  } else if (filter === '已评价') {
+    matchStage.status = 'evaluated';
   }
+  // 处理 extra 筛选
   let agg = db.collection('kl-tasks').aggregate().match(matchStage);
-  // 聚合成员信息
   agg = agg.lookup({
     from: 'kl-users-join-task',
     let: { taskId: '$_id' },
@@ -50,7 +51,6 @@ exports.main = async (event, context) => {
     ],
     as: 'members'
   });
-  // 聚合发布者信息
   agg = agg.lookup({
     from: 'uni-id-users',
     let: { userId: '$user_id' },
@@ -60,6 +60,17 @@ exports.main = async (event, context) => {
     ],
     as: 'userInfoArr'
   });
+  // 只在聚合后做 extra 过滤
+  agg = agg.addFields({
+    isUserAlsoMember: {
+      $in: [userObjectId, '$members._id']
+    }
+  });
+  if (extra === '仅发布的') {
+    agg = agg.match({ isUserAlsoMember: false });
+  } else if (extra === '发布并参与的') {
+    agg = agg.match({ isUserAlsoMember: true });
+  }
   agg = agg.skip((page - 1) * pageSize).limit(pageSize);
   try {
     const res = await agg.end();
@@ -67,8 +78,28 @@ exports.main = async (event, context) => {
       ...task,
       userInfo: Array.isArray(task.userInfoArr) && task.userInfoArr.length > 0 ? task.userInfoArr[0] : null
     }));
-    // 查询总数
-    const totalRes = await db.collection('kl-tasks').where(matchStage).count();
+    // 查询总数（需同步extra逻辑）
+    let totalAgg = db.collection('kl-tasks').aggregate().match(matchStage)
+      .lookup({
+        from: 'kl-users-join-task',
+        let: { taskId: '$_id' },
+        pipeline: [
+          { $match: { $expr: { $eq: ['$task_id', '$$taskId'] } } },
+          { $project: { user_id: 1 } }
+        ],
+        as: 'members'
+      })
+      .addFields({
+        isUserAlsoMember: {
+          $in: [userObjectId, '$members.user_id']
+        }
+      });
+    if (extra === '仅发布的') {
+      totalAgg = totalAgg.match({ isUserAlsoMember: false });
+    } else if (extra === '发布并参与的') {
+      totalAgg = totalAgg.match({ isUserAlsoMember: true });
+    }
+    const totalRes = await totalAgg.count();
     const total = totalRes.total || 0;
     const hasMore = page * pageSize < total;
     return {
