@@ -142,6 +142,20 @@
 			}
 		},
 		{
+			"path": "pages/ucenter/myTasks/published",
+			"style": {
+				"navigationBarTitleText": "发布的任务",
+				"enablePullDownRefresh": true
+			}
+		},
+		{
+			"path": "pages/ucenter/myTasks/joined",
+			"style": {
+				"navigationBarTitleText": "参与的任务",
+				"enablePullDownRefresh": true
+			}
+		},
+		{
 			"path": "pages/task-confirm/task-confirm",
 			"style": {
 				"navigationBarTitleText": "加入任务确认",

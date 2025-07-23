@@ -16,10 +16,18 @@
 					<text class="uer-name" v-else>{{$t('mine.notLogged')}}</text>
 				</view>
 			</view>
-			<uni-grid class="home" :column="4" :showBorder="false" :square="true">
-				<uni-grid-item class="item" v-for="(item,index) in homeList" @click.native="tapHome(index)" :key="index">
-					<uni-icons class="icon" color="#007AFF" :type="item.icon" size="26"></uni-icons>
-					<text class="text">{{item.text}}</text>
+			<uni-grid class="home" :column="3" :showBorder="false" :square="true">
+				<uni-grid-item class="item" @click.native="goToMyPublishedTasks">
+					<uni-icons class="icon" color="#007AFF" type="paperplane" size="26"></uni-icons>
+					<text class="text">发布的任务</text>
+				</uni-grid-item>
+				<uni-grid-item class="item" @click.native="goToMyJoinedTasks">
+					<uni-icons class="icon" color="#007AFF" type="staff" size="26"></uni-icons>
+					<text class="text">参与的任务</text>
+				</uni-grid-item>
+				<uni-grid-item class="item" @click.native="goToMySchedule">
+					<uni-icons class="icon" color="#007AFF" type="calendar" size="26"></uni-icons>
+					<text class="text">任务时间表</text>
 				</uni-grid-item>
 			</uni-grid>
 			<uni-list class="center-list" v-for="(sublist , index) in ucenterList" :key="index">
@@ -391,7 +399,20 @@
 					console.log(e);
 				})
 				// #endif
-			}
+			},
+			goToMyPublishedTasks() {
+				uni.navigateTo({ url: '/pages/ucenter/myTasks/published' });
+			},
+			goToMyJoinedTasks() {
+				uni.navigateTo({ url: '/pages/ucenter/myTasks/joined' });
+			},
+			goToMySchedule() {
+				uni.showToast({
+				title: '时间表开发者 敬请期待',
+				icon: 'none',
+				duration: 3000
+			})
+			},
 		}
 	}
 </script>
