@@ -36,53 +36,59 @@
         </view>
       </uni-popup>
     </view>
-    <uni-swipe-action>
-      <uni-swipe-action-item
-        v-for="task in tasks"
-        :key="task._id"
-        :right-options="getSwipeOptions(task)"
-        @click="(e) => onSwipeAction(e, task)"
-      >
-        <uni-card
-          :thumbnail="task.userInfo?.avatar_file?.url || defaultAvatar"
-          :title="task.name"
-          :extra="getStatusText(task)"
-          :sub-title="formatTime(task.start_time) + ' ~ ' + formatTime(task.end_time)"
-          :is-shadow="true"
-          :is-full="true"
+    <view class="page-content">
+      <uni-swipe-action>
+        <uni-swipe-action-item
+          v-for="task in tasks"
+          :key="task._id"
+          :right-options="getSwipeOptions(task)"
+          @click="(e) => onSwipeAction(e, task)"
         >
-          <view class="card-header-row">
-            <view class="card-title-row">
-              <view class="stamp">{{ task.category_name }}</view>
-              <view v-if="task.user_id === userId && isUserAlsoMember(task)" class="stamp">发布并参与</view>
-              <view v-else-if="task.user_id === userId" class="stamp">我发布的</view>
-              <view v-else class="stamp">仅参与</view>
-              <text class="reward-value">{{ task.mode === 'score' ? task.score + '积分' : task.price + '元' }}</text>
-            </view>
-            <view class="card-sub-row">
-              <text class="meta-label">参与人数：</text>
-              <text class="meta-value">{{ task.members?.length || 0 }}/{{ task.max_participants }}</text>
-              <view class="avatars-row">
-                <image
-                  v-for="(member, idx) in getDisplayMembers(task)"
-                  :key="member._id || idx"
-                  :src="member.avatar || defaultAvatar"
-                  class="avatar-img"
-                  :style="{ marginLeft: idx === 0 ? '0' : '-16px' }"
-                />
-                <view v-if="getMoreMemberCount(task) > 0" class="avatar-more">+{{ getMoreMemberCount(task) }}</view>
+          <uni-card
+            :thumbnail="task.userInfo?.avatar_file?.url || defaultAvatar"
+            :title="task.name"
+            :extra="getStatusText(task)"
+            :sub-title="formatTime(task.start_time) + ' ~ ' + formatTime(task.end_time)"
+            :is-shadow="true"
+            :is-full="true"
+          >
+            <view class="card-header-row">
+              <view class="card-title-row">
+                <view class="stamp">{{ task.category_name }}</view>
+                <view v-if="task.user_id === userId && isUserAlsoMember(task)" class="stamp">发布并参与</view>
+                <view v-else-if="task.user_id === userId" class="stamp">我发布的</view>
+                <view v-else class="stamp">仅参与</view>
+                <text class="reward-value">{{ task.mode === 'score' ? task.score + '积分' : task.price + '元' }}</text>
+              </view>
+              <view class="card-sub-row">
+                <text class="meta-label">参与人数：</text>
+                <text class="meta-value">{{ task.members?.length || 0 }}/{{ task.max_participants }}</text>
+                <view class="avatars-row">
+                  <image
+                    v-for="(member, idx) in getDisplayMembers(task)"
+                    :key="member._id || idx"
+                    :src="member.avatar || defaultAvatar"
+                    class="avatar-img"
+                    :style="{ marginLeft: idx === 0 ? '0' : '-16px' }"
+                  />
+                  <view v-if="getMoreMemberCount(task) > 0" class="avatar-more">+{{ getMoreMemberCount(task) }}</view>
+                </view>
+              </view>
+              <view class="card-desc-row">
+                <text class="desc-text">{{ task.description || '无描述' }}</text>
               </view>
             </view>
-            <view class="card-desc-row">
-              <text class="desc-text">{{ task.description || '无描述' }}</text>
-            </view>
-          </view>
-        </uni-card>
-      </uni-swipe-action-item>
-    </uni-swipe-action>
-    <view v-if="loading" class="loading">加载中...</view>
-    <view v-if="!hasMore && tasks.length" class="no-more">没有更多了</view>
-    <view v-if="!tasks.length && !loading" class="empty">暂无任务</view>
+          </uni-card>
+        </uni-swipe-action-item>
+      </uni-swipe-action>
+      <uni-load-state
+        class="load-state"
+        :state="{data:tasks,pagination,hasMore,loading,error}"
+        @loadMore="loadMore"
+        @networkResume="refresh"
+        noMoreText="没有更多了"
+      />
+    </view>
   </view>
 </template>
 <script>
@@ -96,6 +102,9 @@ export default {
       pageSize: 10,
       hasMore: true,
       loading: false,
+      pagination: {},
+      publishedTaskCache: {},
+      cacheExpire: 120000, // 2分钟
       filterOptions: ['全部', '待开始', '进行中', '已完成', '已失效', '已评价'],
       filterIndex: 0,
       userId: '',
@@ -103,7 +112,8 @@ export default {
       categoryScrollLeft: 0,
       showBackToAllBtn: false,
       filterExtraOptions: ['不筛选', '仅看我发布的', '仅看我参与的'],
-      filterExtraIndex: 0
+      filterExtraIndex: 0,
+      error: ''
     }
   },
   computed: {
@@ -125,10 +135,13 @@ export default {
   },
   onLoad() {
     this.userId = store.userInfo._id || '';
-    this.refresh();
+    this.fetchMyPublishedTasks({ reset: true });
   },
   onPullDownRefresh() {
     this.refresh();
+  },
+  onReachBottom() {
+    this.loadMore();
   },
   methods: {
     formatTime,
@@ -177,42 +190,80 @@ export default {
       }
       return options;
     },
-    async refresh() {
-      this.page = 1;
-      this.tasks = [];
-      this.hasMore = true;
+    getPublishedCacheKey() {
+      return JSON.stringify({
+        filter: this.filterOptions[this.filterIndex],
+        extra: this.filterExtraOptions[this.filterExtraIndex],
+        page: this.page,
+        pageSize: this.pageSize
+      });
+    },
+    async fetchMyPublishedTasks({ reset = false } = {}) {
+      if (reset) {
+        this.page = 1;
+        this.tasks = [];
+        this.hasMore = true;
+        this.pagination = {};
+      }
+      const cacheKey = this.getPublishedCacheKey();
+      const now = Date.now();
+      // 只缓存第一页
+      if (reset && this.publishedTaskCache[cacheKey] && (now - this.publishedTaskCache[cacheKey].ts < this.cacheExpire)) {
+        const cached = this.publishedTaskCache[cacheKey].data;
+        this.tasks = cached.tasks;
+        this.hasMore = cached.hasMore;
+        this.pagination = cached.pagination;
+        return;
+      }
+      if ((!this.hasMore && !reset) || this.loading) return;
       this.loading = true;
       try {
-        await this.loadMore(true);
+        const res = await uniCloud.callFunction({
+          name: 'getMyPublishedTasks',
+          data: {
+            page: this.page,
+            pageSize: this.pageSize,
+            userId: this.userId,
+            filter: this.filterOptions[this.filterIndex],
+            extra: this.filterExtraOptions[this.filterExtraIndex]
+          }
+        });
+        if (res.result && res.result.code === 0) {
+          const list = res.result.data || [];
+          if (reset) {
+            this.tasks = list;
+          } else {
+            this.tasks = this.tasks.concat(list);
+          }
+          this.hasMore = res.result.hasMore;
+          this.pagination = {
+            total: res.result.total,
+            page: res.result.page,
+            pageSize: res.result.pageSize
+          };
+          this.page = res.result.page + 1;
+          // 写入缓存（只缓存第一页）
+          if (reset) {
+            this.publishedTaskCache[cacheKey] = {
+              ts: now,
+              data: {
+                tasks: this.tasks,
+                hasMore: this.hasMore,
+                pagination: this.pagination
+              }
+            }
+          }
+        }
       } finally {
         this.loading = false;
         uni.stopPullDownRefresh();
       }
     },
-    async loadMore(isRefresh = false) {
-      if ((!this.hasMore && !isRefresh) || this.loading) return;
-      this.loading = true;
-      const res = await uniCloud.callFunction({
-        name: 'getMyPublishedTasks',
-        data: {
-          page: this.page,
-          pageSize: this.pageSize,
-          userId: this.userId,
-          filter: this.filterOptions[this.filterIndex],
-          extra: this.filterExtraOptions[this.filterExtraIndex]
-        }
-      });
-      if (res.result && res.result.code === 0) {
-        const list = res.result.data || [];
-        if (isRefresh) {
-          this.tasks = list;
-        } else {
-          this.tasks = this.tasks.concat(list);
-        }
-        this.hasMore = res.result.hasMore;
-        this.page = res.result.page + 1;
-      }
-      this.loading = false;
+    refresh() {
+      this.fetchMyPublishedTasks({ reset: true });
+    },
+    loadMore() {
+      this.fetchMyPublishedTasks();
     },
     onFilterTab(idx) {
       if (this.filterIndex !== idx) {
@@ -290,10 +341,17 @@ export default {
   background: #fff;
   border-bottom: 1px solid #f0f0f0;
   padding: 0;
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  z-index: 1001;
   height: 45px;
   min-height: 45px;
   max-height: 45px;
+}
+.page-content {
+  margin-top: 45px;
 }
 .category-scroll {
   flex: 1;
