@@ -50,7 +50,8 @@
             :extra="getStatusText(task)"
             :sub-title="formatTime(task.start_time) + ' ~ ' + formatTime(task.end_time)"
             :is-shadow="true"
-            :is-full="true"
+            :is-full="false"
+            margin="4px 6px"
           >
             <view class="card-header-row">
               <view class="card-title-row">
@@ -87,6 +88,15 @@
         noMoreText="没有更多了"
       />
     </view>
+    <uni-drawer ref="rateDrawer" mode="right" :mask-click="false" :width="rateDrawerWidth" :style="{zIndex: 1200}">
+      <view style="padding:24px 20px;min-width:240px;max-width:90vw;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;">
+        <view style="font-size:17px;font-weight:600;margin-bottom:12px;">我的评价</view>
+        <uni-rate :value="currentRate" allow-half readonly size="28" margin="2" />
+        <view style="margin:12px 0 4px 0;color:#888;">{{ currentRateComment || '无评价内容' }}</view>
+        <view style="font-size:12px;color:#aaa;">{{ currentRateTime }}</view>
+        <button style="margin-top:18px;" @click="closeRateDrawer">关闭</button>
+      </view>
+    </uni-drawer>
   </view>
 </template>
 <script>
@@ -111,7 +121,12 @@ export default {
       filterExtraIndex: 0,
       error: '',
       publishedPageCache: {}, // 新增缓存对象
-      cacheExpire: 60000 // 1分钟
+      cacheExpire: 60000, // 1分钟
+      // showRatePopup: false, // 移除
+      rateDrawerWidth: 300, // 默认
+      currentRate: null,
+      currentRateComment: '',
+      currentRateTime: '',
     }
   },
   computed: {
@@ -134,6 +149,13 @@ export default {
   onLoad() {
     this.userId = store.userInfo._id || '';
     this.fetchMyPublishedTasks({ reset: true });
+    // 动态设置抽屉宽度为 80% 屏幕宽
+    let width = 300;
+    try {
+      const sys = uni.getSystemInfoSync();
+      width = Math.floor((sys.windowWidth || 375) * 0.8);
+    } catch(e) {}
+    this.rateDrawerWidth = width;
   },
   onPullDownRefresh() {
     this.refresh();
@@ -168,13 +190,17 @@ export default {
       const status = task.status;
       const options = [];
       if (status === 'not_started') {
-        options.push({ text: '编辑', style: { background: '#1976d2', color: '#fff' }, key: 'edit' });
+        options.push({ text: '编辑', style: { backgroundColor: '#fff', color: '#222', fontWeight: 'bold' }, key: 'edit' });
+        options.push({ text: '删除', style: { backgroundColor: '#fff', color: 'red', fontWeight: 'bold' }, key: 'delete' });
       }
       if (status === 'invalid') {
-        options.push({ text: '删除', style: { background: '#e74c3c', color: '#fff' }, key: 'delete' });
+        options.push({ text: '删除', style: { backgroundColor: '#fff', color: 'red', fontWeight: 'bold' }, key: 'delete' });
       }
       if (status === 'finished') {
-        options.push({ text: '评价', style: { background: '#ff9800', color: '#fff' }, key: 'comment' });
+        options.push({ text: '评价', style: { backgroundColor: '#fff', color: '#222', fontWeight: 'bold' }, key: 'comment' });
+      }
+      if (status === 'evaluated') {
+        options.push({ text: '查看评价', style: { backgroundColor: '#fff', color: '#222', fontWeight: 'bold' }, key: 'viewRate' });
       }
       return options;
     },
@@ -339,6 +365,7 @@ export default {
       if (e.content.key === 'edit') this.editTask(task._id);
       if (e.content.key === 'delete') this.deleteTask(task._id);
       if (e.content.key === 'comment') this.goToComment(task._id);
+      if (e.content.key === 'viewRate') this.showRateDialog(task);
     },
     editTask(id) {
       // 跳转到任务编辑页
@@ -381,6 +408,25 @@ export default {
       uni.navigateTo({
         url: `/pages/list/detail?id=${id}&from=published`
       });
+    },
+    showRateDialog(task) {
+      // 直接用 task.rateInfo
+      const info = task.rateInfo || {};
+      console.log('showRateDialog rateInfo', info);
+      this.currentRate = typeof info.rate === 'number' ? info.rate : null;
+      this.currentRateComment = info.rate_comment || '';
+      this.currentRateTime = info.rate_time ? this.formatTime(info.rate_time) : '';
+      // 禁止滚动穿透（仅H5）
+      if (typeof document !== 'undefined' && document.body) {
+        document.body.style.overflow = 'hidden';
+      }
+      this.$refs.rateDrawer.open();
+    },
+    closeRateDrawer() {
+      this.$refs.rateDrawer.close();
+      if (typeof document !== 'undefined' && document.body) {
+        document.body.style.overflow = '';
+      }
     }
   }
 }
@@ -402,7 +448,7 @@ export default {
   max-height: 45px;
 }
 .page-content {
-  margin-top: 45px;
+  margin-top: 50px;
 }
 .category-scroll {
   flex: 1;

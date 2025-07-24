@@ -114,19 +114,19 @@ export default async function() {
 	uni.onNetworkStatusChange(res => {
 		console.log(res.isConnected);
 		console.log(res.networkType);
-		if (res.networkType != 'none') {
-			uni.showToast({
-				title: '当前网络类型：' + res.networkType,
-				icon: 'none',
-				duration: 3000
-			})
-		} else {
-			uni.showToast({
-				title: '网络类型：' + res.networkType,
-				icon: 'none',
-				duration: 3000
-			})
-		}
+		// if (res.networkType != 'none') {
+		// 	uni.showToast({
+		// 		title: '当前网络类型：' + res.networkType,
+		// 		icon: 'none',
+		// 		duration: 3000
+		// 	})
+		// } else {
+		// 	uni.showToast({
+		// 		title: '网络类型：' + res.networkType,
+		// 		icon: 'none',
+		// 		duration: 3000
+		// 	})
+		// }
 	});
 	// #endif
 

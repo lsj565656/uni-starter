@@ -71,6 +71,19 @@ exports.main = async (event, context) => {
       $in: [userObjectId, '$members._id']
     }
   });
+  // 拼接 rateInfo 字段
+  agg = agg.lookup({
+    from: 'kl-users-join-task',
+    let: { taskId: '$_id' },
+    pipeline: [
+      { $match: { $expr: { $and: [ { $eq: ['$task_id', '$$taskId'] }, { $eq: ['$user_id', userObjectId] } ] } } },
+      { $project: { rate: 1, rate_comment: 1, rate_time: 1 } }
+    ],
+    as: 'rateInfoArr'
+  });
+  agg = agg.addFields({
+    rateInfo: { $arrayElemAt: ['$rateInfoArr', 0] }
+  });
   if (extra === '仅我参与的') {
     agg = agg.match({ $expr: { $and: [ { $ne: ['$user_id', userObjectId] }, { $eq: ['$isUserAlsoMember', true] } ] } });
   } else if (extra === '我发布并参与的') {

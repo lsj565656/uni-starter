@@ -60,6 +60,19 @@
         "extra": {
             "description": "扩展字段",
             "bsonType": "object"
+        },
+        "rate": {
+            "description": "任务体验评分，1~5星，支持半星",
+            "bsonType": "double"
+        },
+        "rate_comment": {
+            "description": "任务体验评价内容，80字以内",
+            "bsonType": "string",
+            "maxLength": 80
+        },
+        "rate_time": {
+            "description": "评价时间戳",
+            "bsonType": "long"
         }
     }
 }
