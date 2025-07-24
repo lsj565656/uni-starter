@@ -331,9 +331,43 @@ export default {
     },
     onSwipeAction(e, task) {
       if (e.key === 'comment') this.goToComment(task._id);
+      if (e.key === 'delete') this.deleteTask(task._id);
     },
     goToComment(id) {
-      // ...实现跳转到评论页
+      // 跳转到评论/评价页
+      uni.navigateTo({
+        url: `/pages/list/detail?id=${id}&from=joined`
+      });
+    },
+    deleteTask(id) {
+      uni.showModal({
+        title: '删除任务',
+        content: '确定要删除该任务吗？删除后不可恢复',
+        confirmText: '删除',
+        confirmColor: '#e74c3c',
+        success: async (res) => {
+          if (res.confirm) {
+            uni.showLoading({ title: '删除中...' });
+            try {
+              const delRes = await uniCloud.callFunction({
+                name: 'deleteTask',
+                data: { id }
+              });
+              if (delRes.result && delRes.result.code === 0) {
+                uni.showToast({ title: '删除成功', icon: 'success' });
+                // 刷新列表
+                this.refresh();
+              } else {
+                uni.showToast({ title: delRes.result?.message || '删除失败', icon: 'none' });
+              }
+            } catch (e) {
+              uni.showToast({ title: '删除失败', icon: 'none' });
+            } finally {
+              uni.hideLoading();
+            }
+          }
+        }
+      });
     }
   }
 }

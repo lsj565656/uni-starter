@@ -4,8 +4,11 @@
       <!-- 标题 -->
       <uni-forms-item label="任务标题" name="name" required>
         <view class="input-row">
-          <uni-easyinput v-model="form.name" maxlength="15" placeholder="请输入任务标题" @input="onTitleInput" />
-          <text class="input-count">{{ form.name.length }}/15</text>
+          <uni-easyinput v-model="form.name" maxlength="15" placeholder="请输入任务标题" @input="onTitleInput" :disabled="isFieldDisabled('name')">
+            <template #right>
+              <text class="input-count">{{ form.name.length }}/15</text>
+            </template>
+          </uni-easyinput>
         </view>
       </uni-forms-item>
       <!-- 描述 -->
@@ -104,7 +107,7 @@
       <!-- 任务类型 -->
       <uni-forms-item label="任务类型" name="category" required>
         <uni-data-picker :localdata="typeOptions" popup-title="请选择任务类型" placeholder="请选择任务类型" v-model="form.category"
-          @change="onTypeChange" />
+          @change="onTypeChange" :readonly="isFieldDisabled('category')" />
         <view v-if="form.category !== -1" class="picker-value">
           <image v-if="typeOptions.find(opt => opt.value === form.category)?.icon"
             :src="typeOptions.find(opt => opt.value === form.category)?.icon" class="type-icon" />
@@ -114,21 +117,21 @@
       <!-- 地区选择 -->
       <uni-forms-item label="所属地区" name="location" required>
         <uni-data-picker :localdata="areaPickerData" popup-title="请选择地区" placeholder="请选择省市区" v-model="form.location"
-          @change="onAreaChange" />
+          @change="onAreaChange" :readonly="isFieldDisabled('location')" />
       </uni-forms-item>
       <!-- 图片/视频上传 -->
       <uni-forms-item label="图片/视频" name="media">
         <media-uploader v-model="form.media_detail" :maxImages="3" :maxImageSize="2 * 1024 * 1024"
           :maxVideoSize="10 * 1024 * 1024" :maxVideoDuration="30" />
       </uni-forms-item>
-      <button class="submit-btn" @click="submit">确认提交</button>
+      <button class="submit-btn" @click="submit">{{ isEditMode ? '确认修改' : '确认提交' }}</button>
     </view>
   </uni-forms>
 </template>
 
 <script setup>
 import { reactive, ref, computed, nextTick, onMounted, watch } from 'vue'
-import { onReady } from '@dcloudio/uni-app'
+import { onReady, onLoad } from '@dcloudio/uni-app'
 import { formatAmountUnits, numberToChinese, formatDuration } from '@/utils/tools.js'
 import { categories } from '@/utils/categories.js'
 import { areaList } from '@/common/areaList.js'
@@ -276,7 +279,6 @@ const rules = {
       { required: true, errorMessage: '请输入最大参与人数', trigger: 'blur' },
       {
         validateFunction: (rule, value, data, callback) => {
-          console.log('do max_participants validateFunction');
           const min = isPublisherJoined.value ? 2 : 1
           if (!value || isNaN(Number(value)) || Number(value) < min) {
             callback(isPublisherJoined.value ? '发布者加入时，参与人数至少2人' : '参与人数至少1人')
@@ -379,8 +381,14 @@ function updateMaxUnitPosition(type) {
     }
   })
 }
+// 修改 amountMaxUnit/scoreMaxUnit 计算逻辑，确保 .split 前类型安全
 const amountMaxUnit = computed(() => {
-  const intPart = Number((form.price || '').split('.')[0] || 0);
+  let intPart = 0;
+  if (typeof form.price === 'string') {
+    intPart = Number((form.price.split ? form.price.split('.')[0] : form.price) || 0);
+  } else if (typeof form.price === 'number') {
+    intPart = Math.floor(form.price);
+  }
   const arr = formatAmountUnits(intPart);
   return arr.length ? arr[0].unit : '';
 })
@@ -493,7 +501,16 @@ function getEndDateStr() {
 const endDateStr = computed(() => getEndDateStr())
 function formatDateTimeHM(str) {
   if (!str) return '';
-  if (str.includes('T')) {
+  if (typeof str === 'number') {
+    const date = new Date(str);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const h = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    return `${y}-${m}-${d} ${h}:${min}`;
+  }
+  if (typeof str === 'string' && str.includes('T')) {
     // ISO格式，自动转本地
     const date = new Date(str);
     const y = date.getFullYear();
@@ -502,10 +519,11 @@ function formatDateTimeHM(str) {
     const h = String(date.getHours()).padStart(2, '0');
     const min = String(date.getMinutes()).padStart(2, '0');
     return `${y}-${m}-${d} ${h}:${min}`;
-  } else {
+  } else if (typeof str === 'string') {
     // 普通字符串，直接截取
     return str.slice(0, 16);
   }
+  return '';
 }
 const typeText = computed(() => {
   return typeOptions.find(opt => opt.value === form.category)?.text || ''
@@ -570,6 +588,66 @@ async function uploadAllMedia(mediaDetailArr) {
   return uploaded
 }
 
+const isEditMode = ref(false)
+const editTaskId = ref('')
+
+onLoad(async (options) => {
+  if (options && options.id && options.edit === '1') {
+    isEditMode.value = true
+    editTaskId.value = options.id
+    await fetchTaskDetailAndFill(options.id)
+  }
+})
+
+async function fetchTaskDetailAndFill(id) {
+  try {
+    uni.showLoading({ title: '加载中...' })
+    const res = await uniCloud.callFunction({
+      name: 'getTaskDetail',
+      data: { id }
+    })
+    if (res.result && res.result.data) {
+      const task = res.result.data
+      // 填充表单，核心字段不可编辑
+      form.name = task.name || ''
+      form.description = task.description || ''
+      form.media = task.media || []
+      form.media_detail = task.media_detail || []
+      form.category = task.category || -1
+      form.category_name = task.category_name || ''
+      form.mode = task.mode || 'score'
+      form.score = typeof task.score === 'number' ? task.score : Number(task.score) || 0
+      // price 兼容字符串/数字
+      form.price = (typeof task.price === 'number' || typeof task.price === 'string') ? String(task.price) : '0'
+      form.max_participants = typeof task.max_participants === 'number' ? task.max_participants : Number(task.max_participants) || 1
+      form.is_publisher_joined = !!task.is_publisher_joined
+      form.joined_count = typeof task.joined_count === 'number' ? task.joined_count : Number(task.joined_count) || 0
+      form.isActive = task.isActive !== false
+      form.location = Array.isArray(task.location) ? task.location : []
+      form.location_text = Array.isArray(task.location_text) ? task.location_text : []
+      // start_time/end_time 兼容时间戳和字符串
+      let start = task.start_time
+      let end = task.end_time
+      if (typeof start === 'number') start = formatDateTimeHM(start)
+      if (typeof end === 'number') end = formatDateTimeHM(end)
+      form.start_time = typeof start === 'string' ? start : ''
+      form.end_time = typeof end === 'string' ? end : ''
+      form.timeRange = [form.start_time, form.end_time]
+    }
+  } finally {
+    uni.hideLoading()
+  }
+}
+
+// isFieldDisabled 只针对核心字段
+function isFieldDisabled(field) {
+  if (!isEditMode.value) return false
+  // 只禁用标题、分类、地区
+  return [
+    'name', 'category', 'location'
+  ].includes(field)
+}
+
 async function submit() {
   if (!store.hasLogin) {
     uni.showToast({ title: '请先登录', icon: 'none' });
@@ -590,32 +668,50 @@ async function submit() {
     form.media_detail = uploadedMediaDetail
     form.media = uploadedMediaDetail.map(item => item.url)
     isUploading.value = false
-    // 2. 组装数据并提交
+    // 组装数据
     const user_id = store.userInfo && store.userInfo._id;
     const data = {
       ...prepareSubmitData(),
       isActive: true,
       create_date: Date.now()
     };
-    // 调用 publishTask 云函数
-    const res = await uniCloud.callFunction({
-      name: 'publishTask',
-      data: {
-        task: data,
-        autoJoin: !!form.is_publisher_joined,
-        userId: user_id
+    if (isEditMode.value) {
+      // 编辑模式，仅允许部分字段可编辑
+      const allowed = ['description', 'media', 'media_detail', 'mode', 'score', 'price', 'max_participants', 'is_publisher_joined', 'isActive', 'start_time', 'end_time', 'joined_count']
+      const updateData = {}
+      allowed.forEach(key => { if (key in data) updateData[key] = data[key] })
+      updateData._id = editTaskId.value
+      const res = await uniCloud.callFunction({
+        name: 'updateTask',
+        data: { task: updateData, userId: user_id }
+      })
+      if (res.result && res.result.code === 0) {
+        uni.showToast({ title: '修改成功', icon: 'success' });
+        setTimeout(() => {
+          uni.redirectTo({ url: '/pages/ucenter/myTasks/published' });
+        }, 500);
+      } else {
+        throw new Error(res.result?.message || '修改失败');
       }
-    });
-    if (res.result && res.result.code === 0) {
-    uni.showToast({ title: '发布成功', icon: 'success' });
-    uni.navigateBack();
     } else {
-      throw new Error(res.result?.message || '发布失败');
+      // 发布模式
+      const res = await uniCloud.callFunction({
+        name: 'publishTask',
+        data: {
+          task: data,
+          autoJoin: !!form.is_publisher_joined,
+          userId: user_id
+        }
+      });
+      if (res.result && res.result.code === 0) {
+        uni.showToast({ title: '发布成功', icon: 'success' });
+        uni.navigateBack();
+      } else {
+        throw new Error(res.result?.message || '发布失败');
+      }
     }
   } catch (err) {
     isUploading.value = false
-    // 校验失败或上传失败，不执行提交
-    console.error('validate/upload error:', err);
     let msg = '请完善表单';
     if (err && err.message) {
       msg = err.message;
@@ -659,7 +755,6 @@ function onTimeInputClick(e) {
   openDatePicker();
 }
 function onClearTimeRange() {
-  console.log('do onClearTimeRange!');
   clearTimeRange();
 }
 const isPublisherJoined = ref(false)
