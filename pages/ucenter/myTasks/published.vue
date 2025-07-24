@@ -97,6 +97,15 @@
         <button style="margin-top:18px;" @click="closeRateDrawer">关闭</button>
       </view>
     </uni-drawer>
+    <uni-drawer ref="rateEditDrawer" mode="right" :mask-click="false" :width="rateDrawerWidth" :style="{zIndex: 1200}">
+      <view style="padding:24px 20px;min-width:240px;max-width:90vw;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;">
+        <view style="font-size:17px;font-weight:600;margin-bottom:12px;">任务评价</view>
+        <uni-rate v-model="rateEditValue" allow-half :max="5" size="28" margin="2" />
+        <uni-easyinput v-model="rateEditComment" type="textarea" maxlength="80" placeholder="请输入评价内容（80字以内）" style="margin:12px 0 4px 0;width:100%;" />
+        <button style="margin-top:18px;width:100%;" :loading="rateEditLoading" @click="submitRate">提交评价</button>
+        <button style="margin-top:8px;width:100%;" @click="() => { showRateEditDrawer=false; $refs.rateEditDrawer.close(); }">取消</button>
+      </view>
+    </uni-drawer>
   </view>
 </template>
 <script>
@@ -127,6 +136,11 @@ export default {
       currentRate: null,
       currentRateComment: '',
       currentRateTime: '',
+      showRateEditDrawer: false,
+      rateEditValue: 0,
+      rateEditComment: '',
+      rateEditLoading: false,
+      rateEditTaskId: '',
     }
   },
   computed: {
@@ -166,6 +180,7 @@ export default {
   methods: {
     formatTime,
     getStatusText(task) {
+      if (task.myJoinStatus === 'evaluated') return '已评价';
       return {
         not_started: '待开始',
         in_progress: '进行中',
@@ -187,7 +202,8 @@ export default {
       return Math.max(0, members.length - 4);
     },
     getSwipeOptions(task) {
-      const status = task.status;
+      const status = this.filterOptions[this.filterIndex] === '已评价' ? 'evaluated' : task.status;
+      const myStatus = task.myJoinStatus;
       const options = [];
       if (status === 'not_started') {
         options.push({ text: '编辑', style: { backgroundColor: '#fff', color: '#222', fontWeight: 'bold' }, key: 'edit' });
@@ -196,11 +212,11 @@ export default {
       if (status === 'invalid') {
         options.push({ text: '删除', style: { backgroundColor: '#fff', color: 'red', fontWeight: 'bold' }, key: 'delete' });
       }
-      if (status === 'finished') {
-        options.push({ text: '评价', style: { backgroundColor: '#fff', color: '#222', fontWeight: 'bold' }, key: 'comment' });
-      }
-      if (status === 'evaluated') {
+      // 个人未评价时显示“评价”，已评价时显示“查看评价”
+      if (myStatus === 'evaluated' || status === 'evaluated') {
         options.push({ text: '查看评价', style: { backgroundColor: '#fff', color: '#222', fontWeight: 'bold' }, key: 'viewRate' });
+      } else if (status === 'finished') {
+        options.push({ text: '评价', style: { backgroundColor: '#fff', color: '#222', fontWeight: 'bold' }, key: 'comment' });
       }
       return options;
     },
@@ -362,10 +378,11 @@ export default {
       }
     },
     onSwipeAction(e, task) {
-      if (e.content.key === 'edit') this.editTask(task._id);
-      if (e.content.key === 'delete') this.deleteTask(task._id);
-      if (e.content.key === 'comment') this.goToComment(task._id);
-      if (e.content.key === 'viewRate') this.showRateDialog(task);
+      const key = e.content?.key || e.key;
+      if (key === 'edit') this.editTask(task._id);
+      if (key === 'delete') this.deleteTask(task._id);
+      if (key === 'comment') this.onRateTask(task);
+      if (key === 'viewRate') this.showRateDialog(task);
     },
     editTask(id) {
       // 跳转到任务编辑页
@@ -426,6 +443,54 @@ export default {
       this.$refs.rateDrawer.close();
       if (typeof document !== 'undefined' && document.body) {
         document.body.style.overflow = '';
+      }
+    },
+    onRateTask(task) {
+      this.rateEditTaskId = task._id;
+      this.rateEditValue = 0;
+      this.rateEditComment = '';
+      this.showRateEditDrawer = true;
+      this.$refs.rateEditDrawer.open();
+    },
+    async submitRate() {
+      if (this.rateEditValue <= 0) {
+        uni.showToast({ title: '请评分', icon: 'none' });
+        return;
+      }
+      this.rateEditLoading = true;
+      try {
+        const res = await uniCloud.callFunction({
+          name: 'rateTask',
+          data: {
+            task_id: this.rateEditTaskId,
+            user_id: this.userId,
+            rate: this.rateEditValue,
+            rate_comment: this.rateEditComment
+          }
+        });
+        if (res.result && res.result.code === 0) {
+          uni.showToast({ title: '评价成功', icon: 'success' });
+          // 1. 直接更新当前卡片状态
+          const idx = this.tasks.findIndex(t => t._id === this.rateEditTaskId);
+          if (idx !== -1) {
+            this.tasks[idx].status = 'evaluated';
+            this.tasks[idx].rateInfo = {
+              rate: this.rateEditValue,
+              rate_comment: this.rateEditComment,
+              rate_time: Date.now()
+            };
+          }
+          // 2. 如果当前是“已完成”分类，移除该卡片
+          if (this.filterOptions[this.filterIndex] === '已完成') {
+            this.tasks.splice(idx, 1);
+          }
+          this.showRateEditDrawer = false;
+          this.$refs.rateEditDrawer.close();
+        } else {
+          uni.showToast({ title: res.result?.message || '评价失败', icon: 'none' });
+        }
+      } finally {
+        this.rateEditLoading = false;
       }
     }
   }

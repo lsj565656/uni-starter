@@ -15,7 +15,7 @@ exports.main = async (event, context) => {
     } catch (e) {}
   }
   let matchStage = { user_id: userObjectId };
-  // 根据 filter 字段筛选 status
+  // 只在“已完成”等分类用主表 status
   if (filter === '待开始') {
     matchStage.status = 'not_started';
   } else if (filter === '进行中') {
@@ -24,10 +24,8 @@ exports.main = async (event, context) => {
     matchStage.status = 'finished';
   } else if (filter === '已失效') {
     matchStage.status = 'invalid';
-  } else if (filter === '已评价') {
-    matchStage.status = 'evaluated';
   }
-  // 处理 extra 筛选
+  // “已评价”不加主表 status 筛选
   let agg = db.collection('kl-tasks').aggregate().match(matchStage);
   agg = agg.lookup({
     from: 'kl-users-join-task',
@@ -66,23 +64,30 @@ exports.main = async (event, context) => {
       $in: [userObjectId, '$members._id']
     }
   });
-  // 拼接 rateInfo 字段
+  // 拼接 rateInfo 字段和 myJoinStatus
   agg = agg.lookup({
     from: 'kl-users-join-task',
     let: { taskId: '$_id' },
     pipeline: [
       { $match: { $expr: { $and: [ { $eq: ['$task_id', '$$taskId'] }, { $eq: ['$user_id', userObjectId] } ] } } },
-      { $project: { rate: 1, rate_comment: 1, rate_time: 1 } }
+      { $project: { rate: 1, rate_comment: 1, rate_time: 1, status: 1 } }
     ],
     as: 'rateInfoArr'
   });
   agg = agg.addFields({
-    rateInfo: { $arrayElemAt: ['$rateInfoArr', 0] }
+    rateInfo: { $arrayElemAt: ['$rateInfoArr', 0] },
+    myJoinStatus: { $arrayElemAt: ['$rateInfoArr.status', 0] }
   });
   if (extra === '仅发布的') {
     agg = agg.match({ isUserAlsoMember: false });
   } else if (extra === '发布并参与的') {
     agg = agg.match({ isUserAlsoMember: true });
+  }
+  // 只在“已评价”分类时聚合后筛选
+  if (filter === '已评价') {
+    agg = agg.match({ myJoinStatus: 'evaluated' });
+  } else if (filter === '已完成') {
+    agg = agg.match({ myJoinStatus: { $ne: 'evaluated' } });
   }
   agg = agg.skip((page - 1) * pageSize).limit(pageSize);
   try {
