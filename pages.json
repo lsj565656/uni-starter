@@ -35,6 +35,7 @@
 						"type": "transparent"
 					}
 				},
+				"enablePullDownRefresh": true,
 				"navigationBarTitleText": "任务详情"
 			}
 		},

@@ -101,8 +101,6 @@ export default {
       hasMore: true,
       loading: false,
       pagination: {},
-      joinedTaskCache: {},
-      cacheExpire: 120000, // 2分钟
       filterOptions: ['全部', '待开始', '进行中', '已完成', '已失效', '已评价'],
       filterIndex: 0,
       userId: '',
@@ -172,30 +170,12 @@ export default {
       }
       return options;
     },
-    getJoinedCacheKey() {
-      return JSON.stringify({
-        filter: this.filterOptions[this.filterIndex],
-        extra: this.filterExtraOptions[this.filterExtraIndex],
-        page: this.page,
-        pageSize: this.pageSize
-      });
-    },
     async fetchMyJoinedTasks({ reset = false } = {}) {
-      const cacheKey = this.getJoinedCacheKey();
-      const now = Date.now();
       if (reset) {
         this.page = 1;
         this.tasks = [];
         this.hasMore = true;
         this.pagination = {};
-        delete this.joinedTaskCache[cacheKey];
-      }
-      if (!reset && this.page === 1 && this.joinedTaskCache[cacheKey] && (now - this.joinedTaskCache[cacheKey].ts < this.cacheExpire)) {
-        const cached = this.joinedTaskCache[cacheKey].data;
-        this.tasks = cached.tasks;
-        this.hasMore = cached.hasMore;
-        this.pagination = cached.pagination;
-        return;
       }
       if ((!this.hasMore && !reset) || this.loading) return;
       this.loading = true;
@@ -223,28 +203,21 @@ export default {
             page: res.result.page,
             pageSize: res.result.pageSize
           };
-          if (this.page === 1) {
-            this.joinedTaskCache[cacheKey] = {
-              ts: now,
-              data: {
-                tasks: this.tasks,
-                hasMore: this.hasMore,
-                pagination: this.pagination
-              }
-            }
-          }
-          this.page = res.result.page + 1;
         }
       } finally {
         this.loading = false;
         uni.stopPullDownRefresh();
       }
     },
-    refresh() {
-      this.fetchMyJoinedTasks({ reset: true });
-    },
     loadMore() {
-      this.fetchMyJoinedTasks();
+      if (!this.hasMore || this.loading) return;
+      this.page += 1;
+      // 不走缓存，直接拉下一页
+      this.fetchMyJoinedTasks({ reset: false });
+    },
+    refresh() {
+      this.page = 1;
+      this.fetchMyJoinedTasks({ reset: true });
     },
     onFilterTab(idx) {
       if (this.filterIndex !== idx) {
@@ -254,7 +227,7 @@ export default {
         this.tasks = [];
         this.hasMore = true;
         this.pagination = {};
-        this.fetchMyJoinedTasks({ reset: false }); // 不清空缓存
+        this.fetchMyJoinedTasks({ reset: true });
       }
     },
     scrollCategoryToCenter(index) {
@@ -305,7 +278,7 @@ export default {
         this.tasks = [];
         this.hasMore = true;
         this.pagination = {};
-        this.fetchMyJoinedTasks({ reset: false }); // 不清空缓存
+        this.fetchMyJoinedTasks({ reset: true });
       }
     },
     onSwipeAction(e, task) {

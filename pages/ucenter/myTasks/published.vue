@@ -101,8 +101,6 @@ export default {
       hasMore: true,
       loading: false,
       pagination: {},
-      publishedTaskCache: {},
-      cacheExpire: 60000, // 1分钟
       filterOptions: ['全部', '待开始', '进行中', '已完成', '已失效', '已评价'],
       filterIndex: 0,
       userId: '',
@@ -178,28 +176,12 @@ export default {
       }
       return options;
     },
-    getPublishedCacheKey() {
-      return JSON.stringify({
-        filter: this.filterOptions[this.filterIndex],
-        extra: this.filterExtraOptions[this.filterExtraIndex]
-      });
-    },
     async fetchMyPublishedTasks({ reset = false } = {}) {
-      const cacheKey = this.getPublishedCacheKey();
-      const now = Date.now();
       if (reset) {
         this.page = 1;
         this.tasks = [];
         this.hasMore = true;
         this.pagination = {};
-        delete this.publishedTaskCache[cacheKey];
-      }
-      if (!reset && this.page === 1 && this.publishedTaskCache[cacheKey] && (now - this.publishedTaskCache[cacheKey].ts < this.cacheExpire)) {
-        const cached = this.publishedTaskCache[cacheKey].data;
-        this.tasks = cached.tasks;
-        this.hasMore = cached.hasMore;
-        this.pagination = cached.pagination;
-        return;
       }
       if ((!this.hasMore && !reset) || this.loading) return;
       this.loading = true;
@@ -227,28 +209,21 @@ export default {
             page: res.result.page,
             pageSize: res.result.pageSize
           };
-          if (this.page === 1) {
-            this.publishedTaskCache[cacheKey] = {
-              ts: now,
-              data: {
-                tasks: this.tasks,
-                hasMore: this.hasMore,
-                pagination: this.pagination
-              }
-            }
-          }
-          this.page = res.result.page + 1;
         }
       } finally {
         this.loading = false;
         uni.stopPullDownRefresh();
       }
     },
-    refresh() {
-      this.fetchMyPublishedTasks({ reset: true });
-    },
     loadMore() {
-      this.fetchMyPublishedTasks();
+      if (!this.hasMore || this.loading) return;
+      this.page += 1;
+      // 不走缓存，直接拉下一页
+      this.fetchMyPublishedTasks({ reset: false });
+    },
+    refresh() {
+      this.page = 1;
+      this.fetchMyPublishedTasks({ reset: true });
     },
     onFilterTab(idx) {
       if (this.filterIndex !== idx) {
@@ -258,7 +233,7 @@ export default {
         this.tasks = [];
         this.hasMore = true;
         this.pagination = {};
-        this.fetchMyPublishedTasks({ reset: false }); // 不清空缓存
+        this.fetchMyPublishedTasks({ reset: true });
       }
     },
     scrollCategoryToCenter(index) {
@@ -309,7 +284,7 @@ export default {
         this.tasks = [];
         this.hasMore = true;
         this.pagination = {};
-        this.fetchMyPublishedTasks({ reset: false }); // 不清空缓存
+        this.fetchMyPublishedTasks({ reset: true });
       }
     },
     onSwipeAction(e, task) {

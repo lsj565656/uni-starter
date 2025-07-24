@@ -84,28 +84,36 @@ exports.main = async (event, context) => {
       userInfo: Array.isArray(task.userInfoArr) && task.userInfoArr.length > 0 ? task.userInfoArr[0] : null
     }));
     // 查询总数（需同步extra逻辑）
-    let totalAgg = db.collection('kl-tasks').aggregate().match(matchStage)
-      .lookup({
-        from: 'kl-users-join-task',
-        let: { taskId: '$_id' },
-        pipeline: [
-          { $match: { $expr: { $eq: ['$task_id', '$$taskId'] } } },
-          { $project: { user_id: 1 } }
-        ],
-        as: 'members'
-      })
-      .addFields({
-        isUserAlsoMember: {
-          $in: [userObjectId, '$members.user_id']
-        }
-      });
-    if (extra === '仅我参与的') {
-      totalAgg = totalAgg.match({ $expr: { $and: [ { $ne: ['$user_id', userObjectId] }, { $eq: ['$isUserAlsoMember', true] } ] } });
-    } else if (extra === '我发布并参与的') {
-      totalAgg = totalAgg.match({ $expr: { $and: [ { $eq: ['$user_id', userObjectId] }, { $eq: ['$isUserAlsoMember', true] } ] } });
+    let total = 0;
+    if (extra === '全部') {
+      // 简单情况直接where计数，避免聚合count限制
+      const totalRes = await db.collection('kl-tasks').where(matchStage).count();
+      total = totalRes.total || 0;
+    } else {
+      // 复杂extra，仍用聚合count（受限100条）
+      let totalAgg = db.collection('kl-tasks').aggregate().match(matchStage)
+        .lookup({
+          from: 'kl-users-join-task',
+          let: { taskId: '$_id' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$task_id', '$$taskId'] } } },
+            { $project: { user_id: 1 } }
+          ],
+          as: 'members'
+        })
+        .addFields({
+          isUserAlsoMember: {
+            $in: [userObjectId, '$members.user_id']
+          }
+        });
+      if (extra === '仅我参与的') {
+        totalAgg = totalAgg.match({ $expr: { $and: [ { $ne: ['$user_id', userObjectId] }, { $eq: ['$isUserAlsoMember', true] } ] } });
+      } else if (extra === '我发布并参与的') {
+        totalAgg = totalAgg.match({ $expr: { $and: [ { $eq: ['$user_id', userObjectId] }, { $eq: ['$isUserAlsoMember', true] } ] } });
+      }
+      const totalRes = await totalAgg.count();
+      total = totalRes.total || 0;
     }
-    const totalRes = await totalAgg.count();
-    const total = totalRes.total || 0;
     const hasMore = page * pageSize < total;
     return {
       code: 0,
