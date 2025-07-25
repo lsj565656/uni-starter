@@ -204,15 +204,15 @@ export default {
     getSwipeOptions(task) {
       const status = this.filterOptions[this.filterIndex] === '已评价' ? 'evaluated' : task.status;
       const myStatus = task.myJoinStatus;
+      const isPublisher = task.user_id === this.userId;
       const options = [];
       if (status === 'not_started') {
         options.push({ text: '编辑', style: { backgroundColor: '#fff', color: '#222', fontWeight: 'bold' }, key: 'edit' });
         options.push({ text: '删除', style: { backgroundColor: '#fff', color: 'red', fontWeight: 'bold' }, key: 'delete' });
       }
-      if (status === 'invalid') {
+      if (status === 'invalid' || status === 'evaluated') {
         options.push({ text: '删除', style: { backgroundColor: '#fff', color: 'red', fontWeight: 'bold' }, key: 'delete' });
       }
-      // 个人未评价时显示“评价”，已评价时显示“查看评价”
       if (myStatus === 'evaluated' || status === 'evaluated') {
         options.push({ text: '查看评价', style: { backgroundColor: '#fff', color: '#222', fontWeight: 'bold' }, key: 'viewRate' });
       } else if (status === 'finished') {
@@ -380,7 +380,7 @@ export default {
     onSwipeAction(e, task) {
       const key = e.content?.key || e.key;
       if (key === 'edit') this.editTask(task._id);
-      if (key === 'delete') this.deleteTask(task._id);
+      if (key === 'delete') this.deleteTask(task._id, task);
       if (key === 'comment') this.onRateTask(task);
       if (key === 'viewRate') this.showRateDialog(task);
     },
@@ -390,29 +390,40 @@ export default {
         url: `/pages/publish/publish?id=${id}&edit=1`
       });
     },
-    deleteTask(id) {
+    deleteTask(id, task) {
+      let title = '删除任务', content = '确定要删除该任务吗？删除后不可恢复', confirmText = '删除';
       uni.showModal({
-        title: '删除任务',
-        content: '确定要删除该任务吗？删除后不可恢复',
-        confirmText: '删除',
+        title,
+        content,
+        confirmText,
         confirmColor: '#e74c3c',
         success: async (res) => {
           if (res.confirm) {
-            uni.showLoading({ title: '删除中...' });
+            uni.showLoading({ title: confirmText + '中...' });
             try {
               const delRes = await uniCloud.callFunction({
-                name: 'deleteTask',
-                data: { id }
+                name: 'deleteMyTask',
+                data: { taskId: id, userId: this.userId }
               });
               if (delRes.result && delRes.result.code === 0) {
-                uni.showToast({ title: '删除成功', icon: 'success' });
-                // 刷新列表
-                this.refresh();
+                uni.showToast({ title: confirmText + '成功', icon: 'success' });
+                // 前端立即移除
+                const idx = this.tasks.findIndex(t => t._id === id);
+                if (idx !== -1) this.tasks.splice(idx, 1);
+                // 同步移除所有缓存快照
+                Object.keys(this.publishedPageCache).forEach(cacheKey => {
+                  const cacheList = this.publishedPageCache[cacheKey]?.data?.tasks;
+                  if (Array.isArray(cacheList)) {
+                    const cacheIdx = cacheList.findIndex(t => t._id === id);
+                    if (cacheIdx !== -1) cacheList.splice(cacheIdx, 1);
+                  }
+                });
+                // this.refresh();
               } else {
-                uni.showToast({ title: delRes.result?.message || '删除失败', icon: 'none' });
+                uni.showToast({ title: delRes.result?.message || confirmText + '失败', icon: 'none' });
               }
             } catch (e) {
-              uni.showToast({ title: '删除失败', icon: 'none' });
+              uni.showToast({ title: confirmText + '失败', icon: 'none' });
             } finally {
               uni.hideLoading();
             }

@@ -24,7 +24,7 @@
             "bsonType": "long"
         },
         "status": {
-            "description": "参与状态：joined=已加入，quit=主动退出，completed=已完成，removed=被移除，timeout=超时未参与，invalid=任务失效（主任务失效时同步），evaluated=已评价（个人已评价/结算）",
+            "description": "参与状态：joined=已加入，quit=主动退出（开始前），completed=已完成，removed=被移除，timeout=超时未参与，invalid=任务失效（主任务失效时同步），evaluated=已评价（个人已评价/结算），deleted=主动移除（仅自己可见，软删除）",
             "bsonType": "string",
             "enum": [
                 "joined",
@@ -33,7 +33,8 @@
                 "removed",
                 "timeout",
                 "invalid",
-                "evaluated"
+                "evaluated",
+                "deleted"
             ],
             "defaultValue": "joined"
         },
@@ -73,6 +74,11 @@
         "rate_time": {
             "description": "评价时间戳",
             "bsonType": "long"
+        },
+        "isActive": {
+            "description": "是否有效（软删除）",
+            "bsonType": "bool",
+            "defaultValue": true
         }
     }
 }

@@ -14,7 +14,7 @@ exports.main = async (event, context) => {
       userObjectId = dbCmd.objectId(uid);
     } catch (e) {}
   }
-  let matchStage = { user_id: userObjectId };
+  let matchStage = { user_id: userObjectId, isActive: true };
   // 只在“已完成”等分类用主表 status
   if (filter === '待开始') {
     matchStage.status = 'not_started';
@@ -31,7 +31,7 @@ exports.main = async (event, context) => {
     from: 'kl-users-join-task',
     let: { taskId: '$_id' },
     pipeline: [
-      { $match: { $expr: { $eq: ['$task_id', '$$taskId'] } } },
+      { $match: { $expr: { $and: [ { $eq: ['$task_id', '$$taskId'] }, { $eq: ['$isActive', true] } ] } } },
       { $lookup: {
           from: 'uni-id-users',
           localField: 'user_id',
