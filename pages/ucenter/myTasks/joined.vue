@@ -506,6 +506,15 @@ export default {
       } finally {
         this.rateEditLoading = false;
       }
+    },
+    async onReady(task) {
+      // 调用云函数或直接更新关系表
+      await uniCloud.callFunction({
+        name: 'updateJoinStatus',
+        data: { taskId: task._id, userId: this.userId, status: 'ready' }
+      });
+      // 刷新本地数据
+      this.refresh();
     }
   }
 }

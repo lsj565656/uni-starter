@@ -49,7 +49,7 @@ exports.main = async (event, context) => {
     task_id: taskId,
     user_id: userId,
     is_publisher: false,
-    status: 'joined',
+    status: 'preJoin',
     join_time: Date.now(),
     role: 'member',
     guarantee_score: guarantee,

@@ -26,7 +26,7 @@ exports.main = async (event, context) => {
         user_id: userId,
         task_id: taskId,
         join_time: Date.now(),
-        status: 'joined',
+        status: 'preJoin',
         role: 'publisher',
         guarantee_score: 0,
         settle_score: 0,

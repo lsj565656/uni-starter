@@ -45,6 +45,7 @@
           </uni-easyinput>
           <view class="max-unit" v-if="scoreMaxUnit && scoreMaxUnit != '个'">{{ scoreMaxUnit }}</view>
         </view>
+        <view class="desc-text" style="color:#888;font-size:13px;">每人奖励积分，任务开始时按实际参与人数总计扣除</view>
       </uni-forms-item>
       <uni-forms-item v-else label="任务金额" name="price" :required="true">
         <view class="reward-input">
@@ -59,6 +60,7 @@
           </uni-easyinput>
           <view class="max-unit" v-if="amountMaxUnit && amountMaxUnit != '个'">{{ amountMaxUnit }}</view>
         </view>
+        <view class="desc-text" style="color:#888;font-size:13px;">每人奖励金额，任务开始时按实际参与人数总计扣除</view>
       </uni-forms-item>
       <!-- 参与人数 -->
       <uni-forms-item label="参与人数" name="max_participants" required>
@@ -662,6 +664,18 @@ async function submit() {
       uni.showToast({ title: '请至少上传一张图片', icon: 'none' });
       return;
     }
+    if (form.mode === 'score' && (!form.score || isNaN(form.score) || form.score <= 0)) {
+      uni.showToast({ title: '请输入每人奖励的正整数积分', icon: 'none' });
+      return;
+    }
+    if (form.mode === 'price' && (!form.price || isNaN(form.price) || form.price <= 0)) {
+      uni.showToast({ title: '请输入每人奖励的正数金额', icon: 'none' });
+      return;
+    }
+    if (!form.max_participants || isNaN(form.max_participants) || form.max_participants <= 0) {
+      uni.showToast({ title: '请输入大于0的参与人数', icon: 'none' });
+      return;
+    }
     isUploading.value = true
     // 1. 上传所有本地文件到云存储
     const uploadedMediaDetail = await uploadAllMedia(form.media_detail)
@@ -811,9 +825,9 @@ watch(() => form.media_detail, syncMediaFields, { deep: true })
 
 .reward-input {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column; /* Changed to column to stack input and desc */
+  align-items: flex-start; /* Align items to the start */
+  gap: 4px; /* Reduced gap */
   margin-bottom: 4px;
   position: relative;
 }

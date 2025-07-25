@@ -206,6 +206,10 @@ export default {
       const myStatus = task.myJoinStatus;
       const isPublisher = task.user_id === this.userId;
       const options = [];
+      // “开始”按钮逻辑：仅发布者、待开始、且在开始前30分钟内
+      if (isPublisher && status === 'not_started' && this.isStartable(task)) {
+        options.push({ text: '开始', style: { backgroundColor: '#fff', color: '#1976d2', fontWeight: 'bold' }, key: 'start' });
+      }
       if (status === 'not_started') {
         options.push({ text: '编辑', style: { backgroundColor: '#fff', color: '#222', fontWeight: 'bold' }, key: 'edit' });
         options.push({ text: '删除', style: { backgroundColor: '#fff', color: 'red', fontWeight: 'bold' }, key: 'delete' });
@@ -383,6 +387,7 @@ export default {
       if (key === 'delete') this.deleteTask(task._id, task);
       if (key === 'comment') this.onRateTask(task);
       if (key === 'viewRate') this.showRateDialog(task);
+      if (key === 'start') this.onStartTask(task);
     },
     editTask(id) {
       // 跳转到任务编辑页
@@ -502,6 +507,33 @@ export default {
         }
       } finally {
         this.rateEditLoading = false;
+      }
+    },
+    isStartable(task) {
+      return true;
+    },
+    async onStartTask(task) {
+      const res = await uniCloud.callFunction({
+        name: 'startTask',
+        data: { taskId: task._id, userId: this.userId }
+      });
+      if (res.result && res.result.code === 0) {
+        uni.showToast({ title: res.result.message || '任务已开始', icon: 'success' });
+        // 只更新本地 tasks 和所有缓存快照
+        const updateTaskStatus = t => {
+          if (t._id === task._id) {
+            t.status = 'in_progress';
+          }
+        };
+        this.tasks.forEach(updateTaskStatus);
+        Object.keys(this.publishedPageCache).forEach(cacheKey => {
+          const cacheList = this.publishedPageCache[cacheKey]?.data?.tasks;
+          if (Array.isArray(cacheList)) {
+            cacheList.forEach(updateTaskStatus);
+          }
+        });
+      } else {
+        uni.showToast({ title: res.result?.message || '操作失败', icon: 'none' });
       }
     }
   }
