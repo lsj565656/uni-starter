@@ -213,10 +213,9 @@ export default {
       } else if (status === 'finished') {
         options.push({ text: '评价', style: { backgroundColor: '#fff', color: '#222', fontWeight: 'bold' }, key: 'comment' });
       }
-      // 删除/退出按钮逻辑
-      // 未开始、已失效、已评价
-      if (status === 'not_started' || status === 'invalid' || status === 'evaluated') {
-        if (isPublisher && isAlsoMember) {
+      // 只要是我参与的任务（即使不是我发布的），在未开始、已失效、已评价（myStatus===evaluated）状态下都应有“退出”按钮
+      if ((status === 'not_started' || status === 'invalid' || myStatus === 'evaluated') && isAlsoMember) {
+        if (isPublisher && isAlsoMember && myStatus !== 'evaluated') {
           options.push({ text: '删除', style: { backgroundColor: '#fff', color: 'red', fontWeight: 'bold' }, key: 'delete' });
         } else {
           options.push({ text: '退出', style: { backgroundColor: '#fff', color: 'red', fontWeight: 'bold' }, key: 'delete' });
