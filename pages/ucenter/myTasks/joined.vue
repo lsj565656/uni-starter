@@ -208,11 +208,11 @@ export default {
       const isAlsoMember = this.isUserAlsoMember(task);
       const options = [];
       // 发布并参与者显示“开始”按钮
-      if (isPublisher && isAlsoMember && status === 'not_started' && this.isReadyTime(task)) {
+      if (isPublisher && isAlsoMember && status === 'not_started') {
         options.push({ text: '开始', style: { backgroundColor: '#fff', color: '#1976d2', fontWeight: 'bold' }, key: 'start' });
       }
       // 仅参与者显示“就绪”或“取消就绪”按钮（互斥）
-      if (!isPublisher && isAlsoMember && status === 'not_started' && this.isReadyTime(task)) {
+      if (!isPublisher && isAlsoMember && status === 'not_started') {
         if (myStatus === 'preJoin') {
           options.push({ text: '就绪', style: { backgroundColor: '#fff', color: '#1976d2', fontWeight: 'bold' }, key: 'ready' });
         } else if (myStatus === 'ready') {
@@ -401,7 +401,7 @@ export default {
       if (key === 'comment') this.onRateTask(task);
       if (key === 'viewRate') this.showRateDialog(task);
       if (key === 'start') this.onStartTask(task);
-      if (key === 'ready' || key === 'preJoin') this.onReady(task, key);
+      if (key === 'ready' || key === 'preJoin') this.onReadyOrPreJoin(task, key);
     },
     goToComment(id) {
       // 跳转到评论/评价页
@@ -522,14 +522,10 @@ export default {
         this.rateEditLoading = false;
       }
     },
-    isReadyTime(task) {
-      const now = Date.now();
-      return (task.start_time - now <= 30 * 60 * 1000 && task.start_time - now > 0);
-    },
-    async onReady(task, status) {
+    async onReadyOrPreJoin(task, status) {
       const res = await uniCloud.callFunction({
         name: 'updateJoinStatus',
-        data: { taskId: task._id, userId: this.userId, status }
+        data: { taskId: task._id, userId: this.userId, status:status }
       });
       if (res.result && res.result.code === 0) {
         uni.showToast({ title: res.result.message, icon: 'success' });
@@ -576,15 +572,6 @@ export default {
       } else {
         uni.showToast({ title: res.result?.message || '操作失败', icon: 'none' });
       }
-    },
-    async onReady(task) {
-      // 调用云函数或直接更新关系表
-      await uniCloud.callFunction({
-        name: 'updateJoinStatus',
-        data: { taskId: task._id, userId: this.userId, status: 'ready' }
-      });
-      // 刷新本地数据
-      this.refresh();
     }
   }
 }

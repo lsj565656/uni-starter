@@ -37,6 +37,42 @@ exports.main = async (event, context) => {
       // 参与人数-1
       await db.collection('kl-tasks').doc(taskId).update({ joined_count: dbCmd.inc(-1) });
       await db.collection('kl-users-join-task').doc(join._id).update({ isActive: false, status: 'quit' });
+      // 返还担保
+      if (task.mode === 'score' && join.guarantee_score > 0) {
+        // 查当前积分余额
+        const scoreRes = await db.collection('uni-id-scores')
+          .where({ user_id: userId })
+          .orderBy('create_date', 'desc')
+          .limit(1)
+          .get();
+        const oldScore = scoreRes.data[0]?.balance || 0;
+        await db.collection('uni-id-scores').add({
+          user_id: userId,
+          score: join.guarantee_score,
+          type: 4, // 4=任务担保返还
+          balance: oldScore + join.guarantee_score,
+          comment: '退出任务返还担保积分',
+          task_id: taskId,
+          create_date: Date.now()
+        });
+      } else if (task.mode === 'price' && join.guarantee_amount > 0) {
+        // 查当前余额
+        const balRes = await db.collection('kl-id-balance')
+          .where({ user_id: userId })
+          .orderBy('create_date', 'desc')
+          .limit(1)
+          .get();
+        const oldBal = balRes.data[0]?.balance || 0;
+        await db.collection('kl-id-balance').add({
+          user_id: userId,
+          type: 4, // 4=任务担保返还
+          amount: join.guarantee_amount,
+          balance: oldBal + join.guarantee_amount,
+          task_id: taskId,
+          comment: '退出任务返还担保金额',
+          create_date: Date.now()
+        });
+      }
       return { code: 0, message: '已退出任务（未开始，参与者）' };
     } else if (task.status === 'finished' || task.status === 'invalid' || join.status === 'evaluated') {
       // 允许个人已评价时软删除

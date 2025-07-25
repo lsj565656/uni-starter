@@ -16,6 +16,7 @@ exports.main = async (event, context) => {
   const joinRes = await db.collection('kl-users-join-task').where({ task_id: taskId, user_id: userId, isActive: true }).get();
   if (!joinRes.data || !joinRes.data[0]) return { code: 4, message: '未找到参与关系' };
   const join = joinRes.data[0];
+  console.log('updateJoinStatus status', status, 'join.status',join.status);
   if (status === 'ready' && join.status === 'preJoin') {
     await db.collection('kl-users-join-task').doc(join._id).update({ status: 'ready' });
     return { code: 0, message: '已就绪' };

@@ -90,7 +90,7 @@ exports.main = async (event, context) => {
     from: 'kl-users-join-task',
     let: { taskId: '$_id' },
     pipeline: [
-      { $match: { $expr: { $eq: ['$task_id', '$$taskId'] } } },
+      { $match: { $expr: { $and: [ { $eq: ['$task_id', '$$taskId'] }, { $eq: ['$isActive', true] } ] } } },
       { $lookup: {
           from: 'uni-id-users',
           localField: 'user_id',

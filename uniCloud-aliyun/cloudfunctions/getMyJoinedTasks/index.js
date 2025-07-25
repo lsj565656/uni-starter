@@ -15,7 +15,7 @@ exports.main = async (event, context) => {
     } catch (e) {}
   }
   // 先查 kl-users-join-task 表，获取我参与的任务ID
-  const joinRes = await db.collection('kl-users-join-task').where({ user_id: userObjectId }).get();
+  const joinRes = await db.collection('kl-users-join-task').where({ user_id: userObjectId, isActive: true }).get();
   const taskIds = joinRes.data.map(j => j.task_id);
   if (!taskIds.length) {
     return { code: 0, data: [] };
@@ -47,7 +47,7 @@ exports.main = async (event, context) => {
       },
       { $unwind: '$userInfo' },
       { $project: {
-          _id: '$user_id',
+          _id: { $toString: '$user_id' },
           avatar: '$userInfo.avatar_file.url',
           nickname: '$userInfo.nickname'
         }
