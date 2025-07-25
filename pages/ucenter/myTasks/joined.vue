@@ -146,7 +146,7 @@ export default {
   computed: {
     categoryItemStyle() {
       const screenWidth = uni.getSystemInfoSync().windowWidth || 375;
-      const VISIBLE_COUNT = Math.min(this.filterOptions.length, 4.3);
+      const VISIBLE_COUNT = Math.min(this.filterOptions.length, 4);
       const marginPx = 8;
       const itemWidth = Math.floor((screenWidth - 32 - (VISIBLE_COUNT - 1) * marginPx * 2) / VISIBLE_COUNT);
       return {
@@ -207,6 +207,18 @@ export default {
       const isPublisher = task.user_id === this.userId;
       const isAlsoMember = this.isUserAlsoMember(task);
       const options = [];
+      // 发布并参与者显示“开始”按钮
+      if (isPublisher && isAlsoMember && status === 'not_started' && this.isReadyTime(task)) {
+        options.push({ text: '开始', style: { backgroundColor: '#fff', color: '#1976d2', fontWeight: 'bold' }, key: 'start' });
+      }
+      // 仅参与者显示“就绪”或“取消就绪”按钮（互斥）
+      if (!isPublisher && isAlsoMember && status === 'not_started' && this.isReadyTime(task)) {
+        if (myStatus === 'preJoin') {
+          options.push({ text: '就绪', style: { backgroundColor: '#fff', color: '#1976d2', fontWeight: 'bold' }, key: 'ready' });
+        } else if (myStatus === 'ready') {
+          options.push({ text: '取消就绪', style: { backgroundColor: '#fff', color: '#888', fontWeight: 'bold' }, key: 'preJoin' });
+        }
+      }
       // 个人未评价时显示“评价”，已评价时显示“查看评价”
       if (myStatus === 'evaluated' || status === 'evaluated') {
         options.push({ text: '查看评价', style: { backgroundColor: '#fff', color: '#222', fontWeight: 'bold' }, key: 'viewRate' });
@@ -384,9 +396,12 @@ export default {
     },
     onSwipeAction(e, task) {
       const key = e.content?.key || e.key;
-      if (key === 'comment') this.onRateTask(task);
+      if (key === 'edit') this.editTask(task._id);
       if (key === 'delete') this.deleteTask(task._id, task);
+      if (key === 'comment') this.onRateTask(task);
       if (key === 'viewRate') this.showRateDialog(task);
+      if (key === 'start') this.onStartTask(task);
+      if (key === 'ready' || key === 'preJoin') this.onReady(task, key);
     },
     goToComment(id) {
       // 跳转到评论/评价页
@@ -505,6 +520,61 @@ export default {
         }
       } finally {
         this.rateEditLoading = false;
+      }
+    },
+    isReadyTime(task) {
+      const now = Date.now();
+      return (task.start_time - now <= 30 * 60 * 1000 && task.start_time - now > 0);
+    },
+    async onReady(task, status) {
+      const res = await uniCloud.callFunction({
+        name: 'updateJoinStatus',
+        data: { taskId: task._id, userId: this.userId, status }
+      });
+      if (res.result && res.result.code === 0) {
+        uni.showToast({ title: res.result.message, icon: 'success' });
+        // 本地更新 tasks 和所有缓存快照
+        const updateStatus = t => { if (t._id === task._id) t.myJoinStatus = status; };
+        this.tasks.forEach(updateStatus);
+        Object.keys(this.joinedPageCache).forEach(cacheKey => {
+          const cacheList = this.joinedPageCache[cacheKey]?.data?.tasks;
+          if (Array.isArray(cacheList)) cacheList.forEach(updateStatus);
+        });
+      } else if (res.result && res.result.code === 3) {
+        uni.showToast({ title: res.result.message, icon: 'none' });
+        // 任务已开始，设为已失效
+        const updateStatus = t => { if (t._id === task._id) t.status = 'invalid'; };
+        this.tasks.forEach(updateStatus);
+        Object.keys(this.joinedPageCache).forEach(cacheKey => {
+          const cacheList = this.joinedPageCache[cacheKey]?.data?.tasks;
+          if (Array.isArray(cacheList)) cacheList.forEach(updateStatus);
+        });
+      } else {
+        uni.showToast({ title: res.result?.message || '操作失败', icon: 'none' });
+      }
+    },
+    async onStartTask(task) {
+      const res = await uniCloud.callFunction({
+        name: 'startTask',
+        data: { taskId: task._id, userId: this.userId }
+      });
+      if (res.result && res.result.code === 0) {
+        uni.showToast({ title: res.result.message || '任务已开始', icon: 'success' });
+        // 只更新本地 tasks 和所有缓存快照
+        const updateTaskStatus = t => {
+          if (t._id === task._id) {
+            t.status = 'in_progress';
+          }
+        };
+        this.tasks.forEach(updateTaskStatus);
+        Object.keys(this.joinedPageCache).forEach(cacheKey => {
+          const cacheList = this.joinedPageCache[cacheKey]?.data?.tasks;
+          if (Array.isArray(cacheList)) {
+            cacheList.forEach(updateTaskStatus);
+          }
+        });
+      } else {
+        uni.showToast({ title: res.result?.message || '操作失败', icon: 'none' });
       }
     },
     async onReady(task) {

@@ -146,7 +146,7 @@ export default {
   computed: {
     categoryItemStyle() {
       const screenWidth = uni.getSystemInfoSync().windowWidth || 375;
-      const VISIBLE_COUNT = Math.min(this.filterOptions.length, 4.3);
+      const VISIBLE_COUNT = Math.min(this.filterOptions.length, 4);
       const marginPx = 8;
       const itemWidth = Math.floor((screenWidth - 32 - (VISIBLE_COUNT - 1) * marginPx * 2) / VISIBLE_COUNT);
       return {

@@ -14,7 +14,8 @@ exports.main = async (event, context) => {
       ...task,
       user_id: userId,
       create_date: Date.now(),
-      joined_count: autoJoin ? 1 : 0 // 如果自动加入，初始人数为1
+      joined_count: autoJoin ? 1 : 0,
+      status: 'not_started'
     };
     const addRes = await transaction.collection('kl-tasks').add(taskData);
     const taskId = addRes.id || (addRes.insertedId && addRes.insertedId[0]);
