@@ -134,15 +134,111 @@ exports.main = async (event, context) => {
       total = totalRes.total || 0;
     }
     const hasMore = page * pageSize < total;
+    
+    // 获取各分类的数量统计
+    const categoryCounts = await getCategoryCounts(userObjectId, extra);
+    console.log('云函数返回的分类数量统计:', categoryCounts);
+    
     return {
       code: 0,
       data: list,
       hasMore,
       page,
       pageSize,
-      total
+      total,
+      categoryCounts
     };
   } catch (e) {
     return { code: 500, message: e.message, data: [] };
   }
-}; 
+};
+
+// 获取各分类的数量统计
+async function getCategoryCounts(userId, extra) {
+  const db = uniCloud.database();
+  const dbCmd = db.command;
+  
+  // 先查 kl-users-join-task 表，获取我参与的任务ID
+  const joinRes = await db.collection('kl-users-join-task').where({ user_id: userId, isActive: true }).get();
+  const taskIds = joinRes.data.map(j => j.task_id);
+  
+  console.log('用户参与的任务ID:', taskIds);
+  
+  if (!taskIds.length) {
+    return {
+      '全部': 0,
+      '待开始': 0,
+      '进行中': 0,
+      '已完成': 0,
+      '已失效': 0,
+      '已评价': 0
+    };
+  }
+  
+  // 获取所有参与的任务详情
+  const tasksRes = await db.collection('kl-tasks').where({ _id: dbCmd.in(taskIds), isActive: true }).get();
+  const tasks = tasksRes.data;
+  
+  console.log('获取到的任务详情:', tasks);
+  
+  // 获取用户的参与状态信息
+  const userJoinsRes = await db.collection('kl-users-join-task').where({ 
+    user_id: userId, 
+    task_id: dbCmd.in(taskIds), 
+    isActive: true 
+  }).get();
+  const userJoins = userJoinsRes.data;
+  
+  console.log('用户的参与状态:', userJoins);
+  
+  // 创建任务ID到参与状态的映射
+  const taskJoinMap = {};
+  userJoins.forEach(join => {
+    taskJoinMap[join.task_id] = join;
+  });
+  
+  // 统计各分类数量
+  const counts = {
+    '全部': 0,
+    '待开始': 0,
+    '进行中': 0,
+    '已完成': 0,
+    '已失效': 0,
+    '已评价': 0
+  };
+  
+  tasks.forEach(task => {
+    const userJoin = taskJoinMap[task._id];
+    if (!userJoin) return;
+    
+    // 根据extra过滤
+    let shouldCount = true;
+    if (extra === '仅我参与的') {
+      shouldCount = task.user_id !== userId;
+    } else if (extra === '我发布并参与的') {
+      shouldCount = task.user_id === userId;
+    }
+    
+    if (!shouldCount) return;
+    
+    counts['全部']++;
+    
+    // 根据任务状态和用户参与状态分类
+    if (task.status === 'not_started') {
+      counts['待开始']++;
+    } else if (task.status === 'in_progress') {
+      counts['进行中']++;
+    } else if (task.status === 'finished') {
+      if (userJoin.status === 'evaluated') {
+        counts['已评价']++;
+      } else {
+        counts['已完成']++;
+      }
+    } else if (task.status === 'invalid') {
+      counts['已失效']++;
+    }
+  });
+  
+  console.log('统计结果:', counts);
+  return counts;
+} 

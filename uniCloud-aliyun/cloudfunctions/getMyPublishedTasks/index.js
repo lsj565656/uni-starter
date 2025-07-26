@@ -128,15 +128,106 @@ exports.main = async (event, context) => {
       total = totalRes.total || 0;
     }
     const hasMore = page * pageSize < total;
+    
+    // 获取各分类的数量统计
+    const categoryCounts = await getCategoryCounts(userObjectId, extra);
+    console.log('云函数返回的分类数量统计:', categoryCounts);
+    
     return {
       code: 0,
       data: list,
       hasMore,
       page,
       pageSize,
-      total
+      total,
+      categoryCounts
     };
   } catch (e) {
     return { code: 500, message: e.message, data: [] };
   }
-}; 
+};
+
+// 获取各分类的数量统计
+async function getCategoryCounts(userId, extra) {
+  const db = uniCloud.database();
+  const dbCmd = db.command;
+  
+  // 获取用户发布的所有任务
+  const tasksRes = await db.collection('kl-tasks').where({ user_id: userId, isActive: true }).get();
+  const tasks = tasksRes.data;
+  
+  console.log('用户发布的任务:', tasks);
+  
+  if (!tasks.length) {
+    return {
+      '全部': 0,
+      '待开始': 0,
+      '进行中': 0,
+      '已完成': 0,
+      '已失效': 0,
+      '已评价': 0
+    };
+  }
+  
+  const taskIds = tasks.map(t => t._id);
+  
+  // 获取用户的参与状态信息
+  const userJoinsRes = await db.collection('kl-users-join-task').where({ 
+    user_id: userId, 
+    task_id: dbCmd.in(taskIds), 
+    isActive: true 
+  }).get();
+  const userJoins = userJoinsRes.data;
+  
+  console.log('用户的参与状态:', userJoins);
+  
+  // 创建任务ID到参与状态的映射
+  const taskJoinMap = {};
+  userJoins.forEach(join => {
+    taskJoinMap[join.task_id] = join;
+  });
+  
+  // 统计各分类数量
+  const counts = {
+    '全部': 0,
+    '待开始': 0,
+    '进行中': 0,
+    '已完成': 0,
+    '已失效': 0,
+    '已评价': 0
+  };
+  
+  tasks.forEach(task => {
+    const userJoin = taskJoinMap[task._id];
+    
+    // 根据extra过滤
+    let shouldCount = true;
+    if (extra === '仅发布的') {
+      shouldCount = !userJoin; // 没有参与记录，说明只是发布者
+    } else if (extra === '发布并参与的') {
+      shouldCount = !!userJoin; // 有参与记录，说明既是发布者又是参与者
+    }
+    
+    if (!shouldCount) return;
+    
+    counts['全部']++;
+    
+    // 根据任务状态和用户参与状态分类
+    if (task.status === 'not_started') {
+      counts['待开始']++;
+    } else if (task.status === 'in_progress') {
+      counts['进行中']++;
+    } else if (task.status === 'finished') {
+      if (userJoin && userJoin.status === 'evaluated') {
+        counts['已评价']++;
+      } else {
+        counts['已完成']++;
+      }
+    } else if (task.status === 'invalid') {
+      counts['已失效']++;
+    }
+  });
+  
+  console.log('统计结果:', counts);
+  return counts;
+} 

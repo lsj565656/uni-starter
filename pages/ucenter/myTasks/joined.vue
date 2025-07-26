@@ -19,7 +19,17 @@
           :style="categoryItemStyle"
           @click="onFilterTab(idx)"
         >
-          <text>{{ item }}</text>
+          <uni-badge 
+            v-if="categoryCounts[item] > 0"
+            :text="categoryCounts[item]" 
+            absolute="rightTop"
+            size="small" 
+            type="error"
+            :offset="[-3, -3]"
+          >
+            <text class="seg-text">{{ item }}</text>
+          </uni-badge>
+          <text v-if="categoryCounts[item] <= 0" class="seg-text">{{ item }}</text>
           <view v-if="filterIndex === idx" class="seg-underline"></view>
         </view>
         <view style="display:inline-block;width:16px;height:1px"></view>
@@ -87,6 +97,95 @@
         @networkResume="refresh"
         noMoreText="没有更多了"
       />
+      
+      <!-- 进度查看抽屉 -->
+      <uni-drawer ref="progressDrawer" mode="right" :mask-click="false" :width="300" :style="{zIndex: 1200}">
+        <view class="progress-drawer-content">
+          <view class="progress-header">
+            <text class="progress-title">任务进度</text>
+            <uni-icons type="close" size="20" color="#999" @click="$refs.progressDrawer.close()" />
+          </view>
+          
+          <view class="progress-content" v-if="progressData">
+            <view class="task-info">
+              <text class="task-name">{{ progressData.task.name }}</text>
+              <text class="task-status">{{ progressData.task.status === 'in_progress' ? '进行中' : '已完成' }}</text>
+            </view>
+            
+            <view class="members-list">
+              <view v-if="progressData.progress && progressData.progress.length > 0">
+                <view 
+                  v-for="member in progressData.progress" 
+                  :key="member._id" 
+                  class="member-item"
+                >
+                  <view class="member-avatar">
+                    <cloud-image 
+                      v-if="member.avatar" 
+                      :src="member.avatar" 
+                      width="40rpx" 
+                      height="40rpx"
+                      style="border-radius: 50%;"
+                    />
+                    <view v-else class="default-avatar">
+                      <uni-icons type="person-filled" size="20" color="#999" />
+                    </view>
+                  </view>
+                  
+                  <view class="member-info">
+                    <text class="member-name">{{ member.nickname }}</text>
+                    <text class="member-role">{{ member.is_publisher ? '发布者' : '参与者' }}</text>
+                  </view>
+                  
+                  <view class="member-status">
+                    <view v-if="member.status === 'in_progress'" class="status-loading">
+                      <uni-icons type="spinner-cycle" size="16" color="#1976d2" />
+                      <text class="status-text">进行中</text>
+                    </view>
+                    <view v-else-if="member.status === 'finished'" class="status-finished">
+                      <uni-icons type="checkmarkempty" size="16" color="#52c41a" />
+                      <text class="status-text">已完成</text>
+                    </view>
+                    <view v-else class="status-default">
+                      <text class="status-text">{{ member.status === 'preJoin' ? '待就绪' : member.status === 'ready' ? '已就绪' : '未知' }}</text>
+                    </view>
+                  </view>
+                </view>
+              </view>
+              <view v-else class="no-members">
+                <text class="no-members-text">暂无参与者信息</text>
+              </view>
+            </view>
+          </view>
+          
+          <view class="progress-footer">
+            <button 
+              class="refresh-btn" 
+              @click="refreshProgress"
+              :disabled="!progressData?.task?._id"
+            >
+              <uni-icons type="reload" size="16" color="#1976d2" />
+              <text>刷新进度</text>
+            </button>
+            <button 
+              class="end-task-btn" 
+              @click="endTaskFromProgress"
+              :disabled="!progressData?.allFinished"
+              :class="{ disabled: !progressData?.allFinished }"
+            >
+              <uni-icons type="checkmarkempty" size="16" color="#fff" />
+              <text>{{ isPublisherAndMember ? '确认完成' : '结束任务' }}</text>
+            </button>
+            <button 
+              class="close-btn" 
+              @click="$refs.progressDrawer.close()"
+            >
+              <uni-icons type="close" size="16" color="#666" />
+              <text>关闭</text>
+            </button>
+          </view>
+        </view>
+      </uni-drawer>
     </view>
     <uni-drawer ref="rateDrawer" mode="right" :mask-click="false" :width="rateDrawerWidth" :style="{zIndex: 1200}">
       <view style="padding:24px 20px;min-width:240px;max-width:90vw;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;">
@@ -142,9 +241,23 @@ export default {
       rateEditComment: '',
       rateEditLoading: false,
       rateEditTaskId: '',
+      progressData: null,
+      categoryCounts: {}, // 新增：分类数量统计
     }
   },
   computed: {
+    userInfo() {
+      return store.userInfo
+    },
+    hasLogin() {
+      return store.hasLogin
+    },
+    isPublisherAndMember() {
+      if (!this.progressData?.progress) return false;
+      return this.progressData.progress.some(member => 
+        member._id === this.userId && member.is_publisher
+      );
+    },
     categoryItemStyle() {
       const screenWidth = uni.getSystemInfoSync().windowWidth || 375;
       const VISIBLE_COUNT = Math.min(this.filterOptions.length, 4);
@@ -208,11 +321,58 @@ export default {
       const isPublisher = task.user_id === this.userId;
       const isAlsoMember = this.isUserAlsoMember(task);
       const options = [];
-      // 发布并参与者显示“开始”按钮
+      
+      // 进行中状态的特殊处理
+      if (status === 'in_progress') {
+        // 发布者兼参与者：只显示"确认完成"按钮（默认自己已完成）
+        if (isPublisher && isAlsoMember) {
+          const allMembersFinished = this.checkAllMembersFinished(task);
+          if (allMembersFinished) {
+            options.push({ 
+              text: '确认完成', 
+              style: { backgroundColor: '#fff', color: '#52c41a', fontWeight: 'bold' }, 
+              key: 'endTask' 
+            });
+          } else {
+            options.push({ 
+              text: '查看进度', 
+              style: { backgroundColor: '#fff', color: '#666', fontWeight: 'bold' }, 
+              key: 'viewProgress' 
+            });
+          }
+        }
+        // 仅参与者（非发布者）：显示"标记完成"按钮
+        else if (!isPublisher && isAlsoMember && myStatus === 'in_progress') {
+          options.push({ 
+            text: '标记完成', 
+            style: { backgroundColor: '#fff', color: '#1976d2', fontWeight: 'bold' }, 
+            key: 'markFinished' 
+          });
+        }
+        // 仅发布者（非参与者）：根据参与者完成情况显示不同按钮
+        else if (isPublisher && !isAlsoMember) {
+          const allMembersFinished = this.checkAllMembersFinished(task);
+          if (allMembersFinished) {
+            options.push({ 
+              text: '结束任务', 
+              style: { backgroundColor: '#fff', color: '#ff4757', fontWeight: 'bold' }, 
+              key: 'endTask' 
+            });
+          } else {
+            options.push({ 
+              text: '查看进度', 
+              style: { backgroundColor: '#fff', color: '#666', fontWeight: 'bold' }, 
+              key: 'viewProgress' 
+            });
+          }
+        }
+      }
+      
+      // 发布并参与者显示"开始"按钮
       if (isPublisher && isAlsoMember && status === 'not_started') {
         options.push({ text: '开始', style: { backgroundColor: '#fff', color: '#1976d2', fontWeight: 'bold' }, key: 'start' });
       }
-      // 仅参与者显示“就绪”或“取消就绪”按钮（互斥）
+      // 仅参与者显示"就绪"或"取消就绪"按钮（互斥）
       if (!isPublisher && isAlsoMember && status === 'not_started') {
         if (myStatus === 'preJoin') {
           options.push({ text: '就绪', style: { backgroundColor: '#fff', color: '#1976d2', fontWeight: 'bold' }, key: 'ready' });
@@ -220,23 +380,30 @@ export default {
           options.push({ text: '取消就绪', style: { backgroundColor: '#fff', color: '#888', fontWeight: 'bold' }, key: 'preJoin' });
         }
       }
-      // 个人未评价时显示“评价”，已评价时显示“查看评价”
+      // 个人未评价时显示"评价"，已评价时显示"查看评价"
       if (myStatus === 'evaluated' || status === 'evaluated') {
         options.push({ text: '查看评价', style: { backgroundColor: '#fff', color: '#222', fontWeight: 'bold' }, key: 'viewRate' });
       } else if (status === 'finished') {
         options.push({ text: '评价', style: { backgroundColor: '#fff', color: '#222', fontWeight: 'bold' }, key: 'comment' });
       }
-      // 只要是我参与的任务（即使不是我发布的），在未开始、已失效、已评价（myStatus===evaluated）状态下都应有“退出”按钮
+      // 只要是我参与的任务（即使不是我发布的），在未开始、已失效、已评价（myStatus===evaluated）状态下都应有"退出"按钮
       if ((status === 'not_started' || status === 'invalid' || myStatus === 'evaluated') && isAlsoMember) {
-        // 只要是已评价，显示“删除”
+        // 只要是已评价，显示"删除"
         if (myStatus === 'evaluated' || status === 'invalid') {
           options.push({ text: '删除', style: { backgroundColor: '#fff', color: 'red', fontWeight: 'bold' }, key: 'delete' });
         } else {
-          // 其他情况显示“退出”
+          // 其他情况显示"退出"
           options.push({ text: '退出', style: { backgroundColor: '#fff', color: 'red', fontWeight: 'bold' }, key: 'delete' });
         }
       }
       return options;
+    },
+    checkAllMembersFinished(task) {
+      if (!task.members || task.members.length === 0) return false;
+      // 排除发布者自己，只检查其他参与者
+      const otherMembers = task.members.filter(member => member._id !== this.userId);
+      if (otherMembers.length === 0) return true; // 只有发布者自己参与时，直接返回true
+      return otherMembers.every(member => member.myJoinStatus === 'finished');
     },
     getCacheKey() {
       return `${this.filterIndex}_${this.filterExtraIndex}`;
@@ -256,6 +423,7 @@ export default {
         this.tasks = cached.tasks;
         this.hasMore = cached.hasMore;
         this.pagination = cached.pagination;
+        this.categoryCounts = cached.categoryCounts || {};
         return;
       }
       if ((!this.hasMore && !reset) || this.loading) return;
@@ -275,6 +443,13 @@ export default {
           const list = res.result.data || [];
           if (this.page === 1) {
             this.tasks = list;
+            // 更新分类数量统计
+            if (res.result.categoryCounts) {
+              this.categoryCounts = res.result.categoryCounts;
+              console.log('分类数量统计:', this.categoryCounts);
+            } else {
+              console.log('未获取到分类数量统计');
+            }
             // 写入缓存快照
             this.joinedPageCache[cacheKey] = {
               ts: now,
@@ -285,7 +460,8 @@ export default {
                   total: res.result.total,
                   page: res.result.page,
                   pageSize: res.result.pageSize
-                }
+                },
+                categoryCounts: this.categoryCounts
               }
             };
           } else {
@@ -329,6 +505,7 @@ export default {
           this.tasks = cached.tasks;
           this.hasMore = cached.hasMore;
           this.pagination = cached.pagination;
+          this.categoryCounts = cached.categoryCounts || {};
         } else {
           this.fetchMyJoinedTasks({ reset: true });
         }
@@ -403,6 +580,9 @@ export default {
       if (key === 'viewRate') this.showRateDialog(task);
       if (key === 'start') this.onStartTask(task);
       if (key === 'ready' || key === 'preJoin') this.onReadyOrPreJoin(task, key);
+      if (key === 'markFinished') this.markTaskFinished(task);
+      if (key === 'endTask') this.endTask(task);
+      if (key === 'viewProgress') this.viewTaskProgress(task);
     },
     goToComment(id) {
       // 跳转到评论/评价页
@@ -586,7 +766,213 @@ export default {
       } else {
         uni.showToast({ title: res.result?.message || '操作失败', icon: 'none' });
       }
-    }
+    },
+    async markTaskFinished(task) {
+      const res = await uniCloud.callFunction({
+        name: 'markTaskFinished',
+        data: { taskId: task._id, userId: this.userId }
+      });
+      if (res.result && res.result.code === 0) {
+        uni.showToast({ title: '任务标记完成成功', icon: 'success' });
+        // 本地更新 tasks 和所有缓存快照
+        const updateStatus = t => { if (t._id === task._id) t.myJoinStatus = 'finished'; };
+        this.tasks.forEach(updateStatus);
+        Object.keys(this.joinedPageCache).forEach(cacheKey => {
+          const cacheList = this.joinedPageCache[cacheKey]?.data?.tasks;
+          if (Array.isArray(cacheList)) cacheList.forEach(updateStatus);
+        });
+      } else {
+        uni.showToast({ title: res.result?.message || '操作失败', icon: 'none' });
+      }
+    },
+    async endTask(task) {
+      const res = await uniCloud.callFunction({
+        name: 'endTask',
+        data: { taskId: task._id, userId: this.userId }
+      });
+      if (res.result && res.result.code === 0) {
+        uni.showToast({ title: res.result.message || '任务已结束', icon: 'success' });
+        
+        // 更新积分（如果返回了新的积分值）
+        if (res.result.score !== undefined) {
+          mutations.setUserInfo({ score: res.result.score });
+        }
+        
+        // 使用新的状态变更处理方法
+        this.handleTaskStatusChange(task._id, task.status, 'finished');
+      } else {
+        uni.showToast({ title: res.result?.message || '操作失败', icon: 'none' });
+      }
+    },
+    async viewTaskProgress(task) {
+      try {
+        console.log('查看任务进度:', task);
+        uni.showLoading({ title: '加载中...' });
+        const res = await uniCloud.callFunction({
+          name: 'getTaskProgress',
+          data: { taskId: task._id }
+        });
+        uni.hideLoading();
+        
+        console.log('进度数据返回:', res.result);
+        
+        if (res.result && res.result.code === 0) {
+          this.progressData = res.result.data;
+          this.$refs.progressDrawer.open();
+        } else {
+          uni.showToast({ title: res.result?.message || '获取进度失败', icon: 'none' });
+        }
+      } catch (error) {
+        uni.hideLoading();
+        console.error('获取进度失败:', error);
+        uni.showToast({ title: '获取进度失败', icon: 'none' });
+      }
+    },
+    
+    async refreshProgress() {
+      if (!this.progressData?.task?._id) return;
+      
+      try {
+        console.log('刷新进度数据');
+        uni.showLoading({ title: '刷新中...' });
+        const res = await uniCloud.callFunction({
+          name: 'getTaskProgress',
+          data: { taskId: this.progressData.task._id }
+        });
+        uni.hideLoading();
+        
+        console.log('刷新进度返回:', res.result);
+        
+        if (res.result && res.result.code === 0) {
+          this.progressData = res.result.data;
+          uni.showToast({ title: '刷新成功', icon: 'success' });
+        } else {
+          uni.showToast({ title: res.result?.message || '刷新失败', icon: 'none' });
+        }
+      } catch (error) {
+        uni.hideLoading();
+        console.error('刷新进度失败:', error);
+        uni.showToast({ title: '刷新失败', icon: 'none' });
+      }
+    },
+    
+    async endTaskFromProgress() {
+      if (!this.progressData?.task?._id) return;
+      
+      console.log('从进度抽屉结束任务');
+      const res = await uniCloud.callFunction({
+        name: 'endTask',
+        data: { taskId: this.progressData.task._id, userId: this.userId }
+      });
+      
+      console.log('结束任务返回:', res.result);
+      
+      if (res.result && res.result.code === 0) {
+        uni.showToast({ title: res.result.message || '任务已结束', icon: 'success' });
+        
+        // 更新积分（如果返回了新的积分值）
+        if (res.result.score !== undefined) {
+          mutations.setUserInfo({ score: res.result.score });
+        }
+        
+        // 使用新的状态变更处理方法
+        if (res.result.taskStatus === 'finished') {
+          this.handleTaskStatusChange(this.progressData.task._id, this.progressData.task.status, 'finished');
+        }
+        
+        // 关闭抽屉
+        this.$refs.progressDrawer.close();
+      } else {
+        uni.showToast({ title: res.result?.message || '操作失败', icon: 'none' });
+      }
+    },
+    
+    updateTaskStatusInCache(taskId, newStatus) {
+      // 更新当前页面的任务状态
+      const updateStatus = t => { 
+        if (t._id === taskId) {
+          t.status = newStatus;
+          if (t.myJoinStatus) t.myJoinStatus = 'finished';
+        }
+      };
+      
+      this.tasks.forEach(updateStatus);
+      
+      // 更新所有缓存快照
+      Object.keys(this.joinedPageCache).forEach(cacheKey => {
+        const cacheList = this.joinedPageCache[cacheKey]?.data?.tasks;
+        if (Array.isArray(cacheList)) cacheList.forEach(updateStatus);
+      });
+      
+      // 重新计算分类选项
+      this.updateFilterOptions();
+      
+      // 如果当前有筛选条件，需要重新加载数据
+      if (this.currentFilter !== '全部') {
+        this.refreshTasks();
+      }
+    },
+    
+    // 新增：处理任务状态变更后的分类移动
+    handleTaskStatusChange(taskId, oldStatus, newStatus) {
+      // 如果状态没有变化，不需要处理
+      if (oldStatus === newStatus) return;
+      
+      // 更新所有缓存中的任务状态
+      const updateTaskInCache = (taskList) => {
+        if (!Array.isArray(taskList)) return;
+        taskList.forEach(task => {
+          if (task._id === taskId) {
+            task.status = newStatus;
+            if (task.myJoinStatus && newStatus === 'finished') {
+              task.myJoinStatus = 'finished';
+            }
+          }
+        });
+      };
+      
+      // 更新当前页面任务列表
+      updateTaskInCache(this.tasks);
+      
+      // 更新所有缓存快照
+      Object.keys(this.joinedPageCache).forEach(cacheKey => {
+        const cacheData = this.joinedPageCache[cacheKey]?.data;
+        if (cacheData && Array.isArray(cacheData.tasks)) {
+          updateTaskInCache(cacheData.tasks);
+        }
+      });
+      
+      // 重新计算分类选项
+      this.updateFilterOptions();
+      
+      // 如果当前有筛选条件，需要重新加载数据
+      if (this.currentFilter !== '全部') {
+        this.refreshTasks();
+      }
+    },
+    
+    updateFilterOptions() {
+      // 重新计算分类选项
+      const statusCounts = {};
+      this.tasks.forEach(task => {
+        const status = task.status;
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+      });
+      
+      // 更新分类选项的计数
+      this.filterOptions = this.filterOptions.map(option => {
+        const status = this.getStatusFromOption(option);
+        return `${option} (${statusCounts[status] || 0})`;
+      });
+    },
+    
+    getStatusFromOption(option) {
+      // 根据选项文本获取对应的状态
+      if (option.includes('进行中')) return 'in_progress';
+      if (option.includes('已完成')) return 'finished';
+      if (option.includes('已评价')) return 'evaluated';
+      return 'all';
+    },
   }
 }
 </script>
@@ -637,20 +1023,39 @@ export default {
   flex-shrink: 0;
   position: relative;
 }
-.seg-item.active {
-  background: #fff !important;
-  color: #1976d2 !important;
-  font-weight: 600;
+
+.seg-text {
+  font-size: 14px;
+  font-weight: 500;
 }
+
+.seg-item.active {
+  background: #1976d2;
+  color: #fff;
+}
+
+.seg-item.active .seg-text {
+  color: #1976d2;
+}
+
 .seg-underline {
   position: absolute;
-  bottom: 0;
+  bottom: 0px;
   left: 50%;
   transform: translateX(-50%);
   width: 20px;
   height: 3px;
   background: #1976d2;
-  border-radius: 2px;
+  border-radius: 1px;
+}
+
+/* 角标样式优化 */
+.seg-item .uni-badge {
+  margin-right: 4px;
+}
+
+.seg-item.active .uni-badge {
+  color: #1976d2 !important;
 }
 .filter-icon-btn {
   height: 45px !important;
@@ -747,4 +1152,194 @@ export default {
   color: #666;
 }
 .loading, .no-more, .empty { text-align: center; color: #aaa; margin: 16px 0; }
+	/* 进度抽屉样式 */
+	.progress-drawer-content {
+		background: #fff;
+		height: 100vh;
+		display: flex;
+		flex-direction: column;
+	}
+	
+	.progress-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 30rpx;
+		border-bottom: 1rpx solid #f0f0f0;
+		background: #f8f9fa;
+	}
+	
+	.progress-title {
+		font-size: 32rpx;
+		font-weight: bold;
+		color: #333;
+	}
+	
+	.progress-content {
+		flex: 1;
+		padding: 30rpx;
+		overflow-y: auto;
+	}
+	
+	.task-info {
+		margin-bottom: 30rpx;
+		padding-bottom: 20rpx;
+		border-bottom: 1rpx solid #f0f0f0;
+	}
+	
+	.task-name {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #333;
+		display: block;
+		margin-bottom: 10rpx;
+	}
+	
+	.task-status {
+		font-size: 24rpx;
+		color: #1976d2;
+		background: #e3f2fd;
+		padding: 4rpx 12rpx;
+		border-radius: 12rpx;
+	}
+	
+	.members-list {
+		display: flex;
+		flex-direction: column;
+		gap: 20rpx;
+	}
+	
+	.member-item {
+		display: flex;
+		align-items: center;
+		padding: 20rpx;
+		background: #f8f9fa;
+		border-radius: 8rpx;
+	}
+	
+	.member-avatar {
+		margin-right: 20rpx;
+	}
+	
+	.default-avatar {
+		width: 40rpx;
+		height: 40rpx;
+		background: #e0e0e0;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	
+	.member-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+	}
+	
+	.member-name {
+		font-size: 26rpx;
+		color: #333;
+		font-weight: 500;
+		margin-bottom: 4rpx;
+	}
+	
+	.member-role {
+		font-size: 22rpx;
+		color: #666;
+	}
+	
+	.member-status {
+		display: flex;
+		align-items: center;
+	}
+	
+	.status-loading {
+		display: flex;
+		align-items: center;
+		gap: 8rpx;
+	}
+	
+	.status-finished {
+		display: flex;
+		align-items: center;
+		gap: 8rpx;
+	}
+	
+	.status-default {
+		display: flex;
+		align-items: center;
+	}
+	
+	.status-text {
+		font-size: 24rpx;
+		color: #666;
+	}
+	
+	.progress-footer {
+		display: flex;
+		gap: 20rpx;
+		padding: 30rpx;
+		border-top: 1rpx solid #f0f0f0;
+		background: #f8f9fa;
+	}
+	
+	.refresh-btn {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8rpx;
+		background: #fff;
+		border: 1rpx solid #1976d2;
+		color: #1976d2;
+		border-radius: 8rpx;
+		padding: 20rpx;
+		font-size: 26rpx;
+	}
+	
+	.end-task-btn {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8rpx;
+		background: #1976d2;
+		color: #fff;
+		border: none;
+		border-radius: 8rpx;
+		padding: 20rpx;
+		font-size: 26rpx;
+	}
+	
+	.end-task-btn.disabled {
+		background: #ccc;
+		color: #999;
+	}
+
+	.close-btn {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8rpx;
+		background: #fff;
+		border: 1rpx solid #666;
+		color: #666;
+		border-radius: 8rpx;
+		padding: 20rpx;
+		font-size: 26rpx;
+	}
+	
+	.no-members {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 40rpx 0;
+	}
+	
+	.no-members-text {
+		font-size: 26rpx;
+		color: #999;
+	}
 </style> 

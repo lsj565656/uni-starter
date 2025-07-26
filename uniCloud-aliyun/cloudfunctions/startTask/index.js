@@ -41,8 +41,10 @@ exports.main = async (event, context) => {
     task_id: taskId,
     create_date: now
   });
-  // 8. 批量将所有ready状态的参与者流转为joined
-  await db.collection('kl-users-join-task').where({ task_id: taskId, status: 'ready', isActive: true }).update({ status: 'joined' });
+  // 8. 批量将所有ready状态的参与者流转为in_progress
+  await db.collection('kl-users-join-task').where({ task_id: taskId, status: 'ready', isActive: true }).update({ status: 'in_progress' });
+  // 8.1 如果发布者也是参与者，将其状态从preJoin更新为in_progress
+  await db.collection('kl-users-join-task').where({ task_id: taskId, user_id: userId, status: 'preJoin', isActive: true }).update({ status: 'in_progress' });
   // 9. 主表status设为in_progress，joined_count写入N
   await db.collection('kl-tasks').doc(taskId).update({ status: 'in_progress', joined_count: N });
   
