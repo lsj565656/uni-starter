@@ -45,5 +45,18 @@ exports.main = async (event, context) => {
   await db.collection('kl-users-join-task').where({ task_id: taskId, status: 'ready', isActive: true }).update({ status: 'joined' });
   // 9. 主表status设为in_progress，joined_count写入N
   await db.collection('kl-tasks').doc(taskId).update({ status: 'in_progress', joined_count: N });
-  return { code: 0, message: '任务已开始' };
+  
+  // 返回更新后的积分余额
+  const newScoreRes = await db.collection('uni-id-scores')
+    .where({ user_id: userId })
+    .orderBy('create_date', 'desc')
+    .limit(1)
+    .get();
+  const newScore = newScoreRes.data[0]?.balance || 0;
+  
+  return { 
+    code: 0, 
+    message: '任务已开始',
+    score: newScore
+  };
 }; 

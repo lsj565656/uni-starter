@@ -21,12 +21,20 @@
 			</view>
 			<uni-grid class="home" :column="3" :showBorder="false" :square="true">
 				<uni-grid-item class="item" @click.native="goToMyPublishedTasks">
-					<uni-icons class="icon" color="#007AFF" type="paperplane" size="26"></uni-icons>
-					<text class="text">发布的任务</text>
+					<uni-badge :text="userInfo.publishedCount || 0" absolute="rightTop" size="small" type="error">
+						<view class="grid-item-content">
+							<uni-icons class="icon" color="#007AFF" type="paperplane" size="26"></uni-icons>
+							<text class="text">发布的任务</text>
+						</view>
+					</uni-badge>
 				</uni-grid-item>
 				<uni-grid-item class="item" @click.native="goToMyJoinedTasks">
-					<uni-icons class="icon" color="#007AFF" type="staff" size="26"></uni-icons>
-					<text class="text">参与的任务</text>
+					<uni-badge :text="userInfo.joinedCount || 0" absolute="rightTop" size="small" type="error">
+						<view class="grid-item-content">
+							<uni-icons class="icon" color="#007AFF" type="staff" size="26"></uni-icons>
+							<text class="text">参与的任务</text>
+						</view>
+					</uni-badge>
 				</uni-grid-item>
 				<uni-grid-item class="item" @click.native="goToMySchedule">
 					<uni-icons class="icon" color="#007AFF" type="calendar" size="26"></uni-icons>
@@ -180,7 +188,7 @@
 				userScore: 0,
 			}
 		},
-		onLoad() {
+		async onLoad() {
 			//#ifdef APP-PLUS
 			const appVersion = this.appVersion;
 			this.ucenterList[this.ucenterList.length - 2].unshift({
@@ -191,6 +199,9 @@
 				showBadge: appVersion ? appVersion.hasNew : false
 			})
 			//#endif
+			this.userScore = store.userInfo.score || 0
+			// 统计任务数量
+			await this.fetchTaskCounts()
 		},
 		async onShow() {
 			// this.userScore = await fetchUserScore()
@@ -311,6 +322,7 @@
 			 */
 			refreshScore() {
 				console.log('do refreshScore')
+				console.log('refreshScore - 刷新前 store.userInfo.score:', store.userInfo.score)
 				if (this.hasLogin) {
 					db.collection('uni-id-scores')
 						.where('user_id == $env.uid')
@@ -319,11 +331,15 @@
 						.get()
 						.then(res => {
 							const data = res.result.data[0];
+							console.log('refreshScore - 数据库返回的积分数据:', data)
 							if (data) {
-								store.userInfo.score = data.balance;
+								// 使用 mutations 的 setUserInfo 方法，确保持久化到本地存储
+								mutations.setUserInfo({ score: data.balance });
+								console.log('refreshScore - 更新后 store.userInfo.score:', store.userInfo.score)
 								uni.showToast({ title: '积分已刷新', icon: 'success' });
 							} else {
-								store.userInfo.score = 0;
+								mutations.setUserInfo({ score: 0 });
+								console.log('refreshScore - 无积分数据，设置为0')
 								uni.showToast({ title: '暂无积分', icon: 'none' });
 							}
 						});
@@ -419,9 +435,12 @@
 			// 签到成功回调
 			onSignInSuccess(signInData) {
 				console.log('签到成功，更新积分显示', signInData)
+				console.log('onSignInSuccess - 更新前 store.userInfo.score:', store.userInfo.score)
 				// 立即更新本地积分显示
 				if (signInData && signInData.score !== undefined) {
-					store.userInfo.score = signInData.score
+					// 使用 mutations 的 setUserInfo 方法，确保持久化到本地存储
+					mutations.setUserInfo({ score: signInData.score });
+					console.log('onSignInSuccess - 更新后 store.userInfo.score:', store.userInfo.score)
 					// 强制更新页面显示
 					this.$forceUpdate()
 					uni.showToast({
@@ -429,6 +448,30 @@
 						icon: 'success',
 						duration: 1500
 					})
+				}
+			},
+			// 获取任务数量统计
+			async fetchTaskCounts() {
+				if (!this.hasLogin) return;
+				try {
+					const res = await uniCloud.callFunction({
+						name: 'publishAndJoinedCounts',
+						data: {
+							userId: store.userInfo._id
+						}
+					});
+					if (res.result && res.result.code === 0) {
+						const { publishedCount, joinedCount } = res.result.data;
+						// 使用 mutations 方法更新 store 中的计数，确保持久化
+						mutations.setUserInfo({ 
+							publishedCount, 
+							joinedCount 
+						});
+						// 强制更新页面
+						this.$forceUpdate();
+					}
+				} catch (error) {
+					console.error('获取任务数量失败:', error);
 				}
 			},
 		}
@@ -532,6 +575,7 @@
 	.home {
 		background-color: #FFFFFF;
 		margin-bottom: 6px;
+		flex: none !important;
 	}
 
 	.uni-grid .text {
@@ -545,6 +589,18 @@
 		justify-content: center;
 		align-items: center;
 	}
+
+	.grid-item-content {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 100%;
+	}
+
+	/* 移除自定义角标样式，使用官方 uni-badge 组件 */
 
 
 	/*修改边线粗细示例*/

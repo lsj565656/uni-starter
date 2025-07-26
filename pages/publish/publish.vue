@@ -139,6 +139,7 @@ import { categories } from '@/utils/categories.js'
 import { areaList } from '@/common/areaList.js'
 import MediaUploader from '@/components/media-uploader/media-uploader.vue'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+import { mutations } from '@/uni_modules/uni-id-pages/common/store.js'
 
 const formRef = ref(null)
 const datePickerRef = ref(null)
@@ -719,6 +720,10 @@ async function submit() {
       });
       if (res.result && res.result.code === 0) {
         uni.showToast({ title: '发布成功', icon: 'success' });
+        // 更新发布任务计数
+        if (res.result.publishedCount !== undefined) {
+          mutations.setUserInfo({ publishedCount: res.result.publishedCount });
+        }
         uni.navigateBack();
       } else {
         throw new Error(res.result?.message || '发布失败');

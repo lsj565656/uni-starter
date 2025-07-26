@@ -38,7 +38,21 @@ exports.main = async (event, context) => {
     }
 
     await transaction.commit();
-    return { code: 0, message: '发布成功', taskId };
+    
+    // 返回更新后的计数
+    const publishedCount = await db.collection('kl-tasks')
+      .where({
+        user_id: userId,
+        isActive: true
+      })
+      .count();
+    
+    return { 
+      code: 0, 
+      message: '发布成功', 
+      taskId,
+      publishedCount: publishedCount.total || 0
+    };
   } catch (e) {
     await transaction.rollback();
     return { code: 2, message: '发布失败', error: e.message };

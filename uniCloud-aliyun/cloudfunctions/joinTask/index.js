@@ -154,5 +154,18 @@ exports.main = async (event, context) => {
       create_date: Date.now()
     })
   }
-  return { code: 0, msg: '加入成功' }
+  
+  // 返回更新后的参与任务计数
+  const joinedCount = await db.collection('kl-users-join-task')
+    .where({
+      user_id: userId,
+      isActive: true
+    })
+    .count();
+  
+  return { 
+    code: 0, 
+    msg: '加入成功',
+    joinedCount: joinedCount.total || 0
+  }
 } 

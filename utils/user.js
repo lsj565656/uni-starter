@@ -1,4 +1,4 @@
-import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+import { store, mutations } from '@/uni_modules/uni-id-pages/common/store.js'
 
 export async function fetchUserScore() {
   if (!store.userInfo || !store.userInfo._id) return 0
@@ -10,7 +10,8 @@ export async function fetchUserScore() {
     .get()
   const data = res.result.data[0]
   const score = data ? data.balance : 0
-  store.userInfo.score = score
+  // 使用 mutations 方法确保持久化
+  mutations.setUserInfo({ score })
   return score
 } 
 
@@ -24,6 +25,7 @@ export async function fetchUserScoreAndCache(userId) {
     .get()
   const data = res.result.data[0]
   const score = data ? data.balance : 0
-  store.userInfo.score = score
+  // 使用 mutations 方法确保持久化
+  mutations.setUserInfo({ score })
   return score
 }

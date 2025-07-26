@@ -69,6 +69,7 @@
 import { formatTime } from '@/utils/tools.js';
 import { store } from '@/uni_modules/uni-id-pages/common/store.js';
 import { fetchUserScore } from '@/utils/user.js'
+import { mutations } from '@/uni_modules/uni-id-pages/common/store.js';
 export default {
   data() {
     return {
@@ -170,6 +171,10 @@ export default {
           });
           if (res.result && res.result.code === 0) {
             uni.showToast({ title: '加入成功', icon: 'success' });
+            // 更新参与任务计数
+            if (res.result.joinedCount !== undefined) {
+              mutations.setUserInfo({ joinedCount: res.result.joinedCount });
+            }
             // 更新本地 task 关键字段
             updatedTask.joined_count = (this.task.joined_count || 0) + 1;
             // 新增成员
@@ -200,6 +205,10 @@ export default {
           });
           if (res.result && res.result.code === 0) {
             uni.showToast({ title: '加入成功', icon: 'success' });
+            // 更新参与任务计数
+            if (res.result.joinedCount !== undefined) {
+              mutations.setUserInfo({ joinedCount: res.result.joinedCount });
+            }
             updatedTask.is_publisher_joined = true;
             updatedTask.joined_count = (this.task.joined_count || 0) + 1;
             // 新增成员

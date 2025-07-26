@@ -111,6 +111,7 @@
 <script>
 import { formatTime } from '@/utils/tools.js';
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+import { mutations } from '@/uni_modules/uni-id-pages/common/store.js'
 export default {
   data() {
     return {
@@ -432,6 +433,13 @@ export default {
               });
               if (delRes.result && delRes.result.code === 0) {
                 uni.showToast({ title: confirmText + '成功', icon: 'success' });
+                // 更新任务计数
+                if (delRes.result.publishedCount !== undefined) {
+                  mutations.setUserInfo({ publishedCount: delRes.result.publishedCount });
+                }
+                if (delRes.result.joinedCount !== undefined) {
+                  mutations.setUserInfo({ joinedCount: delRes.result.joinedCount });
+                }
                 // 前端立即移除
                 const idx = this.tasks.findIndex(t => t._id === id);
                 if (idx !== -1) this.tasks.splice(idx, 1);
@@ -556,6 +564,12 @@ export default {
       });
       if (res.result && res.result.code === 0) {
         uni.showToast({ title: res.result.message || '任务已开始', icon: 'success' });
+        
+        // 更新积分（如果返回了新的积分值）
+        if (res.result.score !== undefined) {
+          mutations.setUserInfo({ score: res.result.score });
+        }
+        
         // 只更新本地 tasks 和所有缓存快照
         const updateTaskStatus = t => {
           if (t._id === task._id) {

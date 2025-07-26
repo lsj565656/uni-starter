@@ -111,6 +111,7 @@
 <script>
 import { formatTime } from '@/utils/tools.js';
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+import { mutations } from '@/uni_modules/uni-id-pages/common/store.js'
 export default {
   data() {
     return {
@@ -519,6 +520,12 @@ export default {
       });
       if (res.result && res.result.code === 0) {
         uni.showToast({ title: res.result.message || '任务已开始', icon: 'success' });
+        
+        // 更新积分（如果返回了新的积分值）
+        if (res.result.score !== undefined) {
+          mutations.setUserInfo({ score: res.result.score });
+        }
+        
         // 只更新本地 tasks 和所有缓存快照
         const updateTaskStatus = t => {
           if (t._id === task._id) {

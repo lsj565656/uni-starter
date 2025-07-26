@@ -18,13 +18,37 @@ exports.main = async (event, context) => {
       await db.collection('kl-tasks').doc(taskId).update({ isActive: false, joined_count: 0 });
       // 所有关系 isActive=false, status=removed
       await db.collection('kl-users-join-task').where({ task_id: taskId }).update({ isActive: false, status: 'removed' });
-      return { code: 0, message: '任务已删除（未开始，发布者）' };
+      
+      // 返回更新后的计数
+      const [publishedCount, joinedCount] = await Promise.all([
+        db.collection('kl-tasks').where({ user_id: userId, isActive: true }).count(),
+        db.collection('kl-users-join-task').where({ user_id: userId, isActive: true }).count()
+      ]);
+      
+      return { 
+        code: 0, 
+        message: '任务已删除（未开始，发布者）',
+        publishedCount: publishedCount.total || 0,
+        joinedCount: joinedCount.total || 0
+      };
     } else if (task.status === 'finished' || task.status === 'invalid' || (join && join.status === 'evaluated')) {
       // 软删除主表
       await db.collection('kl-tasks').doc(taskId).update({ isActive: false });
       // 所有关系 isActive=false, status=removed
       await db.collection('kl-users-join-task').where({ task_id: taskId }).update({ isActive: false, status: 'removed' });
-      return { code: 0, message: '任务已删除（已完成/已失效/已评价，发布者）' };
+      
+      // 返回更新后的计数
+      const [publishedCount, joinedCount] = await Promise.all([
+        db.collection('kl-tasks').where({ user_id: userId, isActive: true }).count(),
+        db.collection('kl-users-join-task').where({ user_id: userId, isActive: true }).count()
+      ]);
+      
+      return { 
+        code: 0, 
+        message: '任务已删除（已完成/已失效/已评价，发布者）',
+        publishedCount: publishedCount.total || 0,
+        joinedCount: joinedCount.total || 0
+      };
     } else {
       return { code: 3, message: '任务进行中不可删除' };
     }
@@ -73,11 +97,35 @@ exports.main = async (event, context) => {
           create_date: Date.now()
         });
       }
-      return { code: 0, message: '已退出任务（未开始，参与者）' };
+      
+      // 返回更新后的计数
+      const [publishedCount, joinedCount] = await Promise.all([
+        db.collection('kl-tasks').where({ user_id: userId, isActive: true }).count(),
+        db.collection('kl-users-join-task').where({ user_id: userId, isActive: true }).count()
+      ]);
+      
+      return { 
+        code: 0, 
+        message: '已退出任务（未开始，参与者）',
+        publishedCount: publishedCount.total || 0,
+        joinedCount: joinedCount.total || 0
+      };
     } else if (task.status === 'finished' || task.status === 'invalid' || join.status === 'evaluated') {
       // 允许个人已评价时软删除
       await db.collection('kl-users-join-task').doc(join._id).update({ isActive: false, status: 'deleted' });
-      return { code: 0, message: '已移除任务（已完成/已失效/已评价，参与者）' };
+      
+      // 返回更新后的计数
+      const [publishedCount, joinedCount] = await Promise.all([
+        db.collection('kl-tasks').where({ user_id: userId, isActive: true }).count(),
+        db.collection('kl-users-join-task').where({ user_id: userId, isActive: true }).count()
+      ]);
+      
+      return { 
+        code: 0, 
+        message: '已移除任务（已完成/已失效/已评价，参与者）',
+        publishedCount: publishedCount.total || 0,
+        joinedCount: joinedCount.total || 0
+      };
     } else {
       return { code: 3, message: '任务进行中不可删除' };
     }
