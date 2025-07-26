@@ -70,6 +70,12 @@
 				if (res.result.data.length) {
 					this.signInRes = res.result
 					this.$refs.popup.open()
+					// 触发签到成功事件
+					this.$emit('signInSuccess', {
+						score: this.signInRes.score,
+						days: this.signInRes.days,
+						n: this.signInRes.n
+					})
 					uni.showToast({
 						title: ToastText,
 						duration: 3000,
@@ -157,6 +163,12 @@
 						uni.hideLoading()
 						this.signInRes = res.result
 						this.$refs.popup.open()
+						// 触发签到成功事件，传递积分数据
+						this.$emit('signInSuccess', {
+							score: this.signInRes.score,
+							days: this.signInRes.days,
+							n: this.signInRes.n
+						})
 						if (this.signInRes.days.length == 7) {
 							uni.showToast({
 								title: "你已完成7日连续签到，获得60积分！",
