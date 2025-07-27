@@ -1,10 +1,6 @@
 <template>
   <view>
     <view class="filter-bar-scroll">
-      <view v-if="showBackToAllBtn" class="back-to-all-btn" @click="onBackToAll">
-        <uni-icons type="left" size="16" color="#1976d2" />
-        <text>全部</text>
-      </view>
       <scroll-view
         class="category-scroll"
         scroll-x
@@ -121,8 +117,8 @@
       </view>
     </uni-drawer>
 		<!-- 进度查看抽屉 -->
-		<uni-drawer ref="progressDrawer" mode="right" :mask-click="false" :width="300" :style="{zIndex: 1200}">
-			<view class="progress-drawer-content">
+		<uni-drawer ref="progressDrawer" mode="right" :mask-click="false" :width="rateDrawerWidth" :style="{zIndex: 1200}">
+			<view style="padding:24px 20px;min-width:240px;max-width:90vw;display:flex;flex-direction:column;min-height:60vh;">
 				<view class="progress-header">
 					<text class="progress-title">任务进度</text>
 					<uni-icons type="close" size="20" color="#999" @click="$refs.progressDrawer.close()" />
@@ -181,23 +177,25 @@
 				</view>
 				
 				<view class="progress-footer">
-                  <button 
-                    class="refresh-btn" 
-                    @click="refreshProgress"
-                    :disabled="!progressData?.task?._id"
-                  >
-                    <uni-icons type="reload" size="16" color="#1976d2" />
-                    <text>刷新进度</text>
-                  </button>
-                  <button 
-                    class="end-task-btn" 
-                    @click="endTaskFromProgress"
-                    :disabled="!progressData?.allFinished"
-                    :class="{ disabled: !progressData?.allFinished }"
-                  >
-                    <uni-icons type="checkmarkempty" size="16" color="#fff" />
-                    <text>{{ isPublisherAndMember ? '确认完成' : '结束任务' }}</text>
-                  </button>
+                  <view class="action-buttons">
+                    <button 
+                      class="refresh-btn" 
+                      @click="refreshProgress"
+                      :disabled="!progressData?.task?._id"
+                    >
+                      <uni-icons type="reload" size="16" color="#1976d2" />
+                      <text>刷新进度</text>
+                    </button>
+                    <button 
+                      class="end-task-btn" 
+                      @click="endTaskFromProgress"
+                      :disabled="!progressData?.allFinished"
+                      :class="{ disabled: !progressData?.allFinished }"
+                    >
+                      <uni-icons type="checkmarkempty" size="16" color="#fff" />
+                      <text>{{ isPublisherAndMember ? '确认完成' : '结束任务' }}</text>
+                    </button>
+                  </view>
                   <button 
                     class="close-btn" 
                     @click="$refs.progressDrawer.close()"
@@ -228,7 +226,10 @@ export default {
       userId: '',
       defaultAvatar: '/static/logo.png',
       categoryScrollLeft: 0,
-      showBackToAllBtn: false,
+      categoryItemStyle: {
+        width: '80px',
+        margin: '0 8px'
+      },
       filterExtraOptions: ['全部', '仅发布的', '发布并参与的'],
       filterExtraIndex: 0,
       error: '',
@@ -291,7 +292,7 @@ export default {
     let width = 300;
     try {
       const sys = uni.getSystemInfoSync();
-      width = Math.floor((sys.windowWidth || 375) * 0.8);
+      width = Math.floor((sys.windowWidth || 375) * 0.9);
     } catch(e) {}
     this.rateDrawerWidth = width;
   },
@@ -526,22 +527,8 @@ export default {
       else if (targetScrollLeft > maxScrollLeft) targetScrollLeft = maxScrollLeft;
       this.categoryScrollLeft = targetScrollLeft;
     },
-    updateBackToAllBtnVisibility() {
-      this.$nextTick(() => {
-        uni.createSelectorQuery().in(this)
-          .select('#cat-0').boundingClientRect()
-          .select('.category-scroll').boundingClientRect()
-          .exec(res => {
-            if (!res[0] || !res[1]) return;
-            this.showBackToAllBtn = res[0].left < res[1].left;
-          });
-      });
-    },
     onCategoryScroll(e) {
-      this.updateBackToAllBtnVisibility();
-    },
-    onBackToAll() {
-      this.onFilterTab(0);
+      // 可以在这里添加滚动事件处理逻辑
     },
     openFilterDrawer() {
       this.$refs.filterDrawer.open('bottom');
@@ -900,29 +887,6 @@ export default {
   max-height: 45px;
 }
 
-.back-to-all-btn {
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  height: 45px;
-  background: #f8f9fa;
-  border-right: 1px solid #e9ecef;
-  cursor: pointer;
-  transition: background 0.2s;
-  flex-shrink: 0;
-}
-
-.back-to-all-btn:hover {
-  background: #e9ecef;
-}
-
-.back-to-all-btn text {
-  font-size: 14px;
-  color: #1976d2;
-  margin-left: 4px;
-  font-weight: 500;
-}
-
 .page-content {
   margin-top: 50px;
 }
@@ -991,12 +955,15 @@ export default {
   color: #fff !important;
 }
 .filter-icon-btn {
-  height: 45px !important;
-  width: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: 4px;
+  width: 44px;
+  height: 44px;
+  background: #fff;
+  border-radius: 8px;
+  margin-left: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 .filter-popup-content {
   background: #fff;
@@ -1216,6 +1183,11 @@ export default {
   padding-top: 15px;
   border-top: 1px solid #eee;
 }
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+}
 .refresh-btn, .end-task-btn {
   flex: 1;
   height: 40px;
@@ -1261,13 +1233,6 @@ export default {
   color: #999;
 }
 	/* 进度抽屉样式 */
-	.progress-drawer-content {
-		background: #fff;
-		height: 100vh;
-		display: flex;
-		flex-direction: column;
-	}
-	
 	.progress-header {
 		display: flex;
 		justify-content: space-between;
@@ -1386,10 +1351,16 @@ export default {
 	
 	.progress-footer {
 		display: flex;
+		flex-direction: column;
 		gap: 20rpx;
 		padding: 30rpx;
 		border-top: 1rpx solid #f0f0f0;
 		background: #f8f9fa;
+	}
+	
+	.action-buttons {
+		display: flex;
+		gap: 20rpx;
 	}
 	
 	.refresh-btn {
@@ -1426,7 +1397,8 @@ export default {
 	}
 
 	.close-btn {
-		flex: 1;
+		width: 80%;
+		margin: 0 auto;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -1438,4 +1410,14 @@ export default {
 		padding: 20rpx;
 		font-size: 26rpx;
 	}
-</style> 
+	
+	.no-members {
+		text-align: center;
+		padding: 40rpx;
+		color: #999;
+	}
+	
+	.no-members-text {
+		font-size: 26rpx;
+	}
+  </style> 

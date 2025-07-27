@@ -110,8 +110,8 @@
       />
       
       <!-- 进度查看抽屉 -->
-      <uni-drawer ref="progressDrawer" mode="right" :mask-click="false" :width="300" :style="{zIndex: 1200}">
-        <view class="progress-drawer-content">
+      <uni-drawer ref="progressDrawer" mode="right" :mask-click="false" :width="rateDrawerWidth" :style="{zIndex: 1200}">
+        <view style="padding:24px 20px;min-width:240px;max-width:90vw;display:flex;flex-direction:column;min-height:60vh;">
           <view class="progress-header">
             <text class="progress-title">任务进度</text>
             <uni-icons type="close" size="20" color="#999" @click="$refs.progressDrawer.close()" />
@@ -170,23 +170,25 @@
           </view>
           
           <view class="progress-footer">
-            <button 
-              class="refresh-btn" 
-              @click="refreshProgress"
-              :disabled="!progressData?.task?._id"
-            >
-              <uni-icons type="reload" size="16" color="#1976d2" />
-              <text>刷新进度</text>
-            </button>
-            <button 
-              class="end-task-btn" 
-              @click="endTaskFromProgress"
-              :disabled="!progressData?.allFinished"
-              :class="{ disabled: !progressData?.allFinished }"
-            >
-              <uni-icons type="checkmarkempty" size="16" color="#fff" />
-              <text>{{ isPublisherAndMember ? '确认完成' : '结束任务' }}</text>
-            </button>
+            <view class="action-buttons">
+              <button 
+                class="refresh-btn" 
+                @click="refreshProgress"
+                :disabled="!progressData?.task?._id"
+              >
+                <uni-icons type="reload" size="16" color="#1976d2" />
+                <text>刷新进度</text>
+              </button>
+              <button 
+                class="end-task-btn" 
+                @click="endTaskFromProgress"
+                :disabled="!progressData?.allFinished"
+                :class="{ disabled: !progressData?.allFinished }"
+              >
+                <uni-icons type="checkmarkempty" size="16" color="#fff" />
+                <text>{{ isPublisherAndMember ? '确认完成' : '结束任务' }}</text>
+              </button>
+            </view>
             <button 
               class="close-btn" 
               @click="$refs.progressDrawer.close()"
@@ -1234,13 +1236,6 @@ export default {
 }
 .loading, .no-more, .empty { text-align: center; color: #aaa; margin: 16px 0; }
 	/* 进度抽屉样式 */
-	.progress-drawer-content {
-		background: #fff;
-		height: 100vh;
-		display: flex;
-		flex-direction: column;
-	}
-	
 	.progress-header {
 		display: flex;
 		justify-content: space-between;
@@ -1359,10 +1354,16 @@ export default {
 	
 	.progress-footer {
 		display: flex;
+		flex-direction: column;
 		gap: 20rpx;
 		padding: 30rpx;
 		border-top: 1rpx solid #f0f0f0;
 		background: #f8f9fa;
+	}
+	
+	.action-buttons {
+		display: flex;
+		gap: 20rpx;
 	}
 	
 	.refresh-btn {
@@ -1399,7 +1400,8 @@ export default {
 	}
 
 	.close-btn {
-		flex: 1;
+		width: 80%;
+		margin: 0 auto;
 		display: flex;
 		align-items: center;
 		justify-content: center;

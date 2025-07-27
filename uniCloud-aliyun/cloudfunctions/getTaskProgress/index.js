@@ -25,7 +25,13 @@ exports.main = async (event, context) => {
     if (userIds.length > 0) {
       const usersRes = await db.collection('uni-id-users')
         .where({ _id: db.command.in(userIds) })
-        .field('_id,nickname,username,mobile,avatar_file')
+        .field({
+          _id: true,
+          nickname: true,
+          username: true,
+          mobile: true,
+          avatar_file: true
+        })
         .get();
       
       usersRes.data.forEach(user => {
