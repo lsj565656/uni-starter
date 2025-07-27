@@ -1871,13 +1871,17 @@ export default {
   color: #666;
   line-height: 1.4;
   max-height: 2.8em;
-  /* 两行的高度 */
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  /* 限制为两行 */
-  text-overflow: ellipsis;
+}
+
+@supports (-webkit-line-clamp: 2) {
+  .card-desc-row {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
 }
 
 .loading,
