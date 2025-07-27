@@ -241,7 +241,14 @@ export default {
       rateEditLoading: false,
       rateEditTaskId: '',
       progressData: null,
-      categoryCounts: {}, // 新增：分类数量统计
+      categoryCounts: {
+        '全部': 0,
+        '待开始': 0,
+        '进行中': 0,
+        '已完成': 0,
+        '已失效': 0,
+        '已评价': 0
+      }, // 新增：分类数量统计
     }
   },
   computed: {
@@ -366,47 +373,55 @@ export default {
     getCacheKey() {
       return `${this.filterIndex}_${this.filterExtraIndex}`;
     },
+    // 获取我的发布任务
     async fetchMyPublishedTasks({ reset = false } = {}) {
       const cacheKey = this.getCacheKey();
       const now = Date.now();
+      
       if (reset) {
         this.page = 1;
         this.tasks = [];
         this.hasMore = true;
         this.pagination = {};
       }
+      
       // 只在第一页且reset=false时用缓存
       if (!reset && this.page === 1 && this.publishedPageCache[cacheKey] && (now - this.publishedPageCache[cacheKey].ts < this.cacheExpire)) {
         const cached = this.publishedPageCache[cacheKey].data;
         this.tasks = cached.tasks;
         this.hasMore = cached.hasMore;
         this.pagination = cached.pagination;
-        this.categoryCounts = cached.categoryCounts; // 从缓存加载分类数量
+        this.categoryCounts = cached.categoryCounts;
+        console.log('使用缓存数据，分类:', this.filterOptions[this.filterIndex]);
         return;
       }
+      
       if ((!this.hasMore && !reset) || this.loading) return;
       this.loading = true;
+      
       try {
+        const currentFilter = this.filterOptions[this.filterIndex];
+        console.log('获取我的发布任务，分类:', currentFilter);
+        
         const res = await uniCloud.callFunction({
           name: 'getMyPublishedTasks',
           data: {
+            userId: this.userId,
             page: this.page,
             pageSize: this.pageSize,
-            userId: this.userId,
-            filter: this.filterOptions[this.filterIndex],
-            extra: this.filterExtraOptions[this.filterExtraIndex]
+            filter: currentFilter,
+            extra: currentFilter
           }
         });
+        
         if (res.result && res.result.code === 0) {
-          const list = res.result.data || [];
+          const newTasks = res.result.data || [];
+          
           if (this.page === 1) {
-            this.tasks = list;
+            this.tasks = newTasks;
             // 更新分类数量统计
             if (res.result.categoryCounts) {
               this.categoryCounts = res.result.categoryCounts;
-              console.log('分类数量统计:', this.categoryCounts);
-            } else {
-              console.log('未获取到分类数量统计');
             }
             // 写入缓存快照
             this.publishedPageCache[cacheKey] = {
@@ -421,17 +436,24 @@ export default {
                 },
                 categoryCounts: this.categoryCounts
               }
-            }
+            };
           } else {
-            this.tasks = this.tasks.concat(list);
+            this.tasks = [...this.tasks, ...newTasks];
           }
-          this.hasMore = res.result.hasMore;
+          
+          this.hasMore = res.result.hasMore || false;
           this.pagination = {
             total: res.result.total,
             page: res.result.page,
             pageSize: res.result.pageSize
           };
+          
+          console.log('分类数量统计:', this.categoryCounts);
+        } else {
+          console.error('获取发布任务失败:', res.result);
         }
+      } catch (error) {
+        console.error('获取发布任务异常:', error);
       } finally {
         this.loading = false;
         uni.stopPullDownRefresh();
@@ -448,25 +470,38 @@ export default {
       this.fetchMyPublishedTasks({ reset: true });
     },
     onFilterTab(idx) {
-      if (this.filterIndex !== idx) {
-        this.filterIndex = idx;
-        this.scrollCategoryToCenter(idx);
-        this.page = 1;
-        this.tasks = [];
-        this.hasMore = true;
-        this.pagination = {};
-        // 切换分类时优先命中缓存
-        const cacheKey = this.getCacheKey();
-        const now = Date.now();
-        if (this.publishedPageCache[cacheKey] && (now - this.publishedPageCache[cacheKey].ts < this.cacheExpire)) {
-          const cached = this.publishedPageCache[cacheKey].data;
+      if (this.filterIndex === idx) return;
+      this.filterIndex = idx;
+      this.page = 1;
+      this.tasks = [];
+      this.hasMore = true;
+      this.pagination = {};
+      
+      // 切换分类时检查缓存有效性
+      const cacheKey = this.getCacheKey();
+      const now = Date.now();
+      if (this.publishedPageCache[cacheKey] && (now - this.publishedPageCache[cacheKey].ts < this.cacheExpire)) {
+        const cached = this.publishedPageCache[cacheKey].data;
+        
+        // 检查缓存中的任务状态是否与当前分类匹配
+        const currentFilter = this.filterOptions[idx];
+        const isCacheValid = this.checkCacheValidity(cached.tasks, currentFilter);
+        
+        if (isCacheValid) {
+          // 缓存有效，直接使用
           this.tasks = cached.tasks;
           this.hasMore = cached.hasMore;
           this.pagination = cached.pagination;
-          this.categoryCounts = cached.categoryCounts; // 从缓存加载分类数量
+          this.categoryCounts = cached.categoryCounts;
+          console.log('使用缓存数据，分类:', currentFilter);
         } else {
+          // 缓存无效，重新获取数据
+          console.log('缓存数据无效，重新获取数据，分类:', currentFilter);
           this.fetchMyPublishedTasks({ reset: true });
         }
+      } else {
+        // 无缓存或缓存过期，重新获取数据
+        this.fetchMyPublishedTasks({ reset: true });
       }
     },
     scrollCategoryToCenter(index) {
@@ -517,16 +552,31 @@ export default {
         this.tasks = [];
         this.hasMore = true;
         this.pagination = {};
-        // 切换筛选时优先命中缓存
+        
+        // 切换筛选时检查缓存有效性
         const cacheKey = this.getCacheKey();
         const now = Date.now();
         if (this.publishedPageCache[cacheKey] && (now - this.publishedPageCache[cacheKey].ts < this.cacheExpire)) {
           const cached = this.publishedPageCache[cacheKey].data;
-          this.tasks = cached.tasks;
-          this.hasMore = cached.hasMore;
-          this.pagination = cached.pagination;
-          this.categoryCounts = cached.categoryCounts; // 从缓存加载分类数量
+          
+          // 检查缓存中的任务状态是否与当前分类匹配
+          const currentFilter = this.filterOptions[this.filterIndex];
+          const isCacheValid = this.checkCacheValidity(cached.tasks, currentFilter);
+          
+          if (isCacheValid) {
+            // 缓存有效，直接使用
+            this.tasks = cached.tasks;
+            this.hasMore = cached.hasMore;
+            this.pagination = cached.pagination;
+            this.categoryCounts = cached.categoryCounts;
+            console.log('使用缓存数据，筛选:', this.filterExtraOptions[idx]);
+          } else {
+            // 缓存无效，重新获取数据
+            console.log('缓存数据无效，重新获取数据，筛选:', this.filterExtraOptions[idx]);
+            this.fetchMyPublishedTasks({ reset: true });
+          }
         } else {
+          // 无缓存或缓存过期，重新获取数据
           this.fetchMyPublishedTasks({ reset: true });
         }
       }
@@ -564,18 +614,9 @@ export default {
               });
               if (delRes.result && delRes.result.code === 0) {
                 uni.showToast({ title: confirmText + '成功', icon: 'success' });
-                // 前端立即移除
-                const idx = this.tasks.findIndex(t => t._id === id);
-                if (idx !== -1) this.tasks.splice(idx, 1);
-                // 同步移除所有缓存快照
-                Object.keys(this.publishedPageCache).forEach(cacheKey => {
-                  const cacheList = this.publishedPageCache[cacheKey]?.data?.tasks;
-                  if (Array.isArray(cacheList)) {
-                    const cacheIdx = cacheList.findIndex(t => t._id === id);
-                    if (cacheIdx !== -1) cacheList.splice(cacheIdx, 1);
-                  }
-                });
-                // this.refresh();
+                
+                // 刷新当前分类数据
+                this.refreshCurrentCategory();
               } else {
                 uni.showToast({ title: delRes.result?.message || confirmText + '失败', icon: 'none' });
               }
@@ -677,19 +718,8 @@ export default {
           mutations.setUserInfo({ score: res.result.score });
         }
         
-        // 只更新本地 tasks 和所有缓存快照
-        const updateTaskStatus = t => {
-          if (t._id === task._id) {
-            t.status = 'in_progress';
-          }
-        };
-        this.tasks.forEach(updateTaskStatus);
-        Object.keys(this.publishedPageCache).forEach(cacheKey => {
-          const cacheList = this.publishedPageCache[cacheKey]?.data?.tasks;
-          if (Array.isArray(cacheList)) {
-            cacheList.forEach(updateTaskStatus);
-          }
-        });
+        // 使用简化的状态变更处理方法
+        this.handleTaskStatusChange(task._id, task.status, 'in_progress');
       } else {
         uni.showToast({ title: res.result?.message || '操作失败', icon: 'none' });
       }
@@ -707,7 +737,7 @@ export default {
           mutations.setUserInfo({ score: res.result.score });
         }
         
-        // 使用新的状态变更处理方法
+        // 使用简化的状态变更处理方法
         this.handleTaskStatusChange(task._id, task.status, 'finished');
       } else {
         uni.showToast({ title: res.result?.message || '操作失败', icon: 'none' });
@@ -784,10 +814,8 @@ export default {
           mutations.setUserInfo({ score: res.result.score });
         }
         
-        // 使用新的状态变更处理方法
-        if (res.result.taskStatus === 'finished') {
-          this.handleTaskStatusChange(this.progressData.task._id, this.progressData.task.status, 'finished');
-        }
+        // 使用简化的状态变更处理方法
+        this.handleTaskStatusChange(this.progressData.task._id, this.progressData.task.status, 'finished');
         
         // 关闭抽屉
         this.$refs.progressDrawer.close();
@@ -796,95 +824,73 @@ export default {
       }
     },
     
-    updateTaskStatusInCache(taskId, newStatus) {
-      // 更新当前页面的任务状态
-      const updateStatus = t => { 
-        if (t._id === taskId) {
-          t.status = newStatus;
-        }
-      };
-      
-      this.tasks.forEach(updateStatus);
-      
-      // 更新所有缓存快照
-      Object.keys(this.publishedPageCache).forEach(cacheKey => {
-        const cacheList = this.publishedPageCache[cacheKey]?.data?.tasks;
-        if (Array.isArray(cacheList)) cacheList.forEach(updateStatus);
-      });
-      
-      // 重新计算分类选项
-      this.updateFilterOptions();
-      
-      // 如果当前有筛选条件，需要重新加载数据
-      if (this.currentFilter !== '全部') {
-        this.refreshTasks();
-      }
-    },
-    
-    // 新增：处理任务状态变更后的分类移动
+    // 处理任务状态变更
     handleTaskStatusChange(taskId, oldStatus, newStatus) {
-      // 如果状态没有变化，不需要处理
-      if (oldStatus === newStatus) return;
+      console.log('处理任务状态变更:', taskId, oldStatus, '->', newStatus);
       
-      // 更新所有缓存中的任务状态
-      const updateTaskInCache = (taskList) => {
-        if (!Array.isArray(taskList)) return;
-        taskList.forEach(task => {
-          if (task._id === taskId) {
-            task.status = newStatus;
-          }
-        });
-      };
-      
-      // 更新当前页面任务列表
-      updateTaskInCache(this.tasks);
-      
-      // 更新所有缓存快照
-      Object.keys(this.publishedPageCache).forEach(cacheKey => {
-        const cacheData = this.publishedPageCache[cacheKey]?.data;
-        if (cacheData && Array.isArray(cacheData.tasks)) {
-          updateTaskInCache(cacheData.tasks);
-        }
-      });
-      
-      // 重新计算分类选项
-      this.updateFilterOptions();
-      
-      // 如果当前有筛选条件，需要重新加载数据
-      if (this.currentFilter !== '全部') {
-        this.refreshTasks();
+      // 直接刷新当前分类数据
+      this.refreshCurrentCategory();
+    },
+    
+    // 刷新当前分类数据
+    async refreshCurrentCategory() {
+      try {
+        console.log('刷新当前分类数据:', this.filterOptions[this.filterIndex]);
+        // 重置页码
+        this.page = 1;
+        this.hasMore = true;
+        this.tasks = [];
+        
+        // 强制重新获取数据，不使用缓存
+        await this.fetchMyPublishedTasks({ reset: true });
+        
+        // 强制更新UI
+        this.$forceUpdate();
+        console.log('数据刷新完成');
+      } catch (error) {
+        console.error('刷新数据失败:', error);
       }
     },
     
-    updateFilterOptions() {
-      // 重新计算分类选项
-      const statusCounts = {};
-      this.tasks.forEach(task => {
-        const status = task.status;
-        statusCounts[status] = (statusCounts[status] || 0) + 1;
-      });
-      
-      // 更新分类选项的计数
-      this.filterOptions = this.filterOptions.map(option => {
-        const status = this.getStatusFromOption(option);
-        return `${option} (${statusCounts[status] || 0})`;
-      });
-    },
-    
-    getStatusFromOption(option) {
-      // 根据选项文本获取对应的状态
-      if (option.includes('进行中')) return 'in_progress';
-      if (option.includes('已完成')) return 'finished';
-      if (option.includes('已评价')) return 'evaluated';
-      return 'all';
-    },
+    // 检查所有成员是否完成（排除发布者）
     checkAllMembersFinished(task) {
       if (!task.members || task.members.length === 0) return false;
       // 排除发布者自己，只检查其他参与者
       const otherMembers = task.members.filter(member => member._id !== this.userId);
       if (otherMembers.length === 0) return true; // 只有发布者自己参与时，直接返回true
       return otherMembers.every(member => member.status === 'finished');
-    }
+    },
+    
+    // 检查缓存有效性
+    checkCacheValidity(cachedTasks, currentFilter) {
+      if (currentFilter === '全部') {
+        // 全部分类时，缓存总是有效的
+        return true;
+      }
+      
+      // 检查缓存中的任务状态是否与当前分类匹配
+      const statusMap = {
+        '待开始': 'not_started',
+        '进行中': 'in_progress',
+        '已完成': 'finished',
+        '已失效': 'invalid',
+        '已评价': 'evaluated'
+      };
+      
+      const targetStatus = statusMap[currentFilter];
+      if (!targetStatus) {
+        console.warn('未知分类，缓存无效:', currentFilter);
+        return false;
+      }
+      
+      // 检查缓存中的所有任务是否都属于当前分类
+      const isValid = cachedTasks.every(task => task.status === targetStatus);
+      console.log('缓存有效性检查:', currentFilter, targetStatus, isValid, '任务数量:', cachedTasks.length);
+      
+      return isValid;
+    },
+    
+    // 删除checkCacheValidity方法
   }
 }
 </script>
