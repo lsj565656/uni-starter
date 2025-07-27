@@ -548,7 +548,8 @@ function prepareSubmitData() {
     data.start_time = toTimestamp(data.timeRange[0])
     data.end_time = toTimestamp(data.timeRange[1])
   }
-  if (data.is_publisher_joined) {
+  // 只在发布模式下设置 joined_count，编辑模式下由云函数处理
+  if (!isEditMode.value && data.is_publisher_joined) {
     data.joined_count = 1
   }
   // 确保 media 和 media_detail 都包含在提交数据中
@@ -702,6 +703,10 @@ async function submit() {
       })
       if (res.result && res.result.code === 0) {
         uni.showToast({ title: '修改成功', icon: 'success' });
+        // 更新参与任务计数
+        if (res.result.joinedCount !== undefined) {
+          mutations.setUserInfo({ joinedCount: res.result.joinedCount });
+        }
         setTimeout(() => {
           uni.redirectTo({ url: '/pages/ucenter/myTasks/published' });
         }, 500);

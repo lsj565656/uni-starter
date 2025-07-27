@@ -226,10 +226,6 @@ export default {
       userId: '',
       defaultAvatar: '/static/logo.png',
       categoryScrollLeft: 0,
-      categoryItemStyle: {
-        width: '80px',
-        margin: '0 8px'
-      },
       filterExtraOptions: ['全部', '仅发布的', '发布并参与的'],
       filterExtraIndex: 0,
       error: '',

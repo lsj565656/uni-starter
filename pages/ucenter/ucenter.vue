@@ -563,6 +563,7 @@
 	}
 
 	.home {
+		width: 100%;
 		background-color: #FFFFFF;
 		margin-bottom: 6px;
 		flex: none !important;

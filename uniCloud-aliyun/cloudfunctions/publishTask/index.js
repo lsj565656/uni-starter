@@ -29,11 +29,12 @@ exports.main = async (event, context) => {
         join_time: Date.now(),
         status: 'preJoin',
         role: 'publisher',
+        is_publisher: true,
         guarantee_score: 0,
         settle_score: 0,
         guarantee_amount: 0.00,
         settle_amount: 0.00,
-        // 可加更多字段
+        isActive: true
       });
     }
 
