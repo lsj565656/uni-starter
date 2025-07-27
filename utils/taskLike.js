@@ -11,7 +11,7 @@ export async function toggleTaskLike(taskId, isLiked) {
     const res = await uniCloud.callFunction({
       name: 'likeTask',
       data: { task_id: taskId }
-    });
+    })
     if (res.result && res.result.code === 0) {
       return {
         isLiked: res.result.data.isLiked,
@@ -20,7 +20,7 @@ export async function toggleTaskLike(taskId, isLiked) {
     } else {
       throw new Error(res.result?.message || '操作失败')
     }
-  } catch (e) {
-    throw e
+  } catch (error) {
+    throw error
   }
 }

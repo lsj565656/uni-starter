@@ -5,9 +5,12 @@
       去登录 &gt;
     </view>
     <!-- 自定义导航栏，最高层 -->
-    <view class="custom-navbar-fixed" :style="`top:0;left:0;right:0;z-index:1001;padding-top:${statusBarHeight}px;`">
+    <view
+      class="custom-navbar-fixed"
+      :style="`top:0;left:0;right:0;z-index:1001;padding-top:${statusBarHeight}px;`"
+    >
       <view class="custom-navbar">
-        <uni-icons type="back" size="22" color="#333" @click="goBack" style="margin-right: 8px;" />
+        <uni-icons type="back" size="22" color="#333" @click="goBack" style="margin-right: 8px" />
         <text class="navbar-title">{{ catName }}任务</text>
       </view>
     </view>
@@ -33,7 +36,7 @@
         <view class="filter-bar">
           <view class="filter-sort-btn" @click="openSortPopup">
             <text>{{ sortLabel }}</text>
-            <uni-icons type="arrow-down" size="16" color="#1976d2" style="margin-left:2px;" />
+            <uni-icons type="arrow-down" size="16" color="#1976d2" style="margin-left: 2px" />
           </view>
         </view>
       </view>
@@ -43,7 +46,10 @@
       <view v-if="loading" class="loading">加载中...</view>
       <view v-else-if="error" class="error">{{ error }}</view>
       <view v-else>
-        <view v-if="columns(tasksList)[0].length || columns(tasksList)[1].length" class="masonry-row">
+        <view
+          v-if="columns(tasksList)[0].length > 0 || columns(tasksList)[1].length > 0"
+          class="masonry-row"
+        >
           <view class="masonry-col" v-for="(col, colIdx) in columns(tasksList)" :key="colIdx">
             <template v-for="item in col" :key="item._id">
               <task-card :task="withLikeStatus(item)" @like="onLike(item)" />
@@ -53,7 +59,7 @@
         <view v-else class="empty">暂无任务</view>
         <uni-load-state
           class="load-state"
-          :state="{data:tasksList,pagination,hasMore,loading,error}"
+          :state="{ data: tasksList, pagination, hasMore, loading, error }"
           @loadMore="loadMore"
           @networkResume="refresh"
           noMoreText="没有更多了"
@@ -61,9 +67,21 @@
       </view>
       <uni-popup ref="sortPopupRef" type="bottom" :is-mask-click="true">
         <view class="sort-popup-content">
-          <view class="sort-popup-option" v-for="option in sortOptions" :key="option.value" :class="{active: sortKey===option.value}" @click="selectSortOrder(option.value)">
+          <view
+            class="sort-popup-option"
+            v-for="option in sortOptions"
+            :key="option.value"
+            :class="{ active: sortKey === option.value }"
+            @click="selectSortOrder(option.value)"
+          >
             <text>{{ option.label }}</text>
-            <uni-icons v-if="sortKey===option.value" type="checkbox-filled" color="#1976d2" size="18" style="margin-left:8px;" />
+            <uni-icons
+              v-if="sortKey === option.value"
+              type="checkbox-filled"
+              color="#1976d2"
+              size="18"
+              style="margin-left: 8px"
+            />
           </view>
         </view>
       </uni-popup>
@@ -116,9 +134,9 @@ function handleLoginNoticeClick() {
 const CUSTOM_NAVBAR_HEIGHT = 48
 const filterBarOffset = ref(0)
 let lastScrollTop = 0
-onPageScroll((e) => {
+onPageScroll(e => {
   const st = e.scrollTop
-  let delta = st - lastScrollTop
+  const delta = st - lastScrollTop
   filterBarOffset.value += delta
   if (filterBarOffset.value < 0) filterBarOffset.value = 0
   if (filterBarOffset.value > FILTER_BAR_HEIGHT) filterBarOffset.value = FILTER_BAR_HEIGHT
@@ -147,22 +165,22 @@ const listMasonryStyle = computed(() => {
 })
 
 function getOrderByArray() {
-  const arr = [];
+  const array = []
   // 1. 积分/价格排序（互斥，优先级最高）
   if (taskMode.value === 'score' && sortKey.value === 'value') {
-    arr.push({ field: 'score', order: 'desc' });
+    array.push({ field: 'score', order: 'desc' })
   } else if (taskMode.value === 'price' && sortKey.value === 'value') {
-    arr.push({ field: 'price', order: 'desc' });
+    array.push({ field: 'price', order: 'desc' })
   }
   // 2. 时间排序
   if (sortKey.value === 'time') {
-    arr.push({ field: 'create_date', order: 'desc' });
+    array.push({ field: 'create_date', order: 'desc' })
   }
   // 可扩展更多排序
-  if (arr.length === 0) {
-    arr.push({ field: 'create_date', order: 'desc' });
+  if (array.length === 0) {
+    array.push({ field: 'create_date', order: 'desc' })
   }
-  return arr;
+  return array
 }
 
 async function fetchTasks({ reset = false } = {}) {
@@ -175,40 +193,40 @@ async function fetchTasks({ reset = false } = {}) {
     hasMore.value = true
   }
   try {
-    const userId = uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo().uid;
-    const orderByArr = getOrderByArray();
+    const userId = uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo().uid
+    const orderByArray = getOrderByArray()
     const res = await uniCloud.callFunction({
       name: 'category-tasks',
       data: {
         userId,
         catId: catId.value,
         keyword: keyword.value,
-        orderBy: orderByArr,
+        orderBy: orderByArray,
         page: page.value,
         pageSize
       }
     })
     if (res.result && res.result.code === 0) {
       const rawList = res.result.data || []
-      if (reset) {
-        tasksList.value = rawList
-      } else {
-        tasksList.value = [...tasksList.value, ...rawList]
-      }
+      tasksList.value = reset ? rawList : [...tasksList.value, ...rawList]
       hasMore.value = res.result.hasMore
-      pagination.value = { total: res.result.total, page: res.result.page, pageSize: res.result.pageSize }
+      pagination.value = {
+        total: res.result.total,
+        page: res.result.page,
+        pageSize: res.result.pageSize
+      }
       // 同步已点赞任务到 useTaskLikeStore
-      const taskLikeStore = useTaskLikeStore();
-      rawList.forEach(item => {
+      const taskLikeStore = useTaskLikeStore()
+      for (const item of rawList) {
         if (item.is_liked) {
-          taskLikeStore.setLike(item._id, true, item.like_count);
+          taskLikeStore.setLike(item._id, true, item.like_count)
         }
-      });
+      }
     } else {
       error.value = res.result?.message || '加载失败'
     }
-  } catch (e) {
-    error.value = e.message || '加载失败'
+  } catch (error_) {
+    error.value = error_.message || '加载失败'
   } finally {
     loading.value = false
   }
@@ -216,18 +234,18 @@ async function fetchTasks({ reset = false } = {}) {
 
 function columns(data) {
   const cols = [[], []]
-  ;(data || []).forEach((item, idx) => {
-    cols[idx % 2].push(item)
+  for (const [index, item] of (data || []).entries()) {
+    cols[index % 2].push(item)
     if (!taskMode.value && item.mode) taskMode.value = item.mode
-  })
+  }
   return cols
 }
 
 function openSortPopup() {
   sortPopupRef.value && sortPopupRef.value.open('bottom')
 }
-function selectSortOrder(val) {
-  sortKey.value = val
+function selectSortOrder(value) {
+  sortKey.value = value
   sortPopupRef.value && sortPopupRef.value.close()
   refresh()
 }
@@ -252,8 +270,8 @@ function loadMore() {
   }
 }
 function withLikeStatus(item) {
-  const taskLikeStore = useTaskLikeStore();
-  const likeInfo = taskLikeStore.getLike(item._id);
+  const taskLikeStore = useTaskLikeStore()
+  const likeInfo = taskLikeStore.getLike(item._id)
   return {
     ...item,
     is_liked: likeInfo ? likeInfo.isLiked : item.is_liked,
@@ -262,28 +280,31 @@ function withLikeStatus(item) {
 }
 function onLike(item) {
   // 登录校验
-  const userInfo = getApp().globalData.userInfo || (uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo()) || {};
+  const userInfo =
+    getApp().globalData.userInfo ||
+    (uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo()) ||
+    {}
   if (!userInfo._id) {
-    showLoginNotice();
-    return;
+    showLoginNotice()
+    return
   }
-  const taskLikeStore = useTaskLikeStore();
-  const oldLiked = item.is_liked;
-  const oldCount = item.like_count;
-  const newLiked = !oldLiked;
-  const newCount = oldLiked ? oldCount - 1 : oldCount + 1;
+  const taskLikeStore = useTaskLikeStore()
+  const oldLiked = item.is_liked
+  const oldCount = item.like_count
+  const newLiked = !oldLiked
+  const newCount = oldLiked ? oldCount - 1 : oldCount + 1
   // 乐观UI
-  taskLikeStore.setLike(item._id, newLiked, newCount);
+  taskLikeStore.setLike(item._id, newLiked, newCount)
   toggleTaskLike(item._id, oldLiked)
     .then(({ isLiked, likeCount }) => {
-      taskLikeStore.setLike(item._id, isLiked, likeCount);
+      taskLikeStore.setLike(item._id, isLiked, likeCount)
     })
-    .catch(e => {
-      taskLikeStore.setLike(item._id, oldLiked, oldCount);
-      uni.showToast({ title: e.message || '操作失败', icon: 'none' });
-    });
+    .catch(error_ => {
+      taskLikeStore.setLike(item._id, oldLiked, oldCount)
+      uni.showToast({ title: error_.message || '操作失败', icon: 'none' })
+    })
 }
-onLoad((options) => {
+onLoad(options => {
   catId.value = Number(options.catId) || 0
   catName.value = options.catName || ''
   // #ifdef APP
@@ -336,9 +357,9 @@ onMounted(() => {
   /* top 由 :style 绑定 */
   z-index: 1000;
   background: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   will-change: transform;
-  transition: transform 0.25s cubic-bezier(.4,0,.2,1);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   height: 48px;
   overflow: hidden;
   pointer-events: auto;
@@ -398,7 +419,9 @@ onMounted(() => {
   margin-top: 0;
   box-sizing: border-box;
 }
-.loading, .error, .empty {
+.loading,
+.error,
+.empty {
   text-align: center;
   color: #999;
   padding: 40px 0;
@@ -426,4 +449,4 @@ onMounted(() => {
   /* 不要设置 overflow/scroll，让页面自然流式布局 */
   position: sticky;
 }
-</style> 
+</style>

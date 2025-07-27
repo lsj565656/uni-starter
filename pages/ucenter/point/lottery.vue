@@ -1,6 +1,6 @@
 <template>
   <view class="lottery-page">
-    <LotteryGrid :prizes="prizeList" @start="handleStartLottery" :timesLeft="timesLeft"/>
+    <LotteryGrid :prizes="prizeList" @start="handleStartLottery" :timesLeft="timesLeft" />
     <view class="lottery-actions">
       <button class="rule-btn" @click="showRule">抽奖规则</button>
       <button class="myprize-btn" @click="showMyPrize">我的奖品</button>
@@ -37,9 +37,9 @@ export default {
   },
   methods: {
     handleStartLottery() {
-      this.resultTitle = '恭喜你！';
-      this.resultDesc = '获得了积分+50';
-      this.$refs.resultPopup.open();
+      this.resultTitle = '恭喜你！'
+      this.resultDesc = '获得了积分+50'
+      this.$refs.resultPopup.open()
     },
     showRule() {
       uni.showModal({ title: '抽奖规则', content: '每次消耗100积分...' })
@@ -48,16 +48,44 @@ export default {
       uni.navigateTo({ url: '/pages/ucenter/point/myprize' })
     },
     closeResult() {
-      this.$refs.resultPopup.close();
+      this.$refs.resultPopup.close()
     }
   }
 }
 </script>
 <style scoped>
-.lottery-page { background: #f8f8f8; min-height: 100vh; padding: 32rpx 0; }
-.lottery-actions { display: flex; justify-content: center; gap: 48rpx; margin-top: 32rpx; }
-.rule-btn, .myprize-btn { background: #fff; color: #1976d2; border-radius: 16rpx; padding: 8rpx 32rpx; }
-.result-content { background: #fff; border-radius: 16rpx; padding: 48rpx 32rpx; text-align: center; }
-.result-title { font-size: 36rpx; color: #ff9800; font-weight: bold; }
-.result-desc { font-size: 28rpx; color: #333; margin: 24rpx 0; }
-</style> 
+.lottery-page {
+  background: #f8f8f8;
+  min-height: 100vh;
+  padding: 32rpx 0;
+}
+.lottery-actions {
+  display: flex;
+  justify-content: center;
+  gap: 48rpx;
+  margin-top: 32rpx;
+}
+.rule-btn,
+.myprize-btn {
+  background: #fff;
+  color: #1976d2;
+  border-radius: 16rpx;
+  padding: 8rpx 32rpx;
+}
+.result-content {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 48rpx 32rpx;
+  text-align: center;
+}
+.result-title {
+  font-size: 36rpx;
+  color: #ff9800;
+  font-weight: bold;
+}
+.result-desc {
+  font-size: 28rpx;
+  color: #333;
+  margin: 24rpx 0;
+}
+</style>

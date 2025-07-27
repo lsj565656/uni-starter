@@ -63,4 +63,4 @@ export const useTaskLikeStore = defineStore('taskLike', () => {
   }
 
   return { likeMap, setLike, removeLike, getLike, getAllLikes }
-}) 
+})

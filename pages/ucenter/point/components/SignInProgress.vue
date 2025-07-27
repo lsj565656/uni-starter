@@ -5,8 +5,13 @@
       <text class="current-score">当前积分：{{ signInRes.score || 0 }}</text>
     </view>
     <view class="sign-in-days">
-      <view v-for="i in 7" :key="i" class="day-item" :class="{active: signInRes.days && signInRes.days.includes(i-1)}">
-        <text>第{{i}}天</text>
+      <view
+        v-for="i in 7"
+        :key="i"
+        class="day-item"
+        :class="{ active: signInRes.days && signInRes.days.includes(i - 1) }"
+      >
+        <text>第{{ i }}天</text>
       </view>
     </view>
     <view class="sign-in-desc">
@@ -33,13 +38,53 @@ export default {
   color: #fff;
   box-shadow: 0 2rpx 8rpx #f0f0f0;
 }
-.sign-in-header { display: flex; justify-content: space-between; align-items: center; }
-.title { font-size: 32rpx; font-weight: bold; }
-.current-score { font-size: 28rpx; }
-.sign-in-days { display: flex; justify-content: space-between; margin: 24rpx 0; }
-.day-item { width: 60rpx; height: 60rpx; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 24rpx; }
-.day-item.active { background: #fff; color: #ff9800; font-weight: bold; }
-.sign-in-desc { font-size: 24rpx; margin-bottom: 16rpx; }
-.highlight { color: #fff176; font-weight: bold; margin: 0 4rpx; }
-.sign-in-btn { background: #fff; color: #ff9800; border-radius: 24rpx; padding: 12rpx 0; font-size: 28rpx; margin-top: 8rpx; }
-</style> 
+.sign-in-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.title {
+  font-size: 32rpx;
+  font-weight: bold;
+}
+.current-score {
+  font-size: 28rpx;
+}
+.sign-in-days {
+  display: flex;
+  justify-content: space-between;
+  margin: 24rpx 0;
+}
+.day-item {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+}
+.day-item.active {
+  background: #fff;
+  color: #ff9800;
+  font-weight: bold;
+}
+.sign-in-desc {
+  font-size: 24rpx;
+  margin-bottom: 16rpx;
+}
+.highlight {
+  color: #fff176;
+  font-weight: bold;
+  margin: 0 4rpx;
+}
+.sign-in-btn {
+  background: #fff;
+  color: #ff9800;
+  border-radius: 24rpx;
+  padding: 12rpx 0;
+  font-size: 28rpx;
+  margin-top: 8rpx;
+}
+</style>

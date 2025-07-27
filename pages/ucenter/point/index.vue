@@ -15,7 +15,7 @@
         <text class="cost">100积分/次</text>
         <button class="go-btn" @click="goLottery">GO</button>
       </view>
-      <PrizeCarousel :prizes="prizeList"/>
+      <PrizeCarousel :prizes="prizeList" />
     </view>
     <!-- 签到赚积分区块（内嵌签到进度卡片） -->
     <SignInProgress ref="signInProgress" :signInRes="signInRes" @signIn="handleSignIn" />
@@ -71,7 +71,10 @@ export default {
 }
 </script>
 <style scoped>
-.point-center { background: #f8f8f8; min-height: 100vh; }
+.point-center {
+  background: #f8f8f8;
+  min-height: 100vh;
+}
 .my-point-card {
   background: #fbeee6;
   border-radius: 16px;
@@ -81,10 +84,26 @@ export default {
   align-items: center;
   justify-content: space-between;
 }
-.point-info { display: flex; align-items: center; }
-.point-label { font-size: 32rpx; color: #888; }
-.point-value { font-size: 48rpx; color: #ff9800; font-weight: bold; margin: 0 16rpx; }
-.point-detail-btn { font-size: 24rpx; color: #1976d2; background: none; border: none; }
+.point-info {
+  display: flex;
+  align-items: center;
+}
+.point-label {
+  font-size: 32rpx;
+  color: #888;
+}
+.point-value {
+  font-size: 48rpx;
+  color: #ff9800;
+  font-weight: bold;
+  margin: 0 16rpx;
+}
+.point-detail-btn {
+  font-size: 24rpx;
+  color: #1976d2;
+  background: none;
+  border: none;
+}
 .lottery-card {
   background: #fff;
   border-radius: 16px;
@@ -92,14 +111,55 @@ export default {
   padding: 24rpx;
   box-shadow: 0 2rpx 8rpx #f0f0f0;
 }
-.lottery-header { display: flex; align-items: center; justify-content: space-between; }
-.cost { color: #ff9800; font-size: 24rpx; }
-.go-btn { background: #ff9800; color: #fff; border-radius: 24rpx; padding: 8rpx 32rpx; }
-.task-section { margin: 24rpx; }
-.task-title { font-size: 32rpx; color: #333; margin-bottom: 16rpx; }
-.task-list { display: flex; flex-direction: column; gap: 16rpx; }
-.task-item { background: #fff; border-radius: 12rpx; padding: 16rpx; display: flex; align-items: center; justify-content: space-between; }
-.task-name { font-size: 28rpx; color: #333; }
-.task-reward { color: #ff9800; font-size: 28rpx; margin-left: 8rpx; }
-.task-btn { background: #1976d2; color: #fff; border-radius: 16rpx; padding: 8rpx 24rpx; }
-</style> 
+.lottery-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.cost {
+  color: #ff9800;
+  font-size: 24rpx;
+}
+.go-btn {
+  background: #ff9800;
+  color: #fff;
+  border-radius: 24rpx;
+  padding: 8rpx 32rpx;
+}
+.task-section {
+  margin: 24rpx;
+}
+.task-title {
+  font-size: 32rpx;
+  color: #333;
+  margin-bottom: 16rpx;
+}
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+.task-item {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.task-name {
+  font-size: 28rpx;
+  color: #333;
+}
+.task-reward {
+  color: #ff9800;
+  font-size: 28rpx;
+  margin-left: 8rpx;
+}
+.task-btn {
+  background: #1976d2;
+  color: #fff;
+  border-radius: 16rpx;
+  padding: 8rpx 24rpx;
+}
+</style>

@@ -1,19 +1,35 @@
 <template>
   <view class="masonry-card">
     <view class="custom-cover" @click="goDetail">
-      <swiper v-if="imageList.length > 1" class="cover-swiper" :indicator-dots="true" :autoplay="false" :circular="true">
+      <swiper
+        v-if="imageList.length > 1"
+        class="cover-swiper"
+        :indicator-dots="true"
+        :autoplay="false"
+        :circular="true"
+      >
         <swiper-item v-for="(img, idx) in imageList" :key="img.url">
           <image class="cover-image" :src="img.url" mode="aspectFill" />
         </swiper-item>
       </swiper>
-      <image v-else-if="imageList.length === 1" class="cover-image" :src="imageList[0].url" mode="aspectFill" />
+      <image
+        v-else-if="imageList.length === 1"
+        class="cover-image"
+        :src="imageList[0].url"
+        mode="aspectFill"
+      />
       <view v-else class="cover-image no-image"></view>
       <view class="cover-content">
         <text class="uni-subtitle uni-white">{{ task.name }}</text>
       </view>
     </view>
     <uni-list>
-      <uni-list-item :title="task.description || task.name || '暂无描述'" showArrow link @click="goDetail"></uni-list-item>
+      <uni-list-item
+        :title="task.description || task.name || '暂无描述'"
+        showArrow
+        link
+        @click="goDetail"
+      ></uni-list-item>
       <view class="user-info">
         <image class="user-avatar" :src="user?.avatar_file?.url || '/static/logo.png'" />
         <!-- <text class="user-nickname">{{ user?.nickname || '匿名用户' }}</text> -->
@@ -23,16 +39,24 @@
     <view v-if="showActions" class="card-actions no-border">
       <view class="card-actions-item">
         <text class="card-actions-item-text">
-          {{ task.mode === 'score' ? (task.score + ' 积分') : (task.price + '¥') }}
+          {{ task.mode === 'score' ? task.score + ' 积分' : task.price + '¥' }}
         </text>
       </view>
       <view class="card-actions-item" @click.stop="onLikeClick">
-        <uni-icons :type="task.is_liked ? 'heart-filled' : 'heart'" size="18" :color="task.is_liked ? 'red' : '#999'" />
+        <uni-icons
+          :type="task.is_liked ? 'heart-filled' : 'heart'"
+          size="18"
+          :color="task.is_liked ? 'red' : '#999'"
+        />
         <text class="card-actions-item-text">{{ task.like_count || 0 }}</text>
       </view>
       <view class="card-actions-item">
         <text class="card-actions-item-text">
-          {{ (typeof task.joined_count === 'number' ? task.joined_count : 0) }}/{{ (typeof task.max_participants === 'number' && task.max_participants > 0 ? task.max_participants : 1) }}
+          {{ typeof task.joined_count === 'number' ? task.joined_count : 0 }}/{{
+            typeof task.max_participants === 'number' && task.max_participants > 0
+              ? task.max_participants
+              : 1
+          }}
         </text>
       </view>
     </view>
@@ -41,8 +65,8 @@
 <script>
 export default {
   name: 'TaskCard',
-  props: { 
-    task: Object, 
+  props: {
+    task: Object,
     user: Object,
     showActions: {
       type: Boolean,
@@ -52,15 +76,38 @@ export default {
   computed: {
     imageList() {
       // 只取图片
-      return Array.isArray(this.task.media_detail) ? this.task.media_detail.filter(m => m.type === 'image') : []
+      return Array.isArray(this.task.media_detail)
+        ? this.task.media_detail.filter(m => m.type === 'image')
+        : []
     }
   },
   methods: {
     goDetail() {
       // 合并任务和用户的所有核心字段
-      const { _id, name, image, description, like_count, is_liked, joined_count, max_participants, score, price, mode, location, start_time, end_time, category_name, create_date, media_detail, location_text, is_publisher_joined, members } = this.task;
+      const {
+        _id,
+        name,
+        image,
+        description,
+        like_count,
+        is_liked,
+        joined_count,
+        max_participants,
+        score,
+        price,
+        mode,
+        location,
+        start_time,
+        end_time,
+        category_name,
+        create_date,
+        media_detail,
+        location_text,
+        is_publisher_joined,
+        members
+      } = this.task
       // 构建参数对象
-      const params = {
+      const parameters = {
         id: _id,
         name,
         image,
@@ -83,17 +130,17 @@ export default {
         media_detail: media_detail ? encodeURIComponent(JSON.stringify(media_detail)) : '',
         location_text: location_text ? encodeURIComponent(JSON.stringify(location_text)) : '',
         members: members ? encodeURIComponent(JSON.stringify(members)) : ''
-      };
+      }
       // 构建 url 查询字符串
-      const query = Object.keys(params)
-        .map(key => `${key}=${params[key] == null ? '' : params[key]}`)
-        .join('&');
+      const query = Object.keys(parameters)
+        .map(key => `${key}=${parameters[key] == undefined ? '' : parameters[key]}`)
+        .join('&')
       uni.navigateTo({
         url: `/pages/list/detail?${query}`
-      });
+      })
     },
     onLikeClick() {
-      this.$emit('like', this.task);
+      this.$emit('like', this.task)
     }
   }
 }
@@ -106,17 +153,50 @@ export default {
   margin: 4px 1px !important;
   background: #fff;
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
 }
-.custom-cover { position: relative; }
-.cover-image { width: 100%; height: 120px; object-fit: cover; border-radius: 8px 8px 0 0; }
-.cover-content { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); padding: 4px 8px; }
-.uni-subtitle.uni-white { color: #fff; font-size: 14px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.card-actions { display: flex; flex-direction: row; justify-content: space-around; padding: 8px 0; }
-.card-actions-item { display: flex; align-items: center; }
-.card-actions-item-text { margin-left: 4px; font-size: 16px; color: #666; }
+.custom-cover {
+  position: relative;
+}
+.cover-image {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px 8px 0 0;
+}
+.cover-content {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 8px;
+}
+.uni-subtitle.uni-white {
+  color: #fff;
+  font-size: 14px;
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  padding: 8px 0;
+}
+.card-actions-item {
+  display: flex;
+  align-items: center;
+}
+.card-actions-item-text {
+  margin-left: 4px;
+  font-size: 16px;
+  color: #666;
+}
 .user-info {
   display: flex;
   align-items: center;
@@ -144,6 +224,13 @@ export default {
   padding: 2px 8px;
   margin-left: 4px;
 }
-.cover-swiper { width: 100%; height: 120px; border-radius: 8px 8px 0 0; overflow: hidden; }
-.no-image { background: #f5f5f5; }
-</style> 
+.cover-swiper {
+  width: 100%;
+  height: 120px;
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+}
+.no-image {
+  background: #f5f5f5;
+}
+</style>

@@ -3,11 +3,22 @@
     <view class="media-list">
       <template v-for="(item, idx) in mediaList" :key="item.url">
         <view class="media-item" :class="{ 'is-video': item.type === 'video' }">
-          <image v-if="item.type === 'image'" :src="item.url" class="media-thumb" @click="onPreview(idx)"
-            :draggable="true" mode="aspectFill" />
+          <image
+            v-if="item.type === 'image'"
+            :src="item.url"
+            class="media-thumb"
+            @click="onPreview(idx)"
+            :draggable="true"
+            mode="aspectFill"
+          />
           <view v-else class="video-thumb" @click="onPreview(idx)">
-            <image :src="item.cover || defaultVideoCover" class="media-thumb" @error="onImageError($event, idx)"
-             :draggable="true" mode="aspectFill" />
+            <image
+              :src="item.cover || defaultVideoCover"
+              class="media-thumb"
+              @error="onImageError($event, idx)"
+              :draggable="true"
+              mode="aspectFill"
+            />
           </view>
           <view class="delete-btn" @click.stop="onDelete(idx)">
             <view class="delete-x"></view>
@@ -22,9 +33,20 @@
     <view class="media-rule">{{ ruleText }}</view>
     <!-- 全屏video播放 -->
     <view v-if="showVideo" class="fullscreen-video">
-      <video :src="currentVideoUrl" title="待上传视频" controls :autoplay="true" :loop="true" :muted="true"
-        :page-gesture="true" :vslide-gesture="true" :show-center-play-btn="true" :show-mute-btn="true"
-        style="width: 100vw; height: 100vh; background: #000;" @ended="closeVideo" />
+      <video
+        :src="currentVideoUrl"
+        title="待上传视频"
+        controls
+        :autoplay="true"
+        :loop="true"
+        :muted="true"
+        :page-gesture="true"
+        :vslide-gesture="true"
+        :show-center-play-btn="true"
+        :show-mute-btn="true"
+        style="width: 100vw; height: 100vh; background: #000"
+        @ended="closeVideo"
+      />
       <view class="close-video-btn" @click="closeVideo">
         <view class="close-x"></view>
       </view>
@@ -36,7 +58,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { onBackPress } from '@dcloudio/uni-app'
 
-const props = defineProps({
+const properties = defineProps({
   modelValue: { type: Array, default: () => [] },
   maxImages: { type: Number, default: 3 },
   maxVideo: { type: Number, default: 1 },
@@ -49,23 +71,26 @@ const defaultVideoCover = ref('/static/icons/videoCover.png')
 
 const mediaList = computed(() => {
   // 视频优先
-  const video = (props.modelValue || []).find(f => f.type === 'video')
-  const images = (props.modelValue || []).filter(f => f.type === 'image')
+  const video = (properties.modelValue || []).find(f => f.type === 'video')
+  const images = (properties.modelValue || []).filter(f => f.type === 'image')
   return video ? [video, ...images] : images
 })
 const canAdd = computed(() => {
   const imgCount = mediaList.value.filter(f => f.type === 'image').length
   const hasVideo = mediaList.value.some(f => f.type === 'video')
-  return (imgCount < props.maxImages) || (!hasVideo && props.maxVideo > 0)
+  return imgCount < properties.maxImages || (!hasVideo && properties.maxVideo > 0)
 })
-const ruleText = computed(() => `图片最多${props.maxImages}张，单张≤${Math.round(props.maxImageSize / 1024 / 1024)}MB；视频1个，≤${Math.round(props.maxVideoSize / 1024 / 1024)}MB，≤${props.maxVideoDuration}秒`)
+const ruleText = computed(
+  () =>
+    `图片最多${properties.maxImages}张，单张≤${Math.round(properties.maxImageSize / 1024 / 1024)}MB；视频1个，≤${Math.round(properties.maxVideoSize / 1024 / 1024)}MB，≤${properties.maxVideoDuration}秒`
+)
 
 // 全屏video播放相关
 const showVideo = ref(false)
 const currentVideoUrl = ref('')
 
 onMounted(() => {
-  onBackPress((e) => {
+  onBackPress(e => {
     if (showVideo.value) {
       showVideo.value = false
       return true // 拦截返回
@@ -81,51 +106,53 @@ function onAddClick() {
   const imgCount = mediaList.value.filter(f => f.type === 'image').length
   const hasVideo = mediaList.value.some(f => f.type === 'video')
   // 只剩图片名额
-  if (imgCount < props.maxImages && hasVideo) {
+  if (imgCount < properties.maxImages && hasVideo) {
     chooseImage()
     return
   }
   // 只剩视频名额
-  if (imgCount >= props.maxImages && !hasVideo) {
+  if (imgCount >= properties.maxImages && !hasVideo) {
     chooseVideo()
     return
   }
   // 两者都可
   uni.showActionSheet({
     itemList: ['上传图片', '上传视频'],
-    success: (res) => {
+    success: res => {
       if (res.tapIndex === 0) chooseImage()
       else chooseVideo()
     }
   })
 }
 function chooseImage() {
-  let imgCount = mediaList.value.filter(f => f.type === 'image').length
-  let remain = props.maxImages - imgCount
+  const imgCount = mediaList.value.filter(f => f.type === 'image').length
+  const remain = properties.maxImages - imgCount
   if (remain <= 0) {
-    uni.showToast({ title: `最多只能上传${props.maxImages}张图片`, icon: 'none' })
+    uni.showToast({ title: `最多只能上传${properties.maxImages}张图片`, icon: 'none' })
     return
   }
   uni.chooseImage({
     count: remain,
     sizeType: ['original', 'compressed'],
     success: res => {
-      const valid = res.tempFiles.filter(f => f.size <= props.maxImageSize)
+      const valid = res.tempFiles.filter(f => f.size <= properties.maxImageSize)
       if (valid.length < res.tempFiles.length) {
         uni.showToast({ title: '部分图片超出大小限制', icon: 'none' })
       }
       // 严格控制总数
-      let imgs = props.modelValue.filter(f => f.type === 'image')
-      let addImgs = valid.slice(0, remain).map(f => ({
+      const imgs = properties.modelValue.filter(f => f.type === 'image')
+      const addImgs = valid.slice(0, remain).map(f => ({
         url: f.tempFilePath || f.path,
         type: 'image',
         is_main: false
       }))
-      const video = props.modelValue.find(f => f.type === 'video')
-      let newArr = video ? [video, ...imgs, ...addImgs] : [...imgs, ...addImgs]
+      const video = properties.modelValue.find(f => f.type === 'video')
+      let newArray = video ? [video, ...imgs, ...addImgs] : [...imgs, ...addImgs]
       // 最终图片数不超过maxImages
-      newArr = video ? [video, ...newArr.slice(1, props.maxImages + 1)] : newArr.slice(0, props.maxImages)
-      emit('update:modelValue', newArr)
+      newArray = video
+        ? [video, ...newArray.slice(1, properties.maxImages + 1)]
+        : newArray.slice(0, properties.maxImages)
+      emit('update:modelValue', newArray)
     }
   })
 }
@@ -137,64 +164,75 @@ function chooseVideo() {
     return
   }
   uni.chooseVideo({
-    maxDuration: props.maxVideoDuration,
+    maxDuration: properties.maxVideoDuration,
     success: res => {
-      const tempFilePath = res.tempFilePath || res.path
-      console.log('[chooseVideo] tempFilePath:', tempFilePath, res)
-      if (typeof res.duration === 'number' && res.duration > props.maxVideoDuration) {
-        uni.showToast({ title: '视频时长不能超过' + props.maxVideoDuration + '秒', icon: 'none' })
+      const temporaryFilePath = res.tempFilePath || res.path
+      console.log('[chooseVideo] tempFilePath:', temporaryFilePath, res)
+      if (typeof res.duration === 'number' && res.duration > properties.maxVideoDuration) {
+        uni.showToast({
+          title: '视频时长不能超过' + properties.maxVideoDuration + '秒',
+          icon: 'none'
+        })
         return
       }
       uni.getFileInfo({
-        filePath: tempFilePath,
+        filePath: temporaryFilePath,
         success: info => {
           console.log('[chooseVideo] getFileInfo:', info)
-          if (info.size > props.maxVideoSize) {
+          if (info.size > properties.maxVideoSize) {
             uni.showToast({ title: '视频超出大小限制', icon: 'none' })
             return
           }
           // 生成视频封面
-          getVideoCover(tempFilePath).then(coverPath => {
-            console.log('[chooseVideo] getVideoCover result:', coverPath)
-            const imgs = props.modelValue.filter(f => f.type === 'image')
-            let newArr = [{
-              url: tempFilePath,
-              type: 'video',
-              duration: res.duration || 0,
-              size: info.size,
-              cover: coverPath // 新增封面
-            }, ...imgs]
-            newArr = [newArr[0], ...newArr.slice(1, props.maxImages + 1)]
-            console.log('[chooseVideo] emit update:modelValue', newArr)
-            emit('update:modelValue', newArr)
-          }).catch(err => {
-            console.error('[chooseVideo] getVideoCover error:', err)
-            // 兜底
-            const imgs = props.modelValue.filter(f => f.type === 'image')
-            let newArr = [{
-              url: tempFilePath,
-              type: 'video',
-              duration: res.duration || 0,
-              size: info.size,
-              cover: defaultVideoCover.value
-            }, ...imgs]
-            newArr = [newArr[0], ...newArr.slice(1, props.maxImages + 1)]
-            emit('update:modelValue', newArr)
-          })
+          getVideoCover(temporaryFilePath)
+            .then(coverPath => {
+              console.log('[chooseVideo] getVideoCover result:', coverPath)
+              const imgs = properties.modelValue.filter(f => f.type === 'image')
+              let newArray = [
+                {
+                  url: temporaryFilePath,
+                  type: 'video',
+                  duration: res.duration || 0,
+                  size: info.size,
+                  cover: coverPath // 新增封面
+                },
+                ...imgs
+              ]
+              newArray = [newArray[0], ...newArray.slice(1, properties.maxImages + 1)]
+              console.log('[chooseVideo] emit update:modelValue', newArray)
+              emit('update:modelValue', newArray)
+            })
+            .catch(error => {
+              console.error('[chooseVideo] getVideoCover error:', error)
+              // 兜底
+              const imgs = properties.modelValue.filter(f => f.type === 'image')
+              let newArray = [
+                {
+                  url: temporaryFilePath,
+                  type: 'video',
+                  duration: res.duration || 0,
+                  size: info.size,
+                  cover: defaultVideoCover.value
+                },
+                ...imgs
+              ]
+              newArray = [newArray[0], ...newArray.slice(1, properties.maxImages + 1)]
+              emit('update:modelValue', newArray)
+            })
         },
-        fail: err => {
-          console.error('[chooseVideo] getFileInfo fail:', err)
+        fail: error => {
+          console.error('[chooseVideo] getFileInfo fail:', error)
         }
       })
     },
-    fail: err => {
-      console.error('[chooseVideo] uni.chooseVideo fail:', err)
+    fail: error => {
+      console.error('[chooseVideo] uni.chooseVideo fail:', error)
     }
   })
 }
 // 获取视频第一帧封面（H5/APP/小程序兼容，简单降级，保证一定resolve）
 function getVideoCover(videoPath) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     let resolved = false
     // #ifdef APP-PLUS
     if (typeof plus !== 'undefined' && plus.video && plus.video.getVideoInfo) {
@@ -210,7 +248,9 @@ function getVideoCover(videoPath) {
           resolve(defaultVideoCover.value)
         }
       })
-      setTimeout(() => { if (!resolved) resolve(defaultVideoCover.value) }, 3000)
+      setTimeout(() => {
+        if (!resolved) resolve(defaultVideoCover.value)
+      }, 3000)
       return
     }
     // #endif
@@ -224,13 +264,15 @@ function getVideoCover(videoPath) {
         const canvas = document.createElement('canvas')
         canvas.width = video.videoWidth
         canvas.height = video.videoHeight
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        const context = canvas.getContext('2d')
+        context.drawImage(video, 0, 0, canvas.width, canvas.height)
         resolved = true
         resolve(canvas.toDataURL('image/png'))
       })
-      setTimeout(() => { if (!resolved) resolve(defaultVideoCover.value) }, 3000)
-    } catch (e) {
+      setTimeout(() => {
+        if (!resolved) resolve(defaultVideoCover.value)
+      }, 3000)
+    } catch {
       resolve(defaultVideoCover.value)
     }
     // #endif
@@ -238,21 +280,23 @@ function getVideoCover(videoPath) {
     resolve(defaultVideoCover.value)
     // #endif
     // 兜底
-    setTimeout(() => { if (!resolved) resolve(defaultVideoCover.value) }, 3000)
+    setTimeout(() => {
+      if (!resolved) resolve(defaultVideoCover.value)
+    }, 3000)
   })
 }
-function onImageError(e, idx) {
-  if (mediaList.value[idx] && mediaList.value[idx].type === 'video') {
-    mediaList.value[idx].cover = defaultVideoCover.value
+function onImageError(e, index) {
+  if (mediaList.value[index] && mediaList.value[index].type === 'video') {
+    mediaList.value[index].cover = defaultVideoCover.value
   }
 }
-function onDelete(idx) {
-  const arr = [...mediaList.value]
-  arr.splice(idx, 1)
-  emit('update:modelValue', arr)
+function onDelete(index) {
+  const array = [...mediaList.value]
+  array.splice(index, 1)
+  emit('update:modelValue', array)
 }
-function onPreview(idx) {
-  const item = mediaList.value[idx]
+function onPreview(index) {
+  const item = mediaList.value[index]
   if (item.type === 'image') {
     uni.previewImage({
       urls: mediaList.value.filter(f => f.type === 'image').map(f => f.url),
@@ -320,12 +364,15 @@ function closeVideo() {
   justify-content: center;
   z-index: 10;
   cursor: pointer;
-  transition: box-shadow 0.15s, background 0.15s, transform 0.1s;
+  transition:
+    box-shadow 0.15s,
+    background 0.15s,
+    transform 0.1s;
 }
 
 .delete-btn:active {
   background: #f5f5f5;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   transform: scale(0.92);
 }
 

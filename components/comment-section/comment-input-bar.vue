@@ -23,12 +23,14 @@
             @mousedown="onClearMouseDown"
             @touchstart="onClearMouseDown"
             @click="clearInput"
-            style="margin-right: 4px;"
+            style="margin-right: 4px"
           />
         </template>
       </uni-easyinput>
     </view>
-    <button class="send-btn" :disabled="!inputValue.trim() && images.length === 0" @click="submit">发送</button>
+    <button class="send-btn" :disabled="!inputValue.trim() && images.length === 0" @click="submit">
+      发送
+    </button>
   </view>
   <view v-if="images.length > 0" class="image-preview-list">
     <view v-for="(img, idx) in images" :key="idx" class="image-preview-item">
@@ -56,11 +58,13 @@ export default {
     }
   },
   watch: {
-    modelValue(val) { this.inputValue = val }
+    modelValue(value) {
+      this.inputValue = value
+    }
   },
   methods: {
-    onInput(val) {
-      this.inputValue = val
+    onInput(value) {
+      this.inputValue = value
       this.$emit('update:modelValue', this.inputValue)
       // 如果内容被清空，通知父组件退出回复状态
       if (!this.inputValue.trim()) {
@@ -73,13 +77,15 @@ export default {
       this.$emit('update:modelValue', '')
       this.$nextTick(() => {
         if (this.$refs.input && this.$refs.input.focus) {
-          this.$refs.input.focus();
+          this.$refs.input.focus()
         }
-        setTimeout(() => { this.isClearing = false }, 300)
-      });
+        setTimeout(() => {
+          this.isClearing = false
+        }, 300)
+      })
     },
     onClearMouseDown() {
-      this.isClearing = true;
+      this.isClearing = true
     },
     submit() {
       if (!this.inputValue.trim() && this.images.length === 0) return
@@ -102,13 +108,13 @@ export default {
     onChooseImage() {
       uni.chooseImage({
         count: 1,
-        success: (res) => {
+        success: res => {
           this.images = this.images.concat(res.tempFilePaths)
         }
       })
     },
-    removeImage(idx) {
-      this.images.splice(idx, 1)
+    removeImage(index) {
+      this.images.splice(index, 1)
     },
     triggerKeyboardHide() {
       if (this.isFocus) {
@@ -130,7 +136,7 @@ export default {
     }
     // 微信小程序: 监听键盘高度变化
     if (typeof uni !== 'undefined' && uni.onKeyboardHeightChange) {
-      this._keyboardChangeHandler = (res) => {
+      this._keyboardChangeHandler = res => {
         if (res.height === 0) {
           this.triggerKeyboardHide()
         }
@@ -138,7 +144,7 @@ export default {
       uni.onKeyboardHeightChange(this._keyboardChangeHandler)
     }
   },
-  beforeDestroy() {
+  beforeUnmount() {
     if (typeof window !== 'undefined' && this._resizeHandler) {
       window.removeEventListener('resize', this._resizeHandler)
     }
@@ -152,7 +158,9 @@ export default {
 <style scoped>
 .input-bar {
   position: fixed;
-  left: 0; right: 0; bottom: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: #fff;
   border-top: 1px solid #eee;
   display: flex;
@@ -215,7 +223,7 @@ export default {
   height: 36px;
   font-size: 16px;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(255,59,59,0.08);
+  box-shadow: 0 2px 8px rgba(255, 59, 59, 0.08);
   align-self: center;
   display: flex;
   align-items: center;

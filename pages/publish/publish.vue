@@ -4,7 +4,13 @@
       <!-- 标题 -->
       <uni-forms-item label="任务标题" name="name" required>
         <view class="input-row">
-          <uni-easyinput v-model="form.name" maxlength="15" placeholder="请输入任务标题" @input="onTitleInput" :disabled="isFieldDisabled('name')">
+          <uni-easyinput
+            v-model="form.name"
+            maxlength="15"
+            placeholder="请输入任务标题"
+            @input="onTitleInput"
+            :disabled="isFieldDisabled('name')"
+          >
             <template #right>
               <text class="input-count">{{ form.name.length }}/15</text>
             </template>
@@ -14,8 +20,14 @@
       <!-- 描述 -->
       <uni-forms-item label="任务描述" name="description" required>
         <view class="input-row">
-          <uni-easyinput type="textarea" :trim="true" v-model="form.description" maxlength="80" placeholder="请输入任务描述"
-            @input="onDescInput">
+          <uni-easyinput
+            type="textarea"
+            :trim="true"
+            v-model="form.description"
+            maxlength="80"
+            placeholder="请输入任务描述"
+            @input="onDescInput"
+          >
             <template #right>
               <uni-icons
                 v-if="form.description"
@@ -24,7 +36,7 @@
                 color="#c0c4cc"
                 @mousedown.prevent
                 @click="form.description = ''"
-                style="margin-right: 4px; cursor: pointer;"
+                style="margin-right: 4px; cursor: pointer"
               />
             </template>
           </uni-easyinput>
@@ -36,36 +48,55 @@
         <view class="reward-input">
           <uni-easyinput v-model="scoreProxy" type="number" maxlength="5" placeholder="请输入积分">
             <template #right>
-              <view class="mode-switch-btn" @click.stop="setMode('price')"
-                style="display:flex;align-items:center;cursor:pointer;">
-                <uni-icons type="wallet" size="18" color="#1976d2" style="margin-right:2px;" />
+              <view
+                class="mode-switch-btn"
+                @click.stop="setMode('price')"
+                style="display: flex; align-items: center; cursor: pointer"
+              >
+                <uni-icons type="wallet" size="18" color="#1976d2" style="margin-right: 2px" />
                 <text>金额结算</text>
               </view>
             </template>
           </uni-easyinput>
-          <view class="max-unit" v-if="scoreMaxUnit && scoreMaxUnit != '个'">{{ scoreMaxUnit }}</view>
+          <view class="max-unit" v-if="scoreMaxUnit && scoreMaxUnit != '个'">{{
+            scoreMaxUnit
+          }}</view>
         </view>
-        <view class="desc-text" style="color:#888;font-size:13px;">每人奖励积分，任务开始时按实际参与人数总计扣除</view>
+        <view class="desc-text" style="color: #888; font-size: 13px"
+          >每人奖励积分，任务开始时按实际参与人数总计扣除</view
+        >
       </uni-forms-item>
       <uni-forms-item v-else label="任务金额" name="price" :required="true">
         <view class="reward-input">
           <uni-easyinput v-model="priceProxy" type="digit" maxlength="8" placeholder="请输入金额">
             <template #right>
-              <view class="mode-switch-btn" @click.stop="setMode('score')"
-                style="display:flex;align-items:center;cursor:pointer;">
-                <uni-icons type="medal" size="18" color="#1976d2" style="margin-right:2px;" />
+              <view
+                class="mode-switch-btn"
+                @click.stop="setMode('score')"
+                style="display: flex; align-items: center; cursor: pointer"
+              >
+                <uni-icons type="medal" size="18" color="#1976d2" style="margin-right: 2px" />
                 <text>积分结算</text>
               </view>
             </template>
           </uni-easyinput>
-          <view class="max-unit" v-if="amountMaxUnit && amountMaxUnit != '个'">{{ amountMaxUnit }}</view>
+          <view class="max-unit" v-if="amountMaxUnit && amountMaxUnit != '个'">{{
+            amountMaxUnit
+          }}</view>
         </view>
-        <view class="desc-text" style="color:#888;font-size:13px;">每人奖励金额，任务开始时按实际参与人数总计扣除</view>
+        <view class="desc-text" style="color: #888; font-size: 13px"
+          >每人奖励金额，任务开始时按实际参与人数总计扣除</view
+        >
       </uni-forms-item>
       <!-- 参与人数 -->
       <uni-forms-item label="参与人数" name="max_participants" required>
         <view class="input-row">
-          <uni-easyinput v-model="maxParticipantsProxy" type="number" maxlength="2" placeholder="最大参与人数 1~99">
+          <uni-easyinput
+            v-model="maxParticipantsProxy"
+            type="number"
+            maxlength="2"
+            placeholder="最大参与人数 1~99"
+          >
             <template #right>
               <!-- 原有按钮替换为自定义开关 -->
               <view
@@ -83,22 +114,36 @@
             </template>
           </uni-easyinput>
         </view>
-        <view class="desc-text" style="margin-top:8px;color:#888;font-size:13px;">
+        <view class="desc-text" style="margin-top: 8px; color: #888; font-size: 13px">
           {{ form.is_publisher_joined ? '发布者将作为参与者加入任务' : '发布者不参与，仅发布任务' }}
         </view>
       </uni-forms-item>
       <!-- 时间选择 -->
       <uni-forms-item label="任务时段" name="timeRange" required>
-        <uni-datetime-picker :key="timeRangeKey" ref="datePickerRef" type="datetimerange" v-model="form.timeRange"
-          :start="calendarStart" :end="endDateStr" :hide-second="true" @change="onTimeRangeChange">
+        <uni-datetime-picker
+          :key="timeRangeKey"
+          ref="datePickerRef"
+          type="datetimerange"
+          v-model="form.timeRange"
+          :start="calendarStart"
+          :end="endDateStr"
+          :hide-second="true"
+          @change="onTimeRangeChange"
+        >
           <template #default>
             <view class="custom-time-input" @click="onTimeInputClick">
-              <uni-icons type="calendar" size="22" color="#1976d2" style="margin-right:8px;" />
-              <text :style="{ color: (form.start_time && form.end_time) ? '#333' : '#bbb', flex: 1 }">
+              <uni-icons type="calendar" size="22" color="#1976d2" style="margin-right: 8px" />
+              <text :style="{ color: form.start_time && form.end_time ? '#333' : '#bbb', flex: 1 }">
                 {{ timeRangeDisplay }}
               </text>
-              <uni-icons v-if="form.start_time && form.end_time" type="close" size="20" color="#bbb"
-                style="margin-left:8px;" @click="onClearTimeRange()" />
+              <uni-icons
+                v-if="form.start_time && form.end_time"
+                type="close"
+                size="20"
+                color="#bbb"
+                style="margin-left: 8px"
+                @click="onClearTimeRange()"
+              />
             </view>
           </template>
         </uni-datetime-picker>
@@ -108,23 +153,43 @@
       </uni-forms-item>
       <!-- 任务类型 -->
       <uni-forms-item label="任务类型" name="category" required>
-        <uni-data-picker :localdata="typeOptions" popup-title="请选择任务类型" placeholder="请选择任务类型" v-model="form.category"
-          @change="onTypeChange" :readonly="isFieldDisabled('category')" />
+        <uni-data-picker
+          :localdata="typeOptions"
+          popup-title="请选择任务类型"
+          placeholder="请选择任务类型"
+          v-model="form.category"
+          @change="onTypeChange"
+          :readonly="isFieldDisabled('category')"
+        />
         <view v-if="form.category !== -1" class="picker-value">
-          <image v-if="typeOptions.find(opt => opt.value === form.category)?.icon"
-            :src="typeOptions.find(opt => opt.value === form.category)?.icon" class="type-icon" />
-          {{typeOptions.find(opt => opt.value === form.category)?.text}}
+          <image
+            v-if="typeOptions.find(opt => opt.value === form.category)?.icon"
+            :src="typeOptions.find(opt => opt.value === form.category)?.icon"
+            class="type-icon"
+          />
+          {{ typeOptions.find(opt => opt.value === form.category)?.text }}
         </view>
       </uni-forms-item>
       <!-- 地区选择 -->
       <uni-forms-item label="所属地区" name="location" required>
-        <uni-data-picker :localdata="areaPickerData" popup-title="请选择地区" placeholder="请选择省市区" v-model="form.location"
-          @change="onAreaChange" :readonly="isFieldDisabled('location')" />
+        <uni-data-picker
+          :localdata="areaPickerData"
+          popup-title="请选择地区"
+          placeholder="请选择省市区"
+          v-model="form.location"
+          @change="onAreaChange"
+          :readonly="isFieldDisabled('location')"
+        />
       </uni-forms-item>
       <!-- 图片/视频上传 -->
       <uni-forms-item label="图片/视频" name="media">
-        <media-uploader v-model="form.media_detail" :maxImages="3" :maxImageSize="2 * 1024 * 1024"
-          :maxVideoSize="10 * 1024 * 1024" :maxVideoDuration="30" />
+        <media-uploader
+          v-model="form.media_detail"
+          :maxImages="3"
+          :maxImageSize="2 * 1024 * 1024"
+          :maxVideoSize="10 * 1024 * 1024"
+          :maxVideoDuration="30"
+        />
       </uni-forms-item>
       <button class="submit-btn" @click="submit">{{ isEditMode ? '确认修改' : '确认提交' }}</button>
     </view>
@@ -138,31 +203,31 @@ import { formatAmountUnits, numberToChinese, formatDuration } from '@/utils/tool
 import { categories } from '@/utils/categories.js'
 import { areaList } from '@/common/areaList.js'
 import MediaUploader from '@/components/media-uploader/media-uploader.vue'
-import { store } from '@/uni_modules/uni-id-pages/common/store.js'
-import { mutations } from '@/uni_modules/uni-id-pages/common/store.js'
+import { store, mutations } from '@/uni_modules/uni-id-pages/common/store.js'
 
 const formRef = ref(null)
 const datePickerRef = ref(null)
-const ALLOWED_DESC_REGEX = /[a-zA-Z0-9\u4e00-\u9fa5\u3002\uff1b\uff0c\uff1a\u201c\u201d\u2018\u2019\uff01\uff1f\u3001\u2014\u2026\u2013\u3010\u3011\u300a\u300b\u3008\u3009\u300e\u300f~!@#$%^&*()_+\-=\[\]{};':",.<>/?，。？！、【】《》“”‘’·￥…—、·\\|/]/g
+const ALLOWED_DESC_REGEX =
+  /[\w!"#$%&'()*+,./:;<=>?@[\\\]^{|}~·\u2013\u2014—\u2018‘\u2019’\u201C“\u201D”\u2026…\u3001、\u3002。\u3008-\u300B\u300E-\u3011\u4E00-\u9FA5\uFF01！\uFF0C，\uFF1A\uFF1B\uFF1F？￥\-]/g
 
-function getChinaNowStr() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  const h = String(now.getHours()).padStart(2, '0');
-  const min = String(now.getMinutes()).padStart(2, '0');
-  const s = String(now.getSeconds()).padStart(2, '0');
-  return `${y}-${m}-${d} ${h}:${min}:${s}`;
+function getChinaNowString() {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  const h = String(now.getHours()).padStart(2, '0')
+  const min = String(now.getMinutes()).padStart(2, '0')
+  const s = String(now.getSeconds()).padStart(2, '0')
+  return `${y}-${m}-${d} ${h}:${min}:${s}`
 }
-function getTodayZeroStr() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d} 00:00:00`;
+function getTodayZeroString() {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d} 00:00:00`
 }
-const calendarStart = getTodayZeroStr();
+const calendarStart = getTodayZeroString()
 const form = reactive({
   name: '',
   description: '',
@@ -172,12 +237,12 @@ const form = reactive({
   category: -1,
   mode: 'score',
   score: 0,
-  price: 0.00,
+  price: 0,
   timeRange: ['', ''], // 选择用
-  start_time: '',      // 存储用
-  end_time: '',        // 存储用
-  location: [],        // 省市区 value 数组
-  location_text: [],   // 省市区文本数组
+  start_time: '', // 存储用
+  end_time: '', // 存储用
+  location: [], // 省市区 value 数组
+  location_text: [], // 省市区文本数组
   max_participants: 1,
   is_publisher_joined: false,
   joined_count: 0,
@@ -196,11 +261,12 @@ const rules = {
       { min: 1, max: 80, errorMessage: '最多80字', trigger: 'blur' },
       {
         validator: (rule, value, callback) => {
-          if (!value) return callback();
-          const str = (value.match(ALLOWED_DESC_REGEX) || []).join('');
-          if (str.length !== value.length) return callback('仅限常用中英文及标点');
-          return callback();
-        }, trigger: 'blur'
+          if (!value) return callback()
+          const string_ = (value.match(ALLOWED_DESC_REGEX) || []).join('')
+          if (string_.length !== value.length) return callback('仅限常用中英文及标点')
+          return callback()
+        },
+        trigger: 'blur'
       }
     ]
   },
@@ -213,7 +279,11 @@ const rules = {
   score: {
     rules: [
       { required: () => form.mode === 'score', errorMessage: '请输入积分', trigger: 'blur' },
-      { pattern: /^([1-9]\d{0,4}|100000)$/, errorMessage: '积分为1~100000的正整数', trigger: 'blur' }
+      {
+        pattern: /^([1-9]\d{0,4}|10{5})$/,
+        errorMessage: '积分为1~100000的正整数',
+        trigger: 'blur'
+      }
     ]
   },
   category: {
@@ -229,53 +299,51 @@ const rules = {
     rules: [
       {
         required: true,
-        errorMessage: '请选择任务时段',
+        errorMessage: '请选择任务时段'
       },
       {
         validateFunction: function (rule, value, data, callback) {
           if (!Array.isArray(value) || value.length !== 2 || !value[0] || !value[1]) {
-            callback('请选择任务时段');
-            return;
+            callback('请选择任务时段')
+            return
           }
-          const now = new Date();
-          const minStart = new Date(now.getTime() + 15 * 60 * 1000);
-          let start = new Date(value[0].replace(/-/g, '/'));
-          let end = new Date(value[1].replace(/-/g, '/'));
-          let fixed = false;
+          const now = new Date()
+          const minStart = new Date(now.getTime() + 15 * 60 * 1000)
+          let start = new Date(value[0].replaceAll('-', '/'))
+          let end = new Date(value[1].replaceAll('-', '/'))
+          let fixed = false
           if (start < minStart) {
-            start = minStart;
-            fixed = true;
+            start = minStart
+            fixed = true
           }
-          const minEnd = new Date(start.getTime() + 30 * 60 * 1000);
+          const minEnd = new Date(start.getTime() + 30 * 60 * 1000)
           if (end < minEnd) {
-            end = minEnd;
-            fixed = true;
+            end = minEnd
+            fixed = true
           }
           function format(dt) {
-            const y = dt.getFullYear();
-            const m = String(dt.getMonth() + 1).padStart(2, '0');
-            const d = String(dt.getDate()).padStart(2, '0');
-            const h = String(dt.getHours()).padStart(2, '0');
-            const min = String(dt.getMinutes()).padStart(2, '0');
-            return `${y}-${m}-${d} ${h}:${min}`;
+            const y = dt.getFullYear()
+            const m = String(dt.getMonth() + 1).padStart(2, '0')
+            const d = String(dt.getDate()).padStart(2, '0')
+            const h = String(dt.getHours()).padStart(2, '0')
+            const min = String(dt.getMinutes()).padStart(2, '0')
+            return `${y}-${m}-${d} ${h}:${min}`
           }
           if (fixed) {
             // 自动修正并赋值
-            data.timeRange = [format(start), format(end)];
-            data.start_time = format(start);
-            data.end_time = format(end);
-            callback();
-            return;
+            data.timeRange = [format(start), format(end)]
+            data.start_time = format(start)
+            data.end_time = format(end)
+            callback()
+            return
           }
-          callback();
+          callback()
         }
       }
     ]
   },
   location: {
-    rules: [
-      { required: true, errorMessage: '请选择地区', trigger: 'change' }
-    ]
+    rules: [{ required: true, errorMessage: '请选择地区', trigger: 'change' }]
   },
   max_participants: {
     rules: [
@@ -295,9 +363,7 @@ const rules = {
     ]
   },
   media: {
-    rules: [
-      { required: true, errorMessage: '请至少上传一张图片', trigger: 'change' }
-    ]
+    rules: [{ required: true, errorMessage: '请至少上传一张图片', trigger: 'change' }]
   }
 }
 
@@ -315,9 +381,9 @@ function onTypeChange(e) {
     return
   }
   const catId = e.detail.value[0].value
-  const idx = typeOptions.findIndex(opt => opt.value === catId)
+  const index = typeOptions.findIndex(opt => opt.value === catId)
   form.category = catId
-  form.category_name = typeOptions[idx]?.text || ''
+  form.category_name = typeOptions[index]?.text || ''
 }
 // 三级联动数据适配
 function parseAreaList(areaList) {
@@ -341,12 +407,12 @@ function parseAreaList(areaList) {
     cityCode: code.slice(0, 4) + '00' // 前4位+00
   }))
   // 组装
-  provinces.forEach(province => {
+  for (const province of provinces) {
     province.children = cities.filter(city => city.provinceCode === province.value)
-    province.children.forEach(city => {
+    for (const city of province.children) {
       city.children = areas.filter(area => area.cityCode === city.value)
-    })
-  })
+    }
+  }
   return provinces
 }
 const areaPickerData = parseAreaList(areaList)
@@ -362,10 +428,10 @@ function onAreaChange(e) {
   form.location_text = e.detail.value.map(item => item.text)
 }
 // 获取省市区文本
-function getAreaTextByIndex(idx, code) {
-  if (idx === 0) return areaList.provinces[code] || ''
-  if (idx === 1) return areaList.cities[code] || ''
-  if (idx === 2 && areaList.counties) return areaList.counties[code] || ''
+function getAreaTextByIndex(index, code) {
+  if (index === 0) return areaList.provinces[code] || ''
+  if (index === 1) return areaList.cities[code] || ''
+  if (index === 2 && areaList.counties) return areaList.counties[code] || ''
   return ''
 }
 // 分位与输入框第一位对齐
@@ -375,10 +441,10 @@ const amountMaxUnitLeft = ref(16)
 const scoreMaxUnitLeft = ref(16)
 function updateMaxUnitPosition(type) {
   nextTick(() => {
-    let inputRef = type === 'score' ? scoreInput.value : amountInput.value
-    if (inputRef) {
+    const inputReference = type === 'score' ? scoreInput.value : amountInput.value
+    if (inputReference) {
       // 计算第一个数字的偏移
-      const rect = inputRef.getBoundingClientRect()
+      const rect = inputReference.getBoundingClientRect()
       amountMaxUnitLeft.value = rect.left + 8 // 8为padding，视实际调整
       scoreMaxUnitLeft.value = rect.left + 8
     }
@@ -386,18 +452,18 @@ function updateMaxUnitPosition(type) {
 }
 // 修改 amountMaxUnit/scoreMaxUnit 计算逻辑，确保 .split 前类型安全
 const amountMaxUnit = computed(() => {
-  let intPart = 0;
+  let intPart = 0
   if (typeof form.price === 'string') {
-    intPart = Number((form.price.split ? form.price.split('.')[0] : form.price) || 0);
+    intPart = Number((form.price.split ? form.price.split('.')[0] : form.price) || 0)
   } else if (typeof form.price === 'number') {
-    intPart = Math.floor(form.price);
+    intPart = Math.floor(form.price)
   }
-  const arr = formatAmountUnits(intPart);
-  return arr.length ? arr[0].unit : '';
+  const array = formatAmountUnits(intPart)
+  return array.length > 0 ? array[0].unit : ''
 })
 const scoreMaxUnit = computed(() => {
-  const arr = formatAmountUnits(Number(form.score));
-  return arr.length ? arr[0].unit : '';
+  const array = formatAmountUnits(Number(form.score))
+  return array.length > 0 ? array[0].unit : ''
 })
 const durationText = computed(() => formatDuration(form.start_time, form.end_time))
 const durationTextDisplay = computed(() => durationText.value)
@@ -405,12 +471,12 @@ const maxParticipantsProxy = computed({
   get() {
     return form.max_participants === null ? '' : String(form.max_participants)
   },
-  set(val) {
-    if (val === '' || val === null) {
+  set(value) {
+    if (value === '' || value === null) {
       form.max_participants = null
     } else {
-      const num = Number(val.toString().replace(/[^0-9]/g, ''))
-      form.max_participants = isNaN(num) ? null : num
+      const number_ = Number(value.toString().replaceAll(/\D/g, ''))
+      form.max_participants = isNaN(number_) ? null : number_
     }
   }
 })
@@ -418,12 +484,12 @@ const scoreProxy = computed({
   get() {
     return form.score === null || form.score === undefined ? '' : String(form.score)
   },
-  set(val) {
-    if (val === '' || val === null) {
+  set(value) {
+    if (value === '' || value === null) {
       form.score = null
     } else {
-      const num = Number(val.toString().replace(/[^0-9]/g, ''))
-      form.score = isNaN(num) ? null : num
+      const number_ = Number(value.toString().replaceAll(/\D/g, ''))
+      form.score = isNaN(number_) ? null : number_
     }
   }
 })
@@ -431,17 +497,17 @@ const priceProxy = computed({
   get() {
     return form.price === null || form.price === undefined ? '' : String(form.price)
   },
-  set(val) {
-    if (val === '' || val === null) {
+  set(value) {
+    if (value === '' || value === null) {
       form.price = null
     } else {
-      let num = val.toString().replace(/[^\d.]/g, '')
-      num = num.replace(/^0+(?=\d)/, '')
-      if (num.indexOf('.') !== -1) {
-        num = num.split('.').slice(0, 2).join('.')
-        num = num.replace(/(\.\d{2})\d+$/, '$1')
+      let number_ = value.toString().replaceAll(/[^\d.]/g, '')
+      number_ = number_.replace(/^0+(?=\d)/, '')
+      if (number_.includes('.')) {
+        number_ = number_.split('.').slice(0, 2).join('.')
+        number_ = number_.replace(/(\.\d{2})\d+$/, '$1')
       }
-      form.price = num
+      form.price = number_
     }
   }
 })
@@ -449,98 +515,101 @@ function onTitleInput(e) {
   if (form.name.length > 15) form.name = form.name.slice(0, 15)
 }
 function onDescInput(e) {
-  let str = (form.description.match(ALLOWED_DESC_REGEX) || []).join('');
-  str = str.replace(/^\s+|\s+$/g, '').replace(/\s{2,}/g, ' ');
-  form.description = str.slice(0, 80);
+  let string_ = (form.description.match(ALLOWED_DESC_REGEX) || []).join('')
+  string_ = string_.replaceAll(/^\s+|\s+$/g, '').replaceAll(/\s{2,}/g, ' ')
+  form.description = string_.slice(0, 80)
 }
 function setMode(mode) {
   form.mode = mode
-  if (mode === 'score') form.price = 0.00
+  if (mode === 'score') form.price = 0
   else form.score = 0
 }
 const timeRangeKey = ref(0)
 // onTimeRangeChange 只做提示和显示，不再修正 form.timeRange
-function onTimeRangeChange(val) {
-  if (Array.isArray(val) && val.length === 2) {
-    const now = new Date();
-    const minStart = new Date(now.getTime() + 15 * 60 * 1000);
-    let start = new Date(val[0].replace(/-/g, '/'));
-    let end = new Date(val[1].replace(/-/g, '/'));
-    let fixed = false;
+function onTimeRangeChange(value) {
+  if (Array.isArray(value) && value.length === 2) {
+    const now = new Date()
+    const minStart = new Date(now.getTime() + 15 * 60 * 1000)
+    const start = new Date(value[0].replaceAll('-', '/'))
+    const end = new Date(value[1].replaceAll('-', '/'))
+    let fixed = false
     if (start < minStart) {
-      fixed = true;
+      fixed = true
     }
-    const minEnd = new Date(start.getTime() + 30 * 60 * 1000);
+    const minEnd = new Date(start.getTime() + 30 * 60 * 1000)
     if (end < minEnd) {
-      fixed = true;
+      fixed = true
     }
     if (fixed) {
-      uni.showToast({ title: '任务开始时间需顺延15分钟，且任务时长不少于30分钟，已自动修正', icon: 'none' });
+      uni.showToast({
+        title: '任务开始时间需顺延15分钟，且任务时长不少于30分钟，已自动修正',
+        icon: 'none'
+      })
     }
     // 只做提示和 start_time/end_time 显示
     function format(dt) {
-      const y = dt.getFullYear();
-      const m = String(dt.getMonth() + 1).padStart(2, '0');
-      const d = String(dt.getDate()).padStart(2, '0');
-      const h = String(dt.getHours()).padStart(2, '0');
-      const min = String(dt.getMinutes()).padStart(2, '0');
-      return `${y}-${m}-${d} ${h}:${min}`;
+      const y = dt.getFullYear()
+      const m = String(dt.getMonth() + 1).padStart(2, '0')
+      const d = String(dt.getDate()).padStart(2, '0')
+      const h = String(dt.getHours()).padStart(2, '0')
+      const min = String(dt.getMinutes()).padStart(2, '0')
+      return `${y}-${m}-${d} ${h}:${min}`
     }
-    form.start_time = format(start);
-    form.end_time = format(end);
-    timeRangeKey.value++;
+    form.start_time = format(start)
+    form.end_time = format(end)
+    timeRangeKey.value++
   } else {
-    form.start_time = '';
-    form.end_time = '';
-    timeRangeKey.value++;
+    form.start_time = ''
+    form.end_time = ''
+    timeRangeKey.value++
   }
 }
 // 计算 30 天后的日期字符串（yyyy-MM-dd HH:mm:ss）
-function getEndDateStr() {
+function getEndDateString() {
   const now = new Date()
   now.setDate(now.getDate() + 30)
   return now.toISOString().slice(0, 19).replace('T', ' ')
 }
-const endDateStr = computed(() => getEndDateStr())
-function formatDateTimeHM(str) {
-  if (!str) return '';
-  if (typeof str === 'number') {
-    const date = new Date(str);
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    const h = String(date.getHours()).padStart(2, '0');
-    const min = String(date.getMinutes()).padStart(2, '0');
-    return `${y}-${m}-${d} ${h}:${min}`;
+const endDateStr = computed(() => getEndDateString())
+function formatDateTimeHM(string_) {
+  if (!string_) return ''
+  if (typeof string_ === 'number') {
+    const date = new Date(string_)
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    const h = String(date.getHours()).padStart(2, '0')
+    const min = String(date.getMinutes()).padStart(2, '0')
+    return `${y}-${m}-${d} ${h}:${min}`
   }
-  if (typeof str === 'string' && str.includes('T')) {
+  if (typeof string_ === 'string' && string_.includes('T')) {
     // ISO格式，自动转本地
-    const date = new Date(str);
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    const h = String(date.getHours()).padStart(2, '0');
-    const min = String(date.getMinutes()).padStart(2, '0');
-    return `${y}-${m}-${d} ${h}:${min}`;
-  } else if (typeof str === 'string') {
+    const date = new Date(string_)
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    const h = String(date.getHours()).padStart(2, '0')
+    const min = String(date.getMinutes()).padStart(2, '0')
+    return `${y}-${m}-${d} ${h}:${min}`
+  } else if (typeof string_ === 'string') {
     // 普通字符串，直接截取
-    return str.slice(0, 16);
+    return string_.slice(0, 16)
   }
-  return '';
+  return ''
 }
 const typeText = computed(() => {
   return typeOptions.find(opt => opt.value === form.category)?.text || ''
 })
 // 优化 toTimestamp，统一输出13位毫秒时间戳
-function toTimestamp(str) {
-  if (!str) return ''
-  if (typeof str === 'number') {
+function toTimestamp(string_) {
+  if (!string_) return ''
+  if (typeof string_ === 'number') {
     // 如果是10位，自动转为13位
-    if (str < 1e12) return str * 1000
-    return str
+    if (string_ < 1e12) return string_ * 1000
+    return string_
   }
   // 字符串转13位毫秒
-  return new Date(str.replace(/-/g, '/')).getTime()
+  return new Date(string_.replaceAll('-', '/')).getTime()
 }
 function prepareSubmitData() {
   const data = { ...form }
@@ -559,32 +628,40 @@ function prepareSubmitData() {
   data.create_date = Date.now()
   // 确保 timeRange 字段不会被提交到数据库
   if ('timeRange' in data) {
-  delete data.timeRange
+    delete data.timeRange
   }
   return data
 }
 const isUploading = ref(false)
 
 // 获取文件扩展名
-function getExt(url) {
-  const idx = url.lastIndexOf('.')
-  return idx !== -1 ? url.slice(idx) : ''
+function getExtension(url) {
+  const index = url.lastIndexOf('.')
+  return index === -1 ? '' : url.slice(index)
 }
 
 // 批量上传所有本地媒体文件，返回全部为云端url的media_detail
-async function uploadAllMedia(mediaDetailArr) {
+async function uploadAllMedia(mediaDetailArray) {
   const uploaded = []
-  for (const item of mediaDetailArr) {
-    if (typeof item.url === 'string' && (item.url.startsWith('http') || item.url.startsWith('https'))) {
+  for (const item of mediaDetailArray) {
+    if (
+      typeof item.url === 'string' &&
+      (item.url.startsWith('http') || item.url.startsWith('https'))
+    ) {
       uploaded.push(item)
     } else {
       try {
         const res = await uniCloud.uploadFile({
           filePath: item.url,
-          cloudPath: 'kl-tasks/' + Date.now() + '_' + Math.random().toString(36).slice(2) + getExt(item.url)
+          cloudPath:
+            'kl-tasks/' +
+            Date.now() +
+            '_' +
+            Math.random().toString(36).slice(2) +
+            getExtension(item.url)
         })
         uploaded.push({ ...item, url: res.fileID || res.url })
-      } catch (e) {
+      } catch {
         throw new Error('文件上传失败: ' + (item.url || '未知文件'))
       }
     }
@@ -595,7 +672,7 @@ async function uploadAllMedia(mediaDetailArr) {
 const isEditMode = ref(false)
 const editTaskId = ref('')
 
-onLoad(async (options) => {
+onLoad(async options => {
   if (options && options.id && options.edit === '1') {
     isEditMode.value = true
     editTaskId.value = options.id
@@ -622,10 +699,15 @@ async function fetchTaskDetailAndFill(id) {
       form.mode = task.mode || 'score'
       form.score = typeof task.score === 'number' ? task.score : Number(task.score) || 0
       // price 兼容字符串/数字
-      form.price = (typeof task.price === 'number' || typeof task.price === 'string') ? String(task.price) : '0'
-      form.max_participants = typeof task.max_participants === 'number' ? task.max_participants : Number(task.max_participants) || 1
+      form.price =
+        typeof task.price === 'number' || typeof task.price === 'string' ? String(task.price) : '0'
+      form.max_participants =
+        typeof task.max_participants === 'number'
+          ? task.max_participants
+          : Number(task.max_participants) || 1
       form.is_publisher_joined = !!task.is_publisher_joined
-      form.joined_count = typeof task.joined_count === 'number' ? task.joined_count : Number(task.joined_count) || 0
+      form.joined_count =
+        typeof task.joined_count === 'number' ? task.joined_count : Number(task.joined_count) || 0
       form.isActive = task.isActive !== false
       form.location = Array.isArray(task.location) ? task.location : []
       form.location_text = Array.isArray(task.location_text) ? task.location_text : []
@@ -647,36 +729,34 @@ async function fetchTaskDetailAndFill(id) {
 function isFieldDisabled(field) {
   if (!isEditMode.value) return false
   // 只禁用标题、分类、地区
-  return [
-    'name', 'category', 'location'
-  ].includes(field)
+  return ['name', 'category', 'location'].includes(field)
 }
 
 async function submit() {
   if (!store.hasLogin) {
-    uni.showToast({ title: '请先登录', icon: 'none' });
-    return;
+    uni.showToast({ title: '请先登录', icon: 'none' })
+    return
   }
   try {
-    await formRef.value.validate(rules);
+    await formRef.value.validate(rules)
     // 优化判空逻辑：必须至少有一张图片
-    const mediaArr = Array.isArray(form.media_detail) ? form.media_detail : [];
-    const hasImage = mediaArr.some(item => item.type === 'image');
+    const mediaArray = Array.isArray(form.media_detail) ? form.media_detail : []
+    const hasImage = mediaArray.some(item => item.type === 'image')
     if (!hasImage) {
-      uni.showToast({ title: '请至少上传一张图片', icon: 'none' });
-      return;
+      uni.showToast({ title: '请至少上传一张图片', icon: 'none' })
+      return
     }
     if (form.mode === 'score' && (!form.score || isNaN(form.score) || form.score <= 0)) {
-      uni.showToast({ title: '请输入每人奖励的正整数积分', icon: 'none' });
-      return;
+      uni.showToast({ title: '请输入每人奖励的正整数积分', icon: 'none' })
+      return
     }
     if (form.mode === 'price' && (!form.price || isNaN(form.price) || form.price <= 0)) {
-      uni.showToast({ title: '请输入每人奖励的正数金额', icon: 'none' });
-      return;
+      uni.showToast({ title: '请输入每人奖励的正数金额', icon: 'none' })
+      return
     }
     if (!form.max_participants || isNaN(form.max_participants) || form.max_participants <= 0) {
-      uni.showToast({ title: '请输入大于0的参与人数', icon: 'none' });
-      return;
+      uni.showToast({ title: '请输入大于0的参与人数', icon: 'none' })
+      return
     }
     isUploading.value = true
     // 1. 上传所有本地文件到云存储
@@ -685,33 +765,48 @@ async function submit() {
     form.media = uploadedMediaDetail.map(item => item.url)
     isUploading.value = false
     // 组装数据
-    const user_id = store.userInfo && store.userInfo._id;
+    const user_id = store.userInfo && store.userInfo._id
     const data = {
       ...prepareSubmitData(),
       isActive: true,
       create_date: Date.now()
-    };
+    }
     if (isEditMode.value) {
       // 编辑模式，仅允许部分字段可编辑
-      const allowed = ['description', 'media', 'media_detail', 'mode', 'score', 'price', 'max_participants', 'is_publisher_joined', 'isActive', 'start_time', 'end_time', 'joined_count']
+      const allowed = [
+        'description',
+        'media',
+        'media_detail',
+        'mode',
+        'score',
+        'price',
+        'max_participants',
+        'is_publisher_joined',
+        'isActive',
+        'start_time',
+        'end_time',
+        'joined_count'
+      ]
       const updateData = {}
-      allowed.forEach(key => { if (key in data) updateData[key] = data[key] })
+      for (const key of allowed) {
+        if (key in data) updateData[key] = data[key]
+      }
       updateData._id = editTaskId.value
       const res = await uniCloud.callFunction({
         name: 'updateTask',
         data: { task: updateData, userId: user_id }
       })
       if (res.result && res.result.code === 0) {
-        uni.showToast({ title: '修改成功', icon: 'success' });
+        uni.showToast({ title: '修改成功', icon: 'success' })
         // 更新参与任务计数
         if (res.result.joinedCount !== undefined) {
-          mutations.setUserInfo({ joinedCount: res.result.joinedCount });
+          mutations.setUserInfo({ joinedCount: res.result.joinedCount })
         }
         setTimeout(() => {
-          uni.redirectTo({ url: '/pages/ucenter/myTasks/published' });
-        }, 500);
+          uni.redirectTo({ url: '/pages/ucenter/myTasks/published' })
+        }, 500)
       } else {
-        throw new Error(res.result?.message || '修改失败');
+        throw new Error(res.result?.message || '修改失败')
       }
     } else {
       // 发布模式
@@ -722,28 +817,28 @@ async function submit() {
           autoJoin: !!form.is_publisher_joined,
           userId: user_id
         }
-      });
+      })
       if (res.result && res.result.code === 0) {
-        uni.showToast({ title: '发布成功', icon: 'success' });
+        uni.showToast({ title: '发布成功', icon: 'success' })
         // 更新发布任务计数
         if (res.result.publishedCount !== undefined) {
-          mutations.setUserInfo({ publishedCount: res.result.publishedCount });
+          mutations.setUserInfo({ publishedCount: res.result.publishedCount })
         }
-        uni.navigateBack();
+        uni.navigateBack()
       } else {
-        throw new Error(res.result?.message || '发布失败');
+        throw new Error(res.result?.message || '发布失败')
       }
     }
-  } catch (err) {
+  } catch (error) {
     isUploading.value = false
-    let msg = '请完善表单';
-    if (err && err.message) {
-      msg = err.message;
-    } else if (err && Array.isArray(err) && err[0] && err[0].message) {
-      msg = err[0].message;
+    let message = '请完善表单'
+    if (error && error.message) {
+      message = error.message
+    } else if (error && Array.isArray(error) && error[0] && error[0].message) {
+      message = error[0].message
     }
-    uni.showToast({ title: msg, icon: 'none' });
-    return;
+    uni.showToast({ title: message, icon: 'none' })
+    return
   }
 }
 const timeRangeDisplay = computed(() => {
@@ -772,14 +867,14 @@ function onTimeInputClick(e) {
     e.target &&
     e.target.className &&
     typeof e.target.className.indexOf === 'function' &&
-    e.target.className.indexOf('uni-icons') !== -1
+    e.target.className.includes('uni-icons')
   ) {
-    return;
+    return
   }
-  openDatePicker();
+  openDatePicker()
 }
 function onClearTimeRange() {
-  clearTimeRange();
+  clearTimeRange()
 }
 const isPublisherJoined = ref(false)
 function togglePublisherJoin() {
@@ -798,9 +893,7 @@ onReady(() => {
 
 function syncMediaFields() {
   // media_detail 是对象数组，media 只存 url
-  form.media = Array.isArray(form.media_detail)
-    ? form.media_detail.map(item => item.url)
-    : []
+  form.media = Array.isArray(form.media_detail) ? form.media_detail.map(item => item.url) : []
 }
 // 在图片/视频上传后自动同步
 watch(() => form.media_detail, syncMediaFields, { deep: true })
@@ -1012,7 +1105,9 @@ watch(() => form.media_detail, syncMediaFields, { deep: true })
   border: 1px solid #bbb;
   position: relative;
   cursor: pointer;
-  transition: background 0.2s, border 0.2s;
+  transition:
+    background 0.2s,
+    border 0.2s;
   display: flex;
   align-items: center;
   user-select: none;
@@ -1024,7 +1119,10 @@ watch(() => form.media_detail, syncMediaFields, { deep: true })
 }
 .switch-track {
   position: absolute;
-  left: 0; top: 0; right: 0; bottom: 0;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
   border-radius: 16px;
   z-index: 0;
 }
@@ -1040,9 +1138,13 @@ watch(() => form.media_detail, syncMediaFields, { deep: true })
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: left 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s;
+  transition:
+    left 0.2s,
+    background 0.2s,
+    color 0.2s,
+    box-shadow 0.2s;
   z-index: 1;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   text-align: center;
   white-space: nowrap;
   padding: 0 1px;
@@ -1053,6 +1155,6 @@ watch(() => form.media_detail, syncMediaFields, { deep: true })
   background: #fff;
   color: #1976d2;
   border-color: #fff;
-  box-shadow: 0 4px 16px rgba(25,118,210,0.3);
+  box-shadow: 0 4px 16px rgba(25, 118, 210, 0.3);
 }
 </style>

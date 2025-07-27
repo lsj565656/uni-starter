@@ -1,0 +1,81 @@
+# 依赖目录
+node_modules/
+unpackage/
+dist/
+
+# uni-app 特定文件
+uni_modules/
+static/
+pages.json
+manifest.json
+uni.scss
+uni-starter.config.js
+
+# 云函数
+uniCloud-aliyun/cloudfunctions/*/node_modules/
+uniCloud-aliyun/database/
+uniCloud-aliyun/cloudfunctions/
+
+# 构建文件
+*.min.js
+*.min.css
+
+# 配置文件
+package-lock.json
+androidPrivacy.json
+index.html
+
+# 文档文件
+*.md
+docs/
+
+# 许可证和说明文件
+LICENSE
+GITHUB_SETUP.md
+changelog.md
+
+# IDE 配置文件
+.vscode/
+.hbuilderx/
+.idea/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 临时文件
+*.tmp
+*.temp
+
+# 字体文件
+*.ttf
+*.woff
+*.woff2
+
+# 图片文件
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+
+# JSON数据文件（包含多行JSON对象）
+utils/back-data/
+*.init_data.json
+
+# 第三方库文件（uni_modules中的文件）
+uni_modules/**/*.js
+uni_modules/**/*.vue
+uniCloud-aliyun/cloudfunctions/uni-*/**/*.js
+uniCloud-aliyun/cloudfunctions/uni-*/**/*.vue
+
+# 其他
+.git/
+.gitignore

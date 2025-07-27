@@ -6,20 +6,31 @@
       <view class="task-title">{{ task.name }}</view>
       <view class="task-meta-row">
         <uni-icons type="calendar" size="18" color="#ff9800" />
-        <text class="meta-text">{{ formatTime(task.start_time) }} ~ {{ formatTime(task.end_time) }}</text>
+        <text class="meta-text"
+          >{{ formatTime(task.start_time) }} ~ {{ formatTime(task.end_time) }}</text
+        >
       </view>
       <view class="task-meta-row">
         <uni-icons type="location" size="18" color="#ff9800" />
         <text class="meta-text">{{ (task.location_text || []).join('-') || '未填写' }}</text>
       </view>
       <view class="task-meta-row">
-        <uni-icons :type="task.mode === 'score' ? 'icon-jifen' : 'icon-renminbi'" custom-prefix="iconfont" color="#ff6600" size="18" />
-        <text class="meta-text">{{ task.mode === 'score' ? task.score + ' 积分' : task.price + '元' }}</text>
+        <uni-icons
+          :type="task.mode === 'score' ? 'icon-jifen' : 'icon-renminbi'"
+          custom-prefix="iconfont"
+          color="#ff6600"
+          size="18"
+        />
+        <text class="meta-text">{{
+          task.mode === 'score' ? task.score + ' 积分' : task.price + '元'
+        }}</text>
       </view>
       <view class="task-desc">{{ task.description || '暂无任务描述' }}</view>
       <view class="publisher-join-info">
         <uni-icons type="person" size="16" color="#1976d2" />
-        <text class="publisher-text">发布者{{ isPublisherJoined ? '已加入任务' : '未加入任务' }}</text>
+        <text class="publisher-text"
+          >发布者{{ isPublisherJoined ? '已加入任务' : '未加入任务' }}</text
+        >
       </view>
     </view>
     <!-- 成员头像展示区 -->
@@ -30,31 +41,62 @@
         <view class="avatar-label">发布者</view>
       </view>
       <!-- 前4个成员头像（不含发布者） -->
-      <view v-for="(member, idx) in displayMembers" :key="member._id || idx" class="avatar-wrap" :style="{ left: (idx+1)*24 + 'px', zIndex: 99-idx }">
-        <image :src="member.avatar || defaultAvatar" class="avatar-img" @error="onAvatarError($event, idx)" />
+      <view
+        v-for="(member, idx) in displayMembers"
+        :key="member._id || idx"
+        class="avatar-wrap"
+        :style="{ left: (idx + 1) * 24 + 'px', zIndex: 99 - idx }"
+      >
+        <image
+          :src="member.avatar || defaultAvatar"
+          class="avatar-img"
+          @error="onAvatarError($event, idx)"
+        />
       </view>
       <!-- 超出4个成员显示+N角标 -->
-      <view v-if="moreMemberCount > 0" class="avatar-more" :style="{ left: (displayMembers.length+1)*24 + 'px' }">+{{ moreMemberCount }}</view>
+      <view
+        v-if="moreMemberCount > 0"
+        class="avatar-more"
+        :style="{ left: (displayMembers.length + 1) * 24 + 'px' }"
+        >+{{ moreMemberCount }}</view
+      >
     </view>
-    <view class="member-count">共 {{ task.joined_count }}/{{ task.max_participants }} 人已加入</view>
+    <view class="member-count"
+      >共 {{ task.joined_count }}/{{ task.max_participants }} 人已加入</view
+    >
     <view class="reward-section">
       <uni-icons type="gift" size="20" color="#ff9800" />
-      <text class="reward-text">完成任务可获得 <text class="reward-value">{{ task.mode === 'score' ? task.score + ' 积分' : task.price + '元' }}</text></text>
+      <text class="reward-text"
+        >完成任务可获得
+        <text class="reward-value">{{
+          task.mode === 'score' ? task.score + ' 积分' : task.price + '元'
+        }}</text></text
+      >
     </view>
     <view class="rules-section">
       <view class="rules-title">任务细则</view>
       <view class="rules-list">
         <slot name="rules">
-          <view class="rule-item">1. 加入后，任务开始前30分钟内退出，将扣除 <text class="rule-highlight">{{ penaltyText }}</text>，由平台暂扣，任务正常结束后退还。</view>
+          <view class="rule-item"
+            >1. 加入后，任务开始前30分钟内退出，将扣除
+            <text class="rule-highlight">{{ penaltyText }}</text
+            >，由平台暂扣，任务正常结束后退还。</view
+          >
           <view class="rule-item">2. 任务开始后不可退出，未完成任务将无法获得奖励。</view>
           <view class="rule-item">3. 请准时参与任务，遵守平台规则。</view>
-          <view class="rule-item">4. <text class="rule-highlight">发布者加入任务不暂扣担保积分</text>，普通成员加入需暂扣担保积分，任务结束后返还。</view>
+          <view class="rule-item"
+            >4.
+            <text class="rule-highlight">发布者加入任务不暂扣担保积分</text
+            >，普通成员加入需暂扣担保积分，任务结束后返还。</view
+          >
         </slot>
       </view>
       <view class="rules-tip">如有疑问请联系客服或查阅平台帮助中心。</view>
     </view>
     <view class="bottom-bar">
-      <button class="confirm-btn" type="primary"
+      <button
+        class="confirm-btn"
+        type="primary"
         @click="onConfirmJoin"
         :loading="joining"
         :disabled="joinDisabled"
@@ -66,10 +108,9 @@
 </template>
 
 <script>
-import { formatTime } from '@/utils/tools.js';
-import { store } from '@/uni_modules/uni-id-pages/common/store.js';
+import { formatTime } from '@/utils/tools.js'
+import { store, mutations } from '@/uni_modules/uni-id-pages/common/store.js'
 import { fetchUserScore } from '@/utils/user.js'
-import { mutations } from '@/uni_modules/uni-id-pages/common/store.js';
 export default {
   data() {
     return {
@@ -104,115 +145,92 @@ export default {
   computed: {
     displayMembers() {
       // 只显示前4个成员（不含发布者）
-      if (!this.task.members) return [];
+      if (!this.task.members) return []
       // 过滤掉发布者
-      const members = (this.task.members || []).filter(m => m._id !== this.task.user?._id);
-      return members.slice(0, 4);
+      const members = (this.task.members || []).filter(m => m._id !== this.task.user?._id)
+      return members.slice(0, 4)
     },
     moreMemberCount() {
-      if (!this.task.members) return 0;
-      const members = (this.task.members || []).filter(m => m._id !== this.task.user?._id);
-      return Math.max(0, members.length - 4);
+      if (!this.task.members) return 0
+      const members = (this.task.members || []).filter(m => m._id !== this.task.user?._id)
+      return Math.max(0, members.length - 4)
     },
     penaltyText() {
       if (this.task.mode === 'score') {
         // 积分四舍五入向上取整
-        return Math.ceil(this.task.score * 0.5) + ' 积分';
+        return Math.ceil(this.task.score * 0.5) + ' 积分'
       } else {
         // 金额不做四舍五入
-        return (this.task.price * 0.5).toFixed(2) + '元';
+        return (this.task.price * 0.5).toFixed(2) + '元'
       }
     },
     isPublisher() {
       // 当前用户是否为发布者
-      return this.userInfo._id && (this.userInfo._id === this.task.user?._id);
+      return this.userInfo._id && this.userInfo._id === this.task.user?._id
     },
     isPublisherJoined() {
       // 发布者是否已加入
-      return !!this.task.is_publisher_joined;
+      return !!this.task.is_publisher_joined
     },
     hasJoined() {
       // 当前用户是否已加入
-      return (this.task.members || []).some(m => m._id === this.userInfo._id);
+      return (this.task.members || []).some(m => m._id === this.userInfo._id)
     },
     joinDisabled() {
-      if (this.isPublisher && this.isPublisherJoined) return true;
-      if (this.hasJoined) return true;
-      if (this.task.joined_count >= this.task.max_participants) return true;
-      if (!this.isPublisher && this.task.mode === 'score' && this.userScore < Math.ceil(this.task.score * 0.5)) return true;
-      return this.joining;
+      if (this.isPublisher && this.isPublisherJoined) return true
+      if (this.hasJoined) return true
+      if (this.task.joined_count >= this.task.max_participants) return true
+      if (
+        !this.isPublisher &&
+        this.task.mode === 'score' &&
+        this.userScore < Math.ceil(this.task.score * 0.5)
+      )
+        return true
+      return this.joining
     },
     joinBtnText() {
-      if (this.task.joined_count >= this.task.max_participants) return '人数已满';
-      if (this.isPublisher && this.isPublisherJoined) return '你已加入自己的任务';
-      if (this.hasJoined) return '你已加入该任务';
-      if (!this.isPublisher && this.task.mode === 'score' && this.userScore < Math.ceil(this.task.score * 0.5)) return '积分不足，无法加入';
-      return this.joining ? '正在加入...' : '确认加入';
+      if (this.task.joined_count >= this.task.max_participants) return '人数已满'
+      if (this.isPublisher && this.isPublisherJoined) return '你已加入自己的任务'
+      if (this.hasJoined) return '你已加入该任务'
+      if (
+        !this.isPublisher &&
+        this.task.mode === 'score' &&
+        this.userScore < Math.ceil(this.task.score * 0.5)
+      )
+        return '积分不足，无法加入'
+      return this.joining ? '正在加入...' : '确认加入'
     }
   },
   methods: {
     formatTime,
     goBack() {
-      uni.navigateBack();
+      uni.navigateBack()
     },
     onBackToList() {
-      uni.switchTab({ url: '/pages/list/list' });
+      uni.switchTab({ url: '/pages/list/list' })
     },
     async onConfirmJoin() {
-      if (this.joinDisabled) return;
+      if (this.joinDisabled) return
       console.log('onConfirmJoin this.task._id', this.task._id)
-      this.joining = true;
+      this.joining = true
       try {
-        let updatedTask = { ...this.task };
-        if (!this.isPublisher) {
-          const res = await uniCloud.callFunction({
-            name: 'joinTask',
-            data: { taskId: this.task._id, userId: this.userInfo._id }
-          });
-          if (res.result && res.result.code === 0) {
-            uni.showToast({ title: '加入成功', icon: 'success' });
-            // 更新参与任务计数
-            if (res.result.joinedCount !== undefined) {
-              mutations.setUserInfo({ joinedCount: res.result.joinedCount });
-            }
-            // 更新本地 task 关键字段
-            updatedTask.joined_count = (this.task.joined_count || 0) + 1;
-            // 新增成员
-            if (!updatedTask.members) updatedTask.members = [];
-            updatedTask.members = [
-              ...updatedTask.members,
-              {
-                _id: this.userInfo._id,
-                avatar: this.userInfo.avatar_file?.url || this.defaultAvatar,
-                nickname: this.userInfo.nickname || '我'
-              }
-            ];
-            // 存入全局变量
-            getApp().globalData.latestTask = updatedTask;
-            // 刷新本地积分
-            this.userScore = await fetchUserScore();
-            setTimeout(() => {
-              this.onBackToList(); // 回到 list.vue
-            }, 800);
-          } else {
-            throw new Error(res.result?.message || '加入失败');
-          }
-        } else {
+        const updatedTask = { ...this.task }
+        if (this.isPublisher) {
           // 发布者加入
           const res = await uniCloud.callFunction({
             name: 'joinTask',
             data: { taskId: this.task._id, isPublisher: true, userId: this.userInfo._id }
-          });
+          })
           if (res.result && res.result.code === 0) {
-            uni.showToast({ title: '加入成功', icon: 'success' });
+            uni.showToast({ title: '加入成功', icon: 'success' })
             // 更新参与任务计数
             if (res.result.joinedCount !== undefined) {
-              mutations.setUserInfo({ joinedCount: res.result.joinedCount });
+              mutations.setUserInfo({ joinedCount: res.result.joinedCount })
             }
-            updatedTask.is_publisher_joined = true;
-            updatedTask.joined_count = (this.task.joined_count || 0) + 1;
+            updatedTask.is_publisher_joined = true
+            updatedTask.joined_count = (this.task.joined_count || 0) + 1
             // 新增成员
-            if (!updatedTask.members) updatedTask.members = [];
+            if (!updatedTask.members) updatedTask.members = []
             updatedTask.members = [
               ...updatedTask.members,
               {
@@ -220,42 +238,75 @@ export default {
                 avatar: this.userInfo.avatar_file?.url || this.defaultAvatar,
                 nickname: this.userInfo.nickname || '我'
               }
-            ];
-            getApp().globalData.latestTask = updatedTask;
+            ]
+            getApp().globalData.latestTask = updatedTask
             setTimeout(() => {
-             this.onBackToList(); // 回到 list.vue
-            }, 800);
+              this.onBackToList() // 回到 list.vue
+            }, 800)
           } else {
-            throw new Error(res.result?.message || '加入失败');
+            throw new Error(res.result?.message || '加入失败')
+          }
+        } else {
+          const res = await uniCloud.callFunction({
+            name: 'joinTask',
+            data: { taskId: this.task._id, userId: this.userInfo._id }
+          })
+          if (res.result && res.result.code === 0) {
+            uni.showToast({ title: '加入成功', icon: 'success' })
+            // 更新参与任务计数
+            if (res.result.joinedCount !== undefined) {
+              mutations.setUserInfo({ joinedCount: res.result.joinedCount })
+            }
+            // 更新本地 task 关键字段
+            updatedTask.joined_count = (this.task.joined_count || 0) + 1
+            // 新增成员
+            if (!updatedTask.members) updatedTask.members = []
+            updatedTask.members = [
+              ...updatedTask.members,
+              {
+                _id: this.userInfo._id,
+                avatar: this.userInfo.avatar_file?.url || this.defaultAvatar,
+                nickname: this.userInfo.nickname || '我'
+              }
+            ]
+            // 存入全局变量
+            getApp().globalData.latestTask = updatedTask
+            // 刷新本地积分
+            this.userScore = await fetchUserScore()
+            setTimeout(() => {
+              this.onBackToList() // 回到 list.vue
+            }, 800)
+          } else {
+            throw new Error(res.result?.message || '加入失败')
           }
         }
-      } catch (e) {
-        uni.showToast({ title: e.message || '加入失败', icon: 'none' });
+      } catch (error) {
+        uni.showToast({ title: error.message || '加入失败', icon: 'none' })
       } finally {
-        this.joining = false;
+        this.joining = false
       }
     },
-    onAvatarError(e, idx) {
-      if (this.displayMembers[idx]) {
-        this.displayMembers[idx].avatar = this.defaultAvatar;
+    onAvatarError(e, index) {
+      if (this.displayMembers[index]) {
+        this.displayMembers[index].avatar = this.defaultAvatar
       }
     },
     fetchUserInfo() {
       // 只用本地缓存的积分
-      this.userInfo = store.userInfo || {};
-      this.userScore = this.userInfo.score || 0;
+      this.userInfo = store.userInfo || {}
+      this.userScore = this.userInfo.score || 0
     }
   },
   onLoad(options) {
     if (options.task) {
       try {
-        this.task = JSON.parse(decodeURIComponent(options.task));
-      } catch (e) {}
+        this.task = JSON.parse(decodeURIComponent(options.task))
+      } catch {}
     }
     // 只用本地缓存
-    this.userInfo = store.userInfo || {};
-    this.userScore = this.userInfo.score || 0;
-    console.log('task-confirm onLoad this.task:',this.task) // 打印任务信息
+    this.userInfo = store.userInfo || {}
+    this.userScore = this.userInfo.score || 0
+    console.log('task-confirm onLoad this.task:', this.task) // 打印任务信息
   }
 }
 </script>
@@ -270,7 +321,7 @@ export default {
   background: #fff;
   margin: 16px 16px 0 16px;
   border-radius: 14px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   padding: 18px 16px 12px 16px;
 }
 .task-title {
@@ -320,7 +371,7 @@ export default {
   border-radius: 50%;
   overflow: visible;
   background: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 .avatar-img {
   width: 44px;
@@ -382,7 +433,7 @@ export default {
   background: #fff;
   margin: 18px 16px 0 16px;
   border-radius: 14px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   padding: 16px 16px 12px 16px;
   position: relative;
 }
@@ -412,7 +463,9 @@ export default {
 }
 .bottom-bar {
   position: fixed;
-  left: 0; right: 0; bottom: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: #fff;
   border-top: 1px solid #eee;
   padding: 12px 16px;
@@ -430,10 +483,10 @@ export default {
   background: linear-gradient(90deg, #ff9800, #ffc107);
   color: #fff;
   border: none;
-  box-shadow: 0 4px 16px rgba(255,152,0,0.12);
+  box-shadow: 0 4px 16px rgba(255, 152, 0, 0.12);
   transition: background 0.2s;
 }
 .confirm-btn:active {
   background: linear-gradient(90deg, #ffc107, #ff9800);
 }
-</style> 
+</style>

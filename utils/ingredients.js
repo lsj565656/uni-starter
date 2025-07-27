@@ -4,7 +4,10 @@ export const ingredients = [
     title: '帮采购赚积分',
     category: '邻帮',
     description: '帮助小区老人采购生活物资，完成后获得20积分奖励，可用于积分商城兑换好礼。',
-    publisher: { name: '张大爷', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/74a9c32cd547c77f.jpg' },
+    publisher: {
+      name: '张大爷',
+      avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/74a9c32cd547c77f.jpg'
+    },
     afterComments: [
       {
         user: { name: '张大爷', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/74a9c32cd547c77f.jpg' },
@@ -20,7 +23,10 @@ export const ingredients = [
     title: '积分兑换深度保洁-平台认证',
     category: '家政',
     description: '用100积分兑换全屋深度保洁服务，专业团队上门，卫生无死角。',
-    publisher: { name: '家政管家-小王', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/4eae7ca520806b92.jpg' },
+    publisher: {
+      name: '家政管家-小王',
+      avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/4eae7ca520806b92.jpg'
+    },
     afterComments: [
       {
         user: { name: '李女士', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/7f8698b08ed0a131.jpg' },
@@ -64,7 +70,10 @@ export const ingredients = [
     title: '空调清洗',
     category: '维修',
     description: '家里空调需要清洗,想用80积分请人上门清洗空调，有经验者优先。',
-    publisher: { name: '小王要开心', avatar: 'https://s3.bmp.ovh/imgs/2025/07/12/5becf82ca511baa5.png' },
+    publisher: {
+      name: '小王要开心',
+      avatar: 'https://s3.bmp.ovh/imgs/2025/07/12/5becf82ca511baa5.png'
+    },
     afterComments: [
       {
         user: { name: '老李', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/bluetooth-earphone.jpg' },
@@ -73,7 +82,10 @@ export const ingredients = [
         tags: ['方便']
       },
       {
-        user: { name: '小王要开心', avatar: 'https://s3.bmp.ovh/imgs/2025/07/12/5becf82ca511baa5.png' },
+        user: {
+          name: '小王要开心',
+          avatar: 'https://s3.bmp.ovh/imgs/2025/07/12/5becf82ca511baa5.png'
+        },
         content: '师傅很细心,热情',
         images: ['https://s3.bmp.ovh/imgs/2025/07/12/0fdc2b484d6deb7b.png'],
         tags: ['细心', '处理到位']
@@ -86,7 +98,10 @@ export const ingredients = [
     title: '积分寄养照看',
     category: '宠物',
     description: '出差期间,想60积分请人帮忙照看宠物，定时喂食遛狗，实时照片反馈。',
-    publisher: { name: '三岁就爱笑', avatar: 'https://s3.bmp.ovh/imgs/2025/07/12/91a383af439c173c.png' },
+    publisher: {
+      name: '三岁就爱笑',
+      avatar: 'https://s3.bmp.ovh/imgs/2025/07/12/91a383af439c173c.png'
+    },
     afterComments: [
       {
         user: { name: '王先生', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/ktv.jpg' },
@@ -95,7 +110,10 @@ export const ingredients = [
         tags: ['贴心', '放心', '积分结算']
       },
       {
-        user: { name: '三岁就爱笑', avatar: 'https://s3.bmp.ovh/imgs/2025/07/12/91a383af439c173c.png' },
+        user: {
+          name: '三岁就爱笑',
+          avatar: 'https://s3.bmp.ovh/imgs/2025/07/12/91a383af439c173c.png'
+        },
         content: '每天都有照片，出差很安心。',
         images: ['https://s3.bmp.ovh/imgs/2025/06/10/cinema.jpg'],
         tags: ['照片准时', '放心']
@@ -108,7 +126,10 @@ export const ingredients = [
     title: '周末结伴爬山（0积分）',
     category: '旅游',
     description: '结伴出游，0积分参与，结识新朋友，享受健康生活。',
-    publisher: { name: '活动发起人-小孙', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/b266d287bf74e640.jpg' },
+    publisher: {
+      name: '活动发起人-小孙',
+      avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/b266d287bf74e640.jpg'
+    },
     afterComments: [
       {
         user: { name: '小明', avatar: 'https://s3.bmp.ovh/imgs/2025/06/10/b266d287bf74e640.jpg' },
@@ -181,4 +202,4 @@ export const ingredients = [
     ],
     tags: ['广告', '抽奖', '实用', '乐趣', '天天抽', '刺激', '推荐']
   }
-]; 
+]
