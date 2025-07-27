@@ -302,7 +302,6 @@
 				if (uni.getSystemInfoSync().platform == "ios") {
 					// 这里填写appstore应用id
 					let appstoreid = this.appConfig.marketId.ios; // 'id1417078253';
-					console.log({appstoreid});
 					plus.runtime.openURL("itms-apps://" + 'itunes.apple.com/cn/app/wechat/' + appstoreid + '?mt=8',err=>{
 						console.log('plus.runtime.openURL err:' + JSON.stringify(err));
 					});
@@ -321,8 +320,6 @@
 			 * 主动刷新积分余额
 			 */
 			refreshScore() {
-				console.log('do refreshScore')
-				console.log('refreshScore - 刷新前 store.userInfo.score:', store.userInfo.score)
 				if (this.hasLogin) {
 					db.collection('uni-id-scores')
 						.where('user_id == $env.uid')
@@ -331,15 +328,12 @@
 						.get()
 						.then(res => {
 							const data = res.result.data[0];
-							console.log('refreshScore - 数据库返回的积分数据:', data)
 							if (data) {
 								// 使用 mutations 的 setUserInfo 方法，确保持久化到本地存储
 								mutations.setUserInfo({ score: data.balance });
-								console.log('refreshScore - 更新后 store.userInfo.score:', store.userInfo.score)
 								uni.showToast({ title: '积分已刷新', icon: 'success' });
 							} else {
 								mutations.setUserInfo({ score: 0 });
-								console.log('refreshScore - 无积分数据，设置为0')
 								uni.showToast({ title: '暂无积分', icon: 'none' });
 							}
 						});
@@ -354,7 +348,6 @@
 						icon: 'none'
 					});
 				}
-				console.log({myInviteCode});
 				let {
 					appName,
 					logo,
@@ -434,13 +427,10 @@
 			},
 			// 签到成功回调
 			onSignInSuccess(signInData) {
-				console.log('签到成功，更新积分显示', signInData)
-				console.log('onSignInSuccess - 更新前 store.userInfo.score:', store.userInfo.score)
 				// 立即更新本地积分显示
 				if (signInData && signInData.score !== undefined) {
 					// 使用 mutations 的 setUserInfo 方法，确保持久化到本地存储
 					mutations.setUserInfo({ score: signInData.score });
-					console.log('onSignInSuccess - 更新后 store.userInfo.score:', store.userInfo.score)
 					// 强制更新页面显示
 					this.$forceUpdate()
 					uni.showToast({

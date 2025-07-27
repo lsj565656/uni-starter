@@ -407,7 +407,6 @@ export default {
 			if (arr.length === 0) {
 				arr.push({ field: 'create_date', order: 'desc' });
 			}
-			console.log('[getOrderByArray] 排序数组:', JSON.stringify(arr));
 			return arr;
 		},
 		async fetchTasks({ reset = false, force = false } = {}) {
@@ -491,7 +490,6 @@ export default {
 			} finally {
 				this.loading = false;
 			}
-			console.log('this.tasksList:',this.tasksList);
 		},
 		loadMore() {
 			if (this.hasMore && !this.loading) {
@@ -554,7 +552,6 @@ export default {
 			uni.navigateTo({ url: '/pages/list/search/search?keyword=' + encodeURIComponent(this.keyword), animationType: 'fade-in' })
 		},
 		resetKeyword() {
-			console.log('resetKeyword !');
 			this.keyword = '';
 			getApp().globalData.searchText = '';
 			this.fetchTasks({ reset: true });

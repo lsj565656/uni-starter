@@ -1,6 +1,10 @@
 <template>
   <view>
     <view class="filter-bar-scroll">
+      <view v-if="showBackToAllBtn" class="back-to-all-btn" @click="onBackToAll">
+        <uni-icons type="left" size="16" color="#1976d2" />
+        <text>全部</text>
+      </view>
       <scroll-view
         class="category-scroll"
         scroll-x
@@ -437,7 +441,6 @@ export default {
         this.hasMore = cached.hasMore;
         this.pagination = cached.pagination;
         this.categoryCounts = cached.categoryCounts || {};
-        console.log('使用缓存数据，分类:', this.filterOptions[this.filterIndex]);
         return;
       }
       
@@ -446,7 +449,6 @@ export default {
       
       try {
         const currentFilter = this.filterOptions[this.filterIndex];
-        console.log('获取我的参与任务，分类:', currentFilter);
         
         const res = await uniCloud.callFunction({
           name: 'getMyJoinedTasks',
@@ -493,7 +495,6 @@ export default {
             pageSize: res.result.pageSize
           };
           
-          console.log('分类数量统计:', this.categoryCounts);
         } else {
           console.error('获取参与任务失败:', res.result);
         }
@@ -522,6 +523,9 @@ export default {
       this.hasMore = true;
       this.pagination = {};
       
+      // 滚动到选中的分类
+      this.scrollCategoryToCenter(idx);
+      
       // 切换分类时检查缓存有效性
       const cacheKey = this.getCacheKey();
       const now = Date.now();
@@ -538,10 +542,8 @@ export default {
           this.hasMore = cached.hasMore;
           this.pagination = cached.pagination;
           this.categoryCounts = cached.categoryCounts;
-          console.log('使用缓存数据，分类:', currentFilter);
         } else {
           // 缓存无效，重新获取数据
-          console.log('缓存数据无效，重新获取数据，分类:', currentFilter);
           this.fetchMyJoinedTasks({ reset: true });
         }
       } else {
@@ -820,15 +822,12 @@ export default {
     },
     async viewTaskProgress(task) {
       try {
-        console.log('查看任务进度:', task);
         uni.showLoading({ title: '加载中...' });
         const res = await uniCloud.callFunction({
           name: 'getTaskProgress',
           data: { taskId: task._id }
         });
         uni.hideLoading();
-        
-        console.log('进度数据返回:', res.result);
         
         if (res.result && res.result.code === 0) {
           this.progressData = res.result.data;
@@ -847,7 +846,6 @@ export default {
       if (!this.progressData?.task?._id) return;
       
       try {
-        console.log('刷新进度数据');
         uni.showLoading({ title: '刷新中...' });
         const res = await uniCloud.callFunction({
           name: 'getTaskProgress',
@@ -855,7 +853,6 @@ export default {
         });
         uni.hideLoading();
         
-        console.log('刷新进度返回:', res.result);
         
         if (res.result && res.result.code === 0) {
           this.progressData = res.result.data;
@@ -873,13 +870,11 @@ export default {
     async endTaskFromProgress() {
       if (!this.progressData?.task?._id) return;
       
-      console.log('从进度抽屉结束任务');
       const res = await uniCloud.callFunction({
         name: 'endTask',
         data: { taskId: this.progressData.task._id, userId: this.userId }
       });
       
-      console.log('结束任务返回:', res.result);
       
       if (res.result && res.result.code === 0) {
         uni.showToast({ title: res.result.message || '任务已结束', icon: 'success' });
@@ -901,7 +896,6 @@ export default {
     
     // 处理任务状态变更
     handleTaskStatusChange(taskId, oldStatus, newStatus) {
-      console.log('处理任务状态变更:', taskId, oldStatus, '->', newStatus);
       
       // 直接刷新当前分类数据
       this.refreshCurrentCategory();
@@ -910,7 +904,6 @@ export default {
     // 刷新当前分类数据
     async refreshCurrentCategory() {
       try {
-        console.log('刷新当前分类数据:', this.filterOptions[this.filterIndex]);
         // 重置页码
         this.page = 1;
         this.hasMore = true;
@@ -921,7 +914,6 @@ export default {
         
         // 强制更新UI
         this.$forceUpdate();
-        console.log('数据刷新完成');
       } catch (error) {
         console.error('刷新数据失败:', error);
       }
@@ -968,7 +960,6 @@ export default {
         if (res.result && res.result.code === 0 && res.result.categoryCounts) {
           // 使用 Vue.set 或直接赋值确保响应式更新
           this.categoryCounts = { ...res.result.categoryCounts };
-          console.log('刷新后的分类统计数据:', this.categoryCounts);
           
           // 强制更新模板
           this.$forceUpdate();
@@ -1007,7 +998,6 @@ export default {
       
       // 检查缓存中的所有任务是否都属于当前分类
       const isValid = cachedTasks.every(task => task.status === targetStatus);
-      console.log('缓存有效性检查:', currentFilter, targetStatus, isValid, '任务数量:', cachedTasks.length);
       
       return isValid;
     },
@@ -1030,6 +1020,30 @@ export default {
   min-height: 45px;
   max-height: 45px;
 }
+
+.back-to-all-btn {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  height: 45px;
+  background: #f8f9fa;
+  border-right: 1px solid #e9ecef;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.back-to-all-btn:hover {
+  background: #e9ecef;
+}
+
+.back-to-all-btn text {
+  font-size: 14px;
+  color: #1976d2;
+  margin-left: 4px;
+  font-weight: 500;
+}
+
 .category-scroll {
   flex: 1;
   height: 45px;
