@@ -41,6 +41,7 @@ exports.main = async (event, context) => {
     task_id: taskId,
     create_date: now
   });
+  
   // 8. 批量将所有ready状态的参与者流转为in_progress
   await db.collection('kl-users-join-task').where({ task_id: taskId, status: 'ready', isActive: true }).update({ status: 'in_progress' });
   // 8.1 如果发布者也是参与者，将其状态从preJoin更新为in_progress
@@ -51,6 +52,7 @@ exports.main = async (event, context) => {
   // 返回结果
   return {
     code: 0,
-    message: '任务开始成功'
+    message: '任务开始成功',
+    score: oldScore - totalScore // 返回扣除后的积分
   };
 }; 

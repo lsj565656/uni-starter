@@ -76,6 +76,13 @@
               <view class="card-sub-row">
                 <text class="meta-label">参与人数：</text>
                 <text class="meta-value">{{ task.members?.length || 0 }}/{{ task.max_participants }}</text>
+                <text 
+                  v-if="getUserReadinessStatus(task)" 
+                  class="readiness-status"
+                  :style="{ color: getUserReadinessStatus(task).color }"
+                >
+                  {{ getUserReadinessStatus(task).text }}
+                </text>
                 <view class="avatars-row">
                   <image
                     v-for="(member, idx) in getDisplayMembers(task)"
@@ -325,6 +332,23 @@ export default {
       if (!task.members) return 0;
       const members = (task.members || []).filter(m => m._id !== this.userId);
       return Math.max(0, members.length - 4);
+    },
+    getUserReadinessStatus(task) {
+      // 只在待开始状态的任务中显示就绪状态
+      if (task.status !== 'not_started') return null;
+      
+      // 检查当前用户是否参与了这个任务
+      const myJoinStatus = task.myJoinStatus;
+      if (!myJoinStatus) return null;
+      console.log('myJoinStatus', myJoinStatus);
+      // 返回就绪状态
+      if (myJoinStatus === 'ready') {
+        return { status: 'ready', text: '已就绪', color: '#52c41a' };
+      } else if (myJoinStatus === 'preJoin') {
+        return { status: 'preJoin', text: '未就绪', color: '#ff4757' };
+      }
+      
+      return null;
     },
     getSwipeOptions(task) {
       const status = this.filterOptions[this.filterIndex] === '已评价' ? 'evaluated' : task.status;
@@ -1176,6 +1200,11 @@ export default {
 }
 .meta-label { color: #888; }
 .meta-value { color: #333; margin: 0 4px; }
+.readiness-status {
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: 8px;
+}
 .avatars-row {
   display: flex;
   align-items: center;
