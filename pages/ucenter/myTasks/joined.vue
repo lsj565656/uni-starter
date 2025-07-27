@@ -142,17 +142,54 @@
                   </view>
                   
                   <view class="member-status">
-                    <view v-if="member.status === 'in_progress'" class="status-loading">
-                      <uni-icons type="spinner-cycle" size="16" color="#1976d2" />
-                      <text class="status-text">进行中</text>
-                    </view>
-                    <view v-else-if="member.status === 'finished'" class="status-finished">
-                      <uni-icons type="checkmarkempty" size="16" color="#52c41a" />
-                      <text class="status-text">已完成</text>
-                    </view>
-                    <view v-else class="status-default">
-                      <text class="status-text">{{ member.status === 'preJoin' ? '待就绪' : member.status === 'ready' ? '已就绪' : '未知' }}</text>
-                    </view>
+                    <!-- 待开始状态显示就绪状态 -->
+                    <template v-if="progressData.task.status === 'not_started'">
+                      <view v-if="member.status === 'ready'" class="status-ready">
+                        <uni-icons type="checkmarkempty" size="16" color="#52c41a" />
+                      </view>
+                      <view v-else class="status-not-ready">
+                        <uni-icons type="closeempty" size="16" color="#ff4757" />
+                      </view>
+                      <text class="status-text">{{ member.status === 'ready' ? '已就绪' : '未就绪' }}</text>
+                    </template>
+                    
+                    <!-- 进行中状态显示进度状态 -->
+                    <template v-else-if="progressData.task.status === 'in_progress'">
+                      <view v-if="member.status === 'in_progress'" class="status-loading">
+                        <uni-icons type="spinner-cycle" size="16" color="#1976d2" />
+                        <text class="status-text">进行中</text>
+                      </view>
+                      <view v-else-if="member.status === 'finished'" class="status-finished">
+                        <uni-icons type="checkmarkempty" size="16" color="#52c41a" />
+                        <text class="status-text">已完成</text>
+                      </view>
+                      <view v-else class="status-default">
+                        <text class="status-text">{{ member.status === 'preJoin' ? '待就绪' : member.status === 'ready' ? '已就绪' : '未知' }}</text>
+                      </view>
+                    </template>
+                  </view>
+                  
+                  <!-- 待开始状态的操作按钮 -->
+                  <view v-if="progressData.task.status === 'not_started'" class="member-actions">
+                    <!-- 发布者兼参与者：显示提醒和剔除按钮（仅对非发布者参与者） -->
+                    <template v-if="progressData.isPublisher && progressData.isAlsoMember && !member.is_publisher">
+                      <view class="action-btn" @click="sendReminder(member)">
+                        <uni-icons type="notification" size="16" color="#666" />
+                      </view>
+                      <view class="action-btn" @click="removeJoiner(member)">
+                        <uni-icons type="trash" size="16" color="#ff4757" />
+                      </view>
+                    </template>
+                    
+                    <!-- 仅参与者：显示就绪/取消就绪按钮（仅对自己） -->
+                    <template v-else-if="!progressData.isPublisher && progressData.isAlsoMember && member._id === userId">
+                      <view v-if="member.status === 'preJoin'" class="action-btn" @click="setReady">
+                        <uni-icons type="checkmarkempty" size="16" color="#52c41a" />
+                      </view>
+                      <view v-else-if="member.status === 'ready'" class="action-btn" @click="cancelReady">
+                        <uni-icons type="closeempty" size="16" color="#ff4757" />
+                      </view>
+                    </template>
                   </view>
                 </view>
               </view>
@@ -172,15 +209,19 @@
                 <uni-icons type="reload" size="16" color="#1976d2" />
                 <text>刷新进度</text>
               </button>
-              <button 
-                class="end-task-btn" 
-                @click="endTaskFromProgress"
-                :disabled="!progressData?.allFinished"
-                :class="{ disabled: !progressData?.allFinished }"
-              >
-                <uni-icons type="checkmarkempty" size="16" color="#fff" />
-                <text>{{ isPublisherAndMember ? '确认完成' : '结束任务' }}</text>
-              </button>
+              
+              <!-- 进行中状态：显示结束任务按钮 -->
+              <template v-if="progressData?.task?.status === 'in_progress'">
+                <button 
+                  class="end-task-btn" 
+                  @click="endTaskFromProgress"
+                  :disabled="!progressData?.allFinished"
+                  :class="{ disabled: !progressData?.allFinished }"
+                >
+                  <uni-icons type="checkmarkempty" size="16" color="#fff" />
+                  <text>{{ progressData.isPublisher && progressData.isAlsoMember ? '确认完成' : '结束任务' }}</text>
+                </button>
+              </template>
             </view>
             <button 
               class="close-btn" 
@@ -248,6 +289,7 @@ export default {
       rateEditLoading: false,
       rateEditTaskId: '',
       progressData: null,
+      currentTask: null, // 当前查看的任务
       categoryCounts: {
         '全部': 0,
         '待开始': 0,
@@ -426,13 +468,9 @@ export default {
       }
       // 只要是我参与的任务（即使不是我发布的），在未开始、已失效、已评价（myStatus===evaluated）状态下都应有"退出"按钮
       if ((status === 'not_started' || status === 'invalid' || myStatus === 'evaluated') && isAlsoMember) {
-        // 只要是已评价，显示"删除"
-        if (myStatus === 'evaluated' || status === 'invalid') {
-          options.push({ text: '删除', style: { backgroundColor: '#fff', color: 'red', fontWeight: 'bold' }, key: 'delete' });
-        } else {
-          // 其他情况显示"退出"
-          options.push({ text: '退出', style: { backgroundColor: '#fff', color: 'red', fontWeight: 'bold' }, key: 'delete' });
-        }
+        // 发布者叫"删除"，参与者叫"退出"
+        const buttonText = isPublisher ? '删除' : '退出';
+        options.push({ text: buttonText, style: { backgroundColor: '#fff', color: 'red', fontWeight: 'bold' }, key: 'delete' });
       }
       return options;
     },
@@ -1045,10 +1083,17 @@ export default {
           const allReady = nonPublisherMembers.length === 0 || 
                           nonPublisherMembers.every(m => m.status === 'ready');
           
+          // 判断用户角色
+          const isPublisher = task.user_id === this.userId;
+          const isAlsoMember = this.isUserAlsoMember(task);
+          
           this.progressData = {
             ...res.result.data,
-            allReady
+            allReady,
+            isPublisher,
+            isAlsoMember
           };
+          this.currentTask = task; // 保存当前任务用于获取就绪状态
           this.$refs.progressDrawer.open();
         } else {
           uni.showToast({ title: res.result?.message || '获取状态失败', icon: 'none' });
@@ -1058,6 +1103,66 @@ export default {
         console.error('获取状态失败:', error);
         uni.showToast({ title: '获取状态失败', icon: 'none' });
       }
+    },
+    
+    // 设置就绪状态
+    async setReady() {
+      if (!this.currentTask) return;
+      try {
+        const res = await uniCloud.callFunction({
+          name: 'updateJoinStatus',
+          data: {
+            taskId: this.currentTask._id,
+            userId: this.userId,
+            status: 'ready'
+          }
+        });
+        
+        if (res.result && res.result.code === 0) {
+          uni.showToast({ title: '已就绪', icon: 'success' });
+          this.refreshProgress();
+        } else {
+          uni.showToast({ title: res.result?.message || '操作失败', icon: 'none' });
+        }
+      } catch (error) {
+        console.error('设置就绪状态失败:', error);
+        uni.showToast({ title: '操作失败', icon: 'none' });
+      }
+    },
+    
+    // 取消就绪状态
+    async cancelReady() {
+      if (!this.currentTask) return;
+      try {
+        const res = await uniCloud.callFunction({
+          name: 'updateJoinStatus',
+          data: {
+            taskId: this.currentTask._id,
+            userId: this.userId,
+            status: 'preJoin'
+          }
+        });
+        
+        if (res.result && res.result.code === 0) {
+          uni.showToast({ title: '已取消就绪', icon: 'success' });
+          this.refreshProgress();
+        } else {
+          uni.showToast({ title: res.result?.message || '操作失败', icon: 'none' });
+        }
+      } catch (error) {
+        console.error('取消就绪状态失败:', error);
+        uni.showToast({ title: '操作失败', icon: 'none' });
+      }
+    },
+    
+    // 发送提醒
+    async sendReminder(member) {
+      uni.showToast({ title: '提醒功能待实现', icon: 'none' });
+    },
+    
+    // 剔除参与者
+    async removeJoiner(member) {
+      uni.showToast({ title: '剔除功能待实现', icon: 'none' });
     }
   }
 }
@@ -1383,6 +1488,64 @@ export default {
 		font-size: 24rpx;
 		color: #666;
 	}
+
+	.status-ready {
+		margin-right: 8rpx;
+	}
+
+	.status-not-ready {
+		margin-right: 8rpx;
+	}
+	
+	.member-actions {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-left: auto;
+	}
+	
+	.action-btn {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background: #f5f5f5;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+	
+	.action-btn:hover {
+		background: #e0e0e0;
+	}
+	
+	.close-btn {
+		width: 80%;
+		margin: 0 auto;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8rpx;
+		background: #fff;
+		border: 1rpx solid #666;
+		color: #666;
+		border-radius: 8rpx;
+		padding: 20rpx;
+		font-size: 26rpx;
+	}
+	
+	.no-members {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 40rpx 0;
+	}
+	
+	.no-members-text {
+		font-size: 26rpx;
+		color: #999;
+	}
 	
 	.progress-footer {
 		display: flex;
@@ -1414,16 +1577,18 @@ export default {
 	
 	.end-task-btn {
 		flex: 1;
+		height: 40px;
+		background: #52c41a;
+		color: #fff;
+		border: none;
+		border-radius: 8px;
+		font-size: 14px;
+		font-weight: 600;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 8rpx;
-		background: #1976d2;
-		color: #fff;
-		border: none;
-		border-radius: 8rpx;
-		padding: 20rpx;
-		font-size: 26rpx;
+		gap: 4px;
+		margin-left: 8px;
 	}
 	
 	.end-task-btn.disabled {
@@ -1431,30 +1596,67 @@ export default {
 		color: #999;
 	}
 
-	.close-btn {
-		width: 80%;
-		margin: 0 auto;
+	.ready-btn {
+		flex: 1;
+		height: 40px;
+		background: #52c41a;
+		color: #fff;
+		border: none;
+		border-radius: 8px;
+		font-size: 14px;
+		font-weight: 600;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 8rpx;
-		background: #fff;
-		border: 1rpx solid #666;
-		color: #666;
-		border-radius: 8rpx;
-		padding: 20rpx;
-		font-size: 26rpx;
+		gap: 4px;
+		margin-left: 8px;
 	}
-	
-	.no-members {
+
+	.cancel-ready-btn {
+		flex: 1;
+		height: 40px;
+		background: #ff4757;
+		color: #fff;
+		border: none;
+		border-radius: 8px;
+		font-size: 14px;
+		font-weight: 600;
 		display: flex;
-		justify-content: center;
 		align-items: center;
-		padding: 40rpx 0;
+		justify-content: center;
+		gap: 4px;
+		margin-left: 8px;
 	}
-	
-	.no-members-text {
-		font-size: 26rpx;
-		color: #999;
+
+	.remind-btn {
+		flex: 1;
+		height: 40px;
+		background: #1976d2;
+		color: #fff;
+		border: none;
+		border-radius: 8px;
+		font-size: 14px;
+		font-weight: 600;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
+		margin-left: 8px;
+	}
+
+	.remove-btn {
+		flex: 1;
+		height: 40px;
+		background: #ff4757;
+		color: #fff;
+		border: none;
+		border-radius: 8px;
+		font-size: 14px;
+		font-weight: 600;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
+		margin-left: 8px;
 	}
 </style> 
