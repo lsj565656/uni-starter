@@ -28,6 +28,19 @@ exports.main = async (event, context) => {
 
   let agg = db.collection('kl-tasks').aggregate().match(matchStage);
 
+  // 关联用户信息
+  agg = agg.lookup({
+    from: 'uni-id-users',
+    localField: 'user_id',
+    foreignField: '_id',
+    as: 'user'
+  });
+
+  // 处理用户信息，取第一个用户
+  agg = agg.addFields({
+    user: { $arrayElemAt: ['$user', 0] }
+  });
+
   // 多重排序
   if (Array.isArray(orderBy) && orderBy.length) {
     let sortObj = {};
@@ -69,7 +82,9 @@ exports.main = async (event, context) => {
     const res = await agg.end();
     const list = (res.data || []).map(task => ({
       ...task,
-      is_liked: Array.isArray(task.my_like) && task.my_like.length > 0
+      is_liked: Array.isArray(task.my_like) && task.my_like.length > 0,
+      // 确保用户信息存在
+      user: task.user || {}
     }));
     // 查询总数
     const totalRes = await db.collection('kl-tasks').where(matchStage).count();

@@ -1,33 +1,19 @@
 <template>
   <view class="my-fav-container" :style="containerStyle">
     <!-- 自定义导航栏，最高层 -->
-    <view
-      class="custom-navbar-fixed"
-      :style="`top:0;left:0;right:0;z-index:1001;padding-top:${statusBarHeight}px;`"
-    >
+    <view class="custom-navbar-fixed" :style="`top:0;left:0;right:0;z-index:1001;padding-top:${statusBarHeight}px;`">
       <view class="custom-navbar">
         <uni-icons type="back" size="22" color="#333" @click="goBack" style="margin-right: 8px" />
         <text class="navbar-title">我点赞的</text>
       </view>
     </view>
     <!-- 吸顶的搜索+排序栏 -->
-    <view
-      class="filter-header-group-fixed"
-      :style="`top:${statusBarHeight + CUSTOM_NAVBAR_HEIGHT}px;left:0;right:0;z-index:1000;height:48px;transform: translateY(-${filterBarOffset}px);`"
-    >
+    <view class="filter-header-group-fixed"
+      :style="`top:${statusBarHeight + CUSTOM_NAVBAR_HEIGHT}px;left:0;right:0;z-index:1000;height:48px;transform: translateY(-${filterBarOffset}px);`">
       <view class="search-filter-row">
         <view class="search-bar-row">
-          <uni-search-bar
-            v-model="keyword"
-            radius="100"
-            cancelButton="auto"
-            clearButton="auto"
-            placeholder="请输入搜索内容"
-            @clear="resetKeyword"
-            @cancel="resetKeyword"
-            @confirm="onSearch"
-            :height="36"
-          />
+          <uni-search-bar v-model="keyword" radius="100" cancelButton="auto" clearButton="auto" placeholder="请输入搜索内容"
+            @clear="resetKeyword" @cancel="resetKeyword" @confirm="onSearch" :height="36" />
         </view>
         <view class="filter-bar">
           <view class="filter-sort-btn" @click="openSortPopup">
@@ -42,42 +28,24 @@
       <view v-if="loading" class="loading">加载中...</view>
       <view v-else-if="error" class="error">{{ error }}</view>
       <view v-else>
-        <view
-          v-if="columns(tasksList)[0].length > 0 || columns(tasksList)[1].length > 0"
-          class="masonry-row"
-        >
+        <view v-if="columns(tasksList)[0].length > 0 || columns(tasksList)[1].length > 0" class="masonry-row">
           <view class="masonry-col" v-for="(col, colIdx) in columns(tasksList)" :key="colIdx">
             <template v-for="item in col" :key="item._id">
-              <task-card :task="item" @like="onLike(item)" />
+              <task-card :task="item" :user="item.user" @like="onLike(item)" />
             </template>
           </view>
         </view>
         <view v-else class="empty">没有更多数据了</view>
-        <uni-load-state
-          class="load-state"
-          :state="{ data: tasksList, pagination, hasMore, loading, error }"
-          @loadMore="loadMore"
-          @networkResume="refresh"
-          noMoreText="没有更多了"
-        />
+        <uni-load-state class="load-state" :state="{ data: tasksList, pagination, hasMore, loading, error }"
+          @loadMore="loadMore" @networkResume="refresh" noMoreText="没有更多了" />
       </view>
       <uni-popup ref="sortPopupRef" type="bottom" :is-mask-click="true">
         <view class="sort-popup-content">
-          <view
-            class="sort-popup-option"
-            v-for="option in sortOptions"
-            :key="option.value"
-            :class="{ active: sortKey === option.value }"
-            @click="selectSortOrder(option.value)"
-          >
+          <view class="sort-popup-option" v-for="option in sortOptions" :key="option.value"
+            :class="{ active: sortKey === option.value }" @click="selectSortOrder(option.value)">
             <text>{{ option.label }}</text>
-            <uni-icons
-              v-if="sortKey === option.value"
-              type="checkbox-filled"
-              color="#1976d2"
-              size="18"
-              style="margin-left: 8px"
-            />
+            <uni-icons v-if="sortKey === option.value" type="checkbox-filled" color="#1976d2" size="18"
+              style="margin-left: 8px" />
           </view>
         </view>
       </uni-popup>
@@ -86,15 +54,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { onLoad, onPullDownRefresh, onReachBottom, onPageScroll, onShow } from '@dcloudio/uni-app'
 import taskCard from '@/components/task-card/task-card.vue'
+import uniLoadState from '@/components/uni-load-state/uni-load-state.vue'
+import { useTaskLikeStore } from '@/store/taskLike.js'
 import uniIcons from '@/uni_modules/uni-icons/components/uni-icons/uni-icons.vue'
 import uniPopup from '@/uni_modules/uni-popup/components/uni-popup/uni-popup.vue'
-import uniLoadState from '@/components/uni-load-state/uni-load-state.vue'
 import uniSearchBar from '@/uni_modules/uni-search-bar/components/uni-search-bar/uni-search-bar.vue'
 import { toggleTaskLike } from '@/utils/taskLike.js'
-import { useTaskLikeStore } from '@/store/taskLike.js'
+import { onLoad, onPageScroll, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
+import { computed, onMounted, ref } from 'vue'
 
 const keyword = ref('')
 const sortKey = ref('time')
@@ -178,12 +146,8 @@ async function fetchTasks({ reset = false } = {}) {
     })
     if (res.result && res.result.code === 0) {
       const rawList = res.result.data || []
-      const flatList = rawList
-        .map(item =>
-          item.task ? { ...item.task, is_liked: true, like_count: item.task.like_count } : null
-        )
-        .filter(Boolean)
-      tasksList.value = reset ? flatList : [...tasksList.value, ...flatList]
+      // 云函数已经返回处理好的数据，直接使用
+      tasksList.value = reset ? rawList : [...tasksList.value, ...rawList]
       // 直接用云函数返回的 hasMore、page、pageSize、total
       hasMore.value = res.result.hasMore
       pagination.value = {
@@ -191,7 +155,7 @@ async function fetchTasks({ reset = false } = {}) {
         page: res.result.page,
         pageSize: res.result.pageSize
       }
-      syncLikeMapWithData(flatList)
+      syncLikeMapWithData(rawList)
     } else {
       error.value = res.result?.message || '加载失败'
     }
@@ -231,15 +195,15 @@ function columns(data) {
   tasks =
     Object.keys(taskLikeStore.likeMap).length === 0 && data && data.length > 0
       ? (data || [])
-          .map(item => ({ ...item, is_liked: true, like_count: item.like_count }))
-          .filter(Boolean)
+        .map(item => ({ ...item, is_liked: true, like_count: item.like_count }))
+        .filter(Boolean)
       : Object.values(taskLikeStore.likeMap)
-          .filter(like => like.isLiked)
-          .map(like => ({
-            ...like.taskData,
-            is_liked: true,
-            like_count: like.likeCount
-          }))
+        .filter(like => like.isLiked)
+        .map(like => ({
+          ...like.taskData,
+          is_liked: true,
+          like_count: like.likeCount
+        }))
   // 前端关键字过滤
   if (keyword.value) {
     tasks = tasks.filter(
@@ -363,6 +327,7 @@ onReachBottom(() => {
   min-height: 100vh;
   padding-bottom: 1px;
 }
+
 .custom-navbar-fixed {
   position: fixed;
   left: 0;
@@ -371,6 +336,7 @@ onReachBottom(() => {
   z-index: 1001;
   background: #fff;
 }
+
 .custom-navbar {
   display: flex;
   align-items: center;
@@ -379,11 +345,13 @@ onReachBottom(() => {
   padding: 0 16px;
   border-bottom: 1px solid #f0f0f0;
 }
+
 .navbar-title {
   font-size: 18px;
   font-weight: 600;
   color: #333;
 }
+
 .filter-header-group-fixed {
   position: fixed;
   left: 0;
@@ -398,6 +366,7 @@ onReachBottom(() => {
   overflow: hidden;
   pointer-events: auto;
 }
+
 .search-filter-row {
   display: flex;
   flex-direction: row;
@@ -407,6 +376,7 @@ onReachBottom(() => {
   padding: 0 8px;
   box-sizing: border-box;
 }
+
 .search-bar-row {
   flex: 1 1 0%;
   min-width: 0;
@@ -416,6 +386,7 @@ onReachBottom(() => {
   display: flex;
   align-items: center;
 }
+
 .filter-bar {
   flex-shrink: 0;
   display: flex;
@@ -425,6 +396,7 @@ onReachBottom(() => {
   padding: 0;
   border: none;
 }
+
 .filter-sort-btn {
   display: flex;
   align-items: center;
@@ -438,6 +410,7 @@ onReachBottom(() => {
   margin-right: 0;
   cursor: pointer;
 }
+
 .masonry-row {
   display: flex;
   flex-direction: row;
@@ -447,12 +420,14 @@ onReachBottom(() => {
   padding: 10px 0;
   box-sizing: border-box;
 }
+
 .masonry-col {
   width: 49%;
   margin: 0 auto;
   margin-top: 0;
   box-sizing: border-box;
 }
+
 .loading,
 .error,
 .empty {
@@ -461,11 +436,13 @@ onReachBottom(() => {
   padding: 40px 0;
   font-size: 15px;
 }
+
 .sort-popup-content {
   background: #fff;
   border-radius: 16px 16px 0 0;
   padding: 16px 0;
 }
+
 .sort-popup-option {
   padding: 16px 24px;
   font-size: 16px;
@@ -475,10 +452,12 @@ onReachBottom(() => {
   cursor: pointer;
   transition: background 0.2s;
 }
+
 .sort-popup-option.active {
   color: #1976d2;
   background: #f0f6ff;
 }
+
 .task-list-masonry {
   /* 不要设置 overflow/scroll，让页面自然流式布局 */
   position: sticky;

@@ -52,7 +52,7 @@
         >
           <view class="masonry-col" v-for="(col, colIdx) in columns(tasksList)" :key="colIdx">
             <template v-for="item in col" :key="item._id">
-              <task-card :task="withLikeStatus(item)" @like="onLike(item)" />
+              <task-card :task="withLikeStatus(item)" :user="item.user" @like="onLike(item)" />
             </template>
           </view>
         </view>
@@ -90,15 +90,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { onLoad, onPullDownRefresh, onReachBottom, onPageScroll } from '@dcloudio/uni-app'
 import taskCard from '@/components/task-card/task-card.vue'
+import uniLoadState from '@/components/uni-load-state/uni-load-state.vue'
+import { useTaskLikeStore } from '@/store/taskLike.js'
 import uniIcons from '@/uni_modules/uni-icons/components/uni-icons/uni-icons.vue'
 import uniPopup from '@/uni_modules/uni-popup/components/uni-popup/uni-popup.vue'
-import uniLoadState from '@/components/uni-load-state/uni-load-state.vue'
 import uniSearchBar from '@/uni_modules/uni-search-bar/components/uni-search-bar/uni-search-bar.vue'
 import { toggleTaskLike } from '@/utils/taskLike.js'
-import { useTaskLikeStore } from '@/store/taskLike.js'
+import { onLoad, onPageScroll, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
+import { computed, onMounted, ref } from 'vue'
 
 const catId = ref(0)
 const catName = ref('')

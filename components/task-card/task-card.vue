@@ -1,35 +1,20 @@
 <template>
   <view class="masonry-card">
     <view class="custom-cover" @click="goDetail">
-      <swiper
-        v-if="imageList.length > 1"
-        class="cover-swiper"
-        :indicator-dots="true"
-        :autoplay="false"
-        :circular="true"
-      >
+      <swiper v-if="imageList.length > 1" class="cover-swiper" :indicator-dots="true" :autoplay="false"
+        :circular="true">
         <swiper-item v-for="(img, idx) in imageList" :key="img.url">
           <image class="cover-image" :src="img.url" mode="aspectFill" />
         </swiper-item>
       </swiper>
-      <image
-        v-else-if="imageList.length === 1"
-        class="cover-image"
-        :src="imageList[0].url"
-        mode="aspectFill"
-      />
+      <image v-else-if="imageList.length === 1" class="cover-image" :src="imageList[0].url" mode="aspectFill" />
       <view v-else class="cover-image no-image"></view>
       <view class="cover-content">
         <text class="uni-subtitle uni-white">{{ task.name }}</text>
       </view>
     </view>
     <uni-list>
-      <uni-list-item
-        :title="task.description || task.name || '暂无描述'"
-        showArrow
-        link
-        @click="goDetail"
-      ></uni-list-item>
+      <uni-list-item :title="task.description || task.name || '暂无描述'" showArrow link @click="goDetail"></uni-list-item>
       <view class="user-info">
         <image class="user-avatar" :src="user?.avatar_file?.url || '/static/logo.png'" />
         <!-- <text class="user-nickname">{{ user?.nickname || '匿名用户' }}</text> -->
@@ -43,11 +28,7 @@
         </text>
       </view>
       <view class="card-actions-item" @click.stop="onLikeClick">
-        <uni-icons
-          :type="task.is_liked ? 'heart-filled' : 'heart'"
-          size="18"
-          :color="task.is_liked ? 'red' : '#999'"
-        />
+        <uni-icons :type="task.is_liked ? 'heart-filled' : 'heart'" size="18" :color="task.is_liked ? 'red' : '#999'" />
         <text class="card-actions-item-text">{{ task.like_count || 0 }}</text>
       </view>
       <view class="card-actions-item">
@@ -123,7 +104,7 @@ export default {
         start_time,
         end_time,
         category_name,
-        user: encodeURIComponent(JSON.stringify(this.user)),
+        user: this.user ? encodeURIComponent(JSON.stringify(this.user)) : '',
         create_date,
         is_publisher_joined,
         // 新增字段
@@ -157,15 +138,18 @@ export default {
   display: flex;
   flex-direction: column;
 }
+
 .custom-cover {
   position: relative;
 }
+
 .cover-image {
   width: 100%;
   height: 120px;
   object-fit: cover;
   border-radius: 8px 8px 0 0;
 }
+
 .cover-content {
   position: absolute;
   left: 0;
@@ -174,6 +158,7 @@ export default {
   background: rgba(0, 0, 0, 0.3);
   padding: 4px 8px;
 }
+
 .uni-subtitle.uni-white {
   color: #fff;
   font-size: 14px;
@@ -182,21 +167,25 @@ export default {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .card-actions {
   display: flex;
   flex-direction: row;
   justify-content: space-around;
   padding: 8px 0;
 }
+
 .card-actions-item {
   display: flex;
   align-items: center;
 }
+
 .card-actions-item-text {
   margin-left: 4px;
   font-size: 16px;
   color: #666;
 }
+
 .user-info {
   display: flex;
   align-items: center;
@@ -205,17 +194,20 @@ export default {
   border-top: 1px solid #f0f0f0;
   gap: 8px;
 }
+
 .user-avatar {
   width: 18px;
   height: 18px;
   border-radius: 50%;
   margin-right: 8px;
 }
+
 .user-nickname {
   max-width: 40vw !important;
   font-size: 13px;
   color: #666;
 }
+
 .task-type-tag {
   background: #f5f5f5;
   color: #1976d2;
@@ -224,12 +216,14 @@ export default {
   padding: 2px 8px;
   margin-left: 4px;
 }
+
 .cover-swiper {
   width: 100%;
   height: 120px;
   border-radius: 8px 8px 0 0;
   overflow: hidden;
 }
+
 .no-image {
   background: #f5f5f5;
 }

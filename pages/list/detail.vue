@@ -665,7 +665,7 @@ export default {
       is_liked: options.is_liked == 1,
       joined_count: options.joined_count ? Number(options.joined_count) : 0,
       max_participants: options.max_participants ? Number(options.max_participants) : 1,
-      user: options.user ? JSON.parse(decodeURIComponent(options.user)) : {},
+      user: options.user && options.user !== 'undefined' ? JSON.parse(decodeURIComponent(options.user)) : {},
       score: options.score ? Number(options.score) : 0,
       price: options.price ? Number(options.price) : 0,
       mode: options.mode ? options.mode : 'score',

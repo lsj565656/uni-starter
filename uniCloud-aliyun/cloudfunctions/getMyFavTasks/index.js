@@ -42,7 +42,17 @@ exports.main = async (event, context) => {
         foreignField: '_id',
         as: 'task'
       })
-      .unwind('$task');
+      .unwind('$task')
+      // 关联任务发布者信息
+      .lookup({
+        from: 'uni-id-users',
+        localField: 'task.user_id',
+        foreignField: '_id',
+        as: 'task_user'
+      })
+      .addFields({
+        'task.user': { $arrayElemAt: ['$task_user', 0] }
+      });
     // 关键词筛选
     if (keyword) {
       agg = agg.match({
@@ -65,7 +75,13 @@ exports.main = async (event, context) => {
     // 分页
     agg = agg.skip((pageNum - 1) * size).limit(size);
     const res = await agg.end();
-    list = res.data || [];
+    list = (res.data || []).map(item => ({
+      ...item.task,
+      is_liked: true,
+      like_count: item.task.like_count || 0,
+      // 确保用户信息存在
+      user: item.task.user || {}
+    }));
     // 查询总数
     const totalRes = await db.collection('kl-tasks-likes').where(matchStage).count();
     const total = totalRes.total || 0;
