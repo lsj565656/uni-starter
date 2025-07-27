@@ -413,7 +413,7 @@ export default {
             page: this.page,
             pageSize: this.pageSize,
             filter: currentFilter,
-            extra: currentFilter
+            extra: this.filterExtraOptions[this.filterExtraIndex]
           }
         });
         

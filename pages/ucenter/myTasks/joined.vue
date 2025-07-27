@@ -342,7 +342,6 @@ export default {
       // 检查当前用户是否参与了这个任务
       const myJoinStatus = task.myJoinStatus;
       if (!myJoinStatus) return null;
-      console.log('myJoinStatus', myJoinStatus);
       // 返回就绪状态
       if (myJoinStatus === 'ready') {
         return { status: 'ready', text: '已就绪', color: '#52c41a' };
@@ -483,7 +482,7 @@ export default {
             page: this.page,
             pageSize: this.pageSize,
             filter: currentFilter,
-            extra: currentFilter
+            extra: this.filterExtraOptions[this.filterExtraIndex]
           }
         });
         

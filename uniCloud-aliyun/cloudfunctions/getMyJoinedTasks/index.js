@@ -85,9 +85,9 @@ exports.main = async (event, context) => {
     myJoinStatus: { $arrayElemAt: ['$rateInfoArr.status', 0] }
   });
   if (extra === '仅我参与的') {
-    agg = agg.match({ $expr: { $and: [ { $ne: ['$user_id', userObjectId] }, { $eq: ['$isUserAlsoMember', true] } ] } });
+    agg = agg.match({ user_id: { $ne: userObjectId } });
   } else if (extra === '我发布并参与的') {
-    agg = agg.match({ $expr: { $and: [ { $eq: ['$user_id', userObjectId] }, { $eq: ['$isUserAlsoMember', true] } ] } });
+    agg = agg.match({ user_id: userObjectId });
   }
   // 只在“已评价”分类时聚合后筛选
   if (filter === '已评价') {
@@ -137,7 +137,6 @@ exports.main = async (event, context) => {
     
     // 获取各分类的数量统计
     const categoryCounts = await getCategoryCounts(userObjectId, extra);
-    console.log('云函数返回的分类数量统计:', categoryCounts);
     
     return {
       code: 0,
@@ -162,8 +161,6 @@ async function getCategoryCounts(userId, extra) {
   const joinRes = await db.collection('kl-users-join-task').where({ user_id: userId, isActive: true }).get();
   const taskIds = joinRes.data.map(j => j.task_id);
   
-  console.log('用户参与的任务ID:', taskIds);
-  
   if (!taskIds.length) {
     return {
       '全部': 0,
@@ -179,8 +176,6 @@ async function getCategoryCounts(userId, extra) {
   const tasksRes = await db.collection('kl-tasks').where({ _id: dbCmd.in(taskIds), isActive: true }).get();
   const tasks = tasksRes.data;
   
-  console.log('获取到的任务详情:', tasks);
-  
   // 获取用户的参与状态信息
   const userJoinsRes = await db.collection('kl-users-join-task').where({ 
     user_id: userId, 
@@ -189,7 +184,6 @@ async function getCategoryCounts(userId, extra) {
   }).get();
   const userJoins = userJoinsRes.data;
   
-  console.log('用户的参与状态:', userJoins);
   
   // 创建任务ID到参与状态的映射
   const taskJoinMap = {};
@@ -214,9 +208,9 @@ async function getCategoryCounts(userId, extra) {
     // 根据extra过滤
     let shouldCount = true;
     if (extra === '仅我参与的') {
-      shouldCount = task.user_id !== userId;
+      shouldCount = task.user_id !== userId; // 不是我发布的任务
     } else if (extra === '我发布并参与的') {
-      shouldCount = task.user_id === userId;
+      shouldCount = task.user_id === userId; // 是我发布的任务
     }
     
     if (!shouldCount) return;
@@ -229,6 +223,8 @@ async function getCategoryCounts(userId, extra) {
     } else if (task.status === 'in_progress') {
       counts['进行中']++;
     } else if (task.status === 'finished') {
+      // 修复已评价统计逻辑
+      // 只检查用户参与状态
       if (userJoin.status === 'evaluated') {
         counts['已评价']++;
       } else {
@@ -236,9 +232,11 @@ async function getCategoryCounts(userId, extra) {
       }
     } else if (task.status === 'invalid') {
       counts['已失效']++;
+    } else if (userJoin.status === 'evaluated') {
+      // 如果用户参与状态是已评价，无论任务状态如何都算已评价
+      counts['已评价']++;
     }
   });
   
-  console.log('统计结果:', counts);
   return counts;
 } 

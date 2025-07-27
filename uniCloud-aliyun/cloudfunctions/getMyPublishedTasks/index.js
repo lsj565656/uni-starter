@@ -131,7 +131,6 @@ exports.main = async (event, context) => {
     
     // 获取各分类的数量统计
     const categoryCounts = await getCategoryCounts(userObjectId, extra);
-    console.log('云函数返回的分类数量统计:', categoryCounts);
     
     return {
       code: 0,
@@ -156,8 +155,6 @@ async function getCategoryCounts(userId, extra) {
   const tasksRes = await db.collection('kl-tasks').where({ user_id: userId, isActive: true }).get();
   const tasks = tasksRes.data;
   
-  console.log('用户发布的任务:', tasks);
-  
   if (!tasks.length) {
     return {
       '全部': 0,
@@ -178,8 +175,6 @@ async function getCategoryCounts(userId, extra) {
     isActive: true 
   }).get();
   const userJoins = userJoinsRes.data;
-  
-  console.log('用户的参与状态:', userJoins);
   
   // 创建任务ID到参与状态的映射
   const taskJoinMap = {};
@@ -218,6 +213,8 @@ async function getCategoryCounts(userId, extra) {
     } else if (task.status === 'in_progress') {
       counts['进行中']++;
     } else if (task.status === 'finished') {
+      // 修复已评价统计逻辑
+      // 只检查用户参与状态，因为任务主表可能不会更新为evaluated
       if (userJoin && userJoin.status === 'evaluated') {
         counts['已评价']++;
       } else {
@@ -225,9 +222,10 @@ async function getCategoryCounts(userId, extra) {
       }
     } else if (task.status === 'invalid') {
       counts['已失效']++;
+    } else if (userJoin && userJoin.status === 'evaluated') {
+      // 如果用户参与状态是已评价，无论任务状态如何都算已评价
+      counts['已评价']++;
     }
   });
-  
-  console.log('统计结果:', counts);
   return counts;
 } 
