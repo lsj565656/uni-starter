@@ -298,6 +298,12 @@ export default {
         '已失效': 0,
         '已评价': 0
       }, // 新增：分类数量统计
+      // 抽屉状态管理
+      drawerStates: {
+        progressDrawer: false,
+        rateDrawer: false,
+        rateEditDrawer: false
+      }
     }
   },
   computed: {
@@ -332,11 +338,11 @@ export default {
   onLoad() {
     this.userId = store.userInfo._id || '';
     this.fetchMyJoinedTasks({ reset: true });
-    // 动态设置抽屉宽度为 80% 屏幕宽
+    // 动态设置抽屉宽度为 90% 屏幕宽
     let width = 300;
     try {
       const sys = uni.getSystemInfoSync();
-      width = Math.floor((sys.windowWidth || 375) * 0.8);
+      width = Math.floor((sys.windowWidth || 375) * 0.9);
     } catch(e) {}
     this.rateDrawerWidth = width;
   },
@@ -859,7 +865,7 @@ export default {
         data: { taskId: task._id, userId: this.userId }
       });
       if (res.result && res.result.code === 0) {
-        uni.showToast({ title: '任务标记完成成功', icon: 'success' });
+        uni.showToast({ title: '任务已完成', icon: 'success' });
         
         // 使用简化的状态变更处理方法
         this.handleTaskStatusChange(task._id, task.status, 'finished');

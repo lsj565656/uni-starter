@@ -946,17 +946,17 @@ export default {
       // TODO: 实现站内推送提醒功能
     },
     
-    // 剔除参与者
+    // 踢除参与者
     async removeJoiner(member) {
       uni.showModal({
-        title: '剔除参与者',
-        content: `确定要剔除参与者"${member.nickname}"吗？`,
-        confirmText: '确定剔除',
+        title: '踢除参与者',
+        content: `确定要踢除参与者"${member.nickname}"吗？`,
+        confirmText: '确定踢除',
         confirmColor: '#ff4757',
         success: async (res) => {
           if (res.confirm) {
             try {
-              uni.showLoading({ title: '剔除中...' });
+              uni.showLoading({ title: '踢除中...' });
               const res = await uniCloud.callFunction({
                 name: 'removeTaskJoiner',
                 data: { 
@@ -968,16 +968,16 @@ export default {
               uni.hideLoading();
               
               if (res.result && res.result.code === 0) {
-                uni.showToast({ title: '剔除成功', icon: 'success' });
+                uni.showToast({ title: '踢除成功', icon: 'success' });
                 // 刷新就绪状态
                 this.refreshReadiness();
               } else {
-                uni.showToast({ title: res.result?.message || '剔除失败', icon: 'none' });
+                uni.showToast({ title: res.result?.message || '踢除失败', icon: 'none' });
               }
             } catch (error) {
               uni.hideLoading();
-              console.error('剔除参与者失败:', error);
-              uni.showToast({ title: '剔除失败', icon: 'none' });
+              console.error('踢除参与者失败:', error);
+              uni.showToast({ title: '踢除失败', icon: 'none' });
             }
           }
         }
