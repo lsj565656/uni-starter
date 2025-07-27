@@ -64,7 +64,7 @@ exports.main = async (event, context) => {
             if (!existingJoin.isActive) {
               await transaction.collection('kl-users-join-task').doc(existingJoin._id).update({
                 isActive: true,
-                status: 'preJoin',
+                status: 'ready',
                 join_time: Date.now()
               });
               
@@ -80,7 +80,7 @@ exports.main = async (event, context) => {
               task_id: task._id,
               user_id: userId,
               is_publisher: true,
-              status: 'preJoin',
+              status: 'ready',
               join_time: Date.now(),
               role: 'publisher',
               guarantee_score: 0,

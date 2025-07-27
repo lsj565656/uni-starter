@@ -76,13 +76,6 @@
               <view class="card-sub-row">
                 <text class="meta-label">参与人数：</text>
                 <text class="meta-value">{{ task.members?.length || 0 }}/{{ task.max_participants }}</text>
-                <text 
-                  v-if="getUserReadinessStatus(task)" 
-                  class="readiness-status"
-                  :style="{ color: getUserReadinessStatus(task).color }"
-                >
-                  {{ getUserReadinessStatus(task).text }}
-                </text>
                 <view class="avatars-row">
                   <image
                     v-for="(member, idx) in getDisplayMembers(task)"
@@ -328,11 +321,13 @@ export default {
     },
     getDisplayMembers(task) {
       if (!task.members) return [];
-      return (task.members || []).filter(m => m._id !== this.userId).slice(0, 4);
+      // return (task.members || []).filter(m => m._id !== this.userId).slice(0, 4);
+      return (task.members || []).slice(0, 4);
     },
     getMoreMemberCount(task) {
       if (!task.members) return 0;
-      const members = (task.members || []).filter(m => m._id !== this.userId);
+      // const members = (task.members || []).filter(m => m._id !== this.userId);
+      const members = (task.members || []);
       return Math.max(0, members.length - 4);
     },
     getUserReadinessStatus(task) {
@@ -404,16 +399,23 @@ export default {
         }
       }
       
-      // 发布并参与者显示"开始"按钮
-      if (isPublisher && isAlsoMember && status === 'not_started') {
-        options.push({ text: '开始', style: { backgroundColor: '#fff', color: '#1976d2', fontWeight: 'bold' }, key: 'start' });
-      }
-      // 仅参与者显示"就绪"或"取消就绪"按钮（互斥）
-      if (!isPublisher && isAlsoMember && status === 'not_started') {
-        if (myStatus === 'preJoin') {
-          options.push({ text: '就绪', style: { backgroundColor: '#fff', color: '#1976d2', fontWeight: 'bold' }, key: 'ready' });
-        } else if (myStatus === 'ready') {
-          options.push({ text: '取消就绪', style: { backgroundColor: '#fff', color: '#888', fontWeight: 'bold' }, key: 'preJoin' });
+      // 待开始状态的处理
+      if (status === 'not_started') {
+        // 发布者兼参与者：显示查看状态按钮
+        if (isPublisher && isAlsoMember) {
+          options.push({ 
+            text: '查看状态', 
+            style: { backgroundColor: '#fff', color: '#666', fontWeight: 'bold' }, 
+            key: 'readinessStatus' 
+          });
+        }
+        // 仅参与者（非发布者）：显示"就绪"或"取消就绪"按钮
+        else if (!isPublisher && isAlsoMember) {
+          if (myStatus === 'preJoin') {
+            options.push({ text: '就绪', style: { backgroundColor: '#fff', color: '#1976d2', fontWeight: 'bold' }, key: 'ready' });
+          } else if (myStatus === 'ready') {
+            options.push({ text: '取消就绪', style: { backgroundColor: '#fff', color: '#888', fontWeight: 'bold' }, key: 'preJoin' });
+          }
         }
       }
       // 个人未评价时显示"评价"，已评价时显示"查看评价"
@@ -542,20 +544,20 @@ export default {
     },
     onFilterTab(idx) {
       if (this.filterIndex === idx) return;
-      this.filterIndex = idx;
-      this.page = 1;
-      this.tasks = [];
-      this.hasMore = true;
-      this.pagination = {};
+        this.filterIndex = idx;
+        this.page = 1;
+        this.tasks = [];
+        this.hasMore = true;
+        this.pagination = {};
       
       // 滚动到选中的分类
       this.scrollCategoryToCenter(idx);
       
       // 切换分类时检查缓存有效性
-      const cacheKey = this.getCacheKey();
-      const now = Date.now();
-      if (this.joinedPageCache[cacheKey] && (now - this.joinedPageCache[cacheKey].ts < this.cacheExpire)) {
-        const cached = this.joinedPageCache[cacheKey].data;
+        const cacheKey = this.getCacheKey();
+        const now = Date.now();
+        if (this.joinedPageCache[cacheKey] && (now - this.joinedPageCache[cacheKey].ts < this.cacheExpire)) {
+          const cached = this.joinedPageCache[cacheKey].data;
         
         // 检查缓存中的任务状态是否与当前分类匹配
         const currentFilter = this.filterOptions[idx];
@@ -648,6 +650,7 @@ export default {
       if (key === 'markFinished') this.markTaskFinished(task);
       if (key === 'endTask') this.endTask(task);
       if (key === 'viewProgress') this.viewTaskProgress(task);
+      if (key === 'readinessStatus') this.viewTaskReadinessStatus(task);
     },
     goToComment(id) {
       // 跳转到评论/评价页
@@ -1026,6 +1029,36 @@ export default {
       
       return isValid;
     },
+    async viewTaskReadinessStatus(task) {
+      try {
+        uni.showLoading({ title: '加载中...' });
+        const res = await uniCloud.callFunction({
+          name: 'getTaskProgress',
+          data: { taskId: task._id }
+        });
+        uni.hideLoading();
+        
+        if (res.result && res.result.code === 0) {
+          // 处理数据，计算allReady状态
+          const progress = res.result.data.progress || [];
+          const nonPublisherMembers = progress.filter(m => !m.is_publisher);
+          const allReady = nonPublisherMembers.length === 0 || 
+                          nonPublisherMembers.every(m => m.status === 'ready');
+          
+          this.progressData = {
+            ...res.result.data,
+            allReady
+          };
+          this.$refs.progressDrawer.open();
+        } else {
+          uni.showToast({ title: res.result?.message || '获取状态失败', icon: 'none' });
+        }
+      } catch (error) {
+        uni.hideLoading();
+        console.error('获取状态失败:', error);
+        uni.showToast({ title: '获取状态失败', icon: 'none' });
+      }
+    }
   }
 }
 </script>

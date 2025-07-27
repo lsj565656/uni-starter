@@ -41,7 +41,7 @@ exports.main = async (event, context) => {
       },
       { $unwind: '$userInfo' },
       { $project: {
-          _id: '$user_id',
+          _id: { $toString: '$user_id' },
           avatar: '$userInfo.avatar_file.url',
           nickname: '$userInfo.nickname'
         }
@@ -61,7 +61,7 @@ exports.main = async (event, context) => {
   // 只在聚合后做 extra 过滤
   agg = agg.addFields({
     isUserAlsoMember: {
-      $in: [userObjectId, '$members._id']
+      $in: [{ $toString: userObjectId }, '$members._id']
     }
   });
   // 拼接 rateInfo 字段和 myJoinStatus

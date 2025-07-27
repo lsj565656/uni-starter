@@ -23,16 +23,16 @@
 				<uni-grid-item class="item" @click.native="goToMyPublishedTasks">
 					<uni-badge :text="userInfo.publishedCount || 0" absolute="rightTop" size="small" type="error">
 						<view class="grid-item-content">
-							<uni-icons class="icon" color="#007AFF" type="paperplane" size="26"></uni-icons>
-							<text class="text">发布的任务</text>
+					<uni-icons class="icon" color="#007AFF" type="paperplane" size="26"></uni-icons>
+					<text class="text">发布的任务</text>
 						</view>
 					</uni-badge>
 				</uni-grid-item>
 				<uni-grid-item class="item" @click.native="goToMyJoinedTasks">
 					<uni-badge :text="userInfo.joinedCount || 0" absolute="rightTop" size="small" type="error">
 						<view class="grid-item-content">
-							<uni-icons class="icon" color="#007AFF" type="staff" size="26"></uni-icons>
-							<text class="text">参与的任务</text>
+					<uni-icons class="icon" color="#007AFF" type="staff" size="26"></uni-icons>
+					<text class="text">参与的任务</text>
 						</view>
 					</uni-badge>
 				</uni-grid-item>
