@@ -420,13 +420,21 @@ export default {
             });
           }
         }
-        // 仅参与者（非发布者）：显示"标记完成"按钮
-        else if (!isPublisher && isAlsoMember && myStatus === 'in_progress') {
-          options.push({ 
-            text: '标记完成', 
-            style: { backgroundColor: '#fff', color: '#1976d2', fontWeight: 'bold' }, 
-            key: 'markFinished' 
-          });
+        // 仅参与者（非发布者）：根据当前状态显示不同按钮
+        else if (!isPublisher && isAlsoMember) {
+          if (myStatus === 'in_progress') {
+            options.push({ 
+              text: '标记完成', 
+              style: { backgroundColor: '#fff', color: '#1976d2', fontWeight: 'bold' }, 
+              key: 'markFinished' 
+            });
+          } else if (myStatus === 'finished') {
+            options.push({ 
+              text: '取消完成', 
+              style: { backgroundColor: '#fff', color: '#ff9500', fontWeight: 'bold' }, 
+              key: 'cancelFinished' 
+            });
+          }
         }
         // 仅发布者（非参与者）：根据参与者完成情况显示不同按钮
         else if (isPublisher && !isAlsoMember) {
@@ -695,6 +703,7 @@ export default {
       if (key === 'endTask') this.endTask(task);
       if (key === 'viewProgress') this.viewTaskProgress(task);
       if (key === 'readinessStatus') this.viewTaskReadinessStatus(task);
+      if (key === 'cancelFinished') this.cancelFinished(task);
     },
     goToComment(id) {
       // 跳转到评论/评价页
@@ -1169,6 +1178,23 @@ export default {
     // 剔除参与者
     async removeJoiner(member) {
       uni.showToast({ title: '剔除功能待实现', icon: 'none' });
+    },
+    async cancelFinished(task) {
+      const res = await uniCloud.callFunction({
+        name: 'updateJoinStatus',
+        data: {
+          taskId: task._id,
+          userId: this.userId,
+          status: 'in_progress' // 取消完成时，状态从 finished 回到 in_progress
+        }
+      });
+      if (res.result && res.result.code === 0) {
+        uni.showToast({ title: '已取消完成', icon: 'success' });
+        // 刷新当前分类数据
+        this.refreshCurrentCategory();
+      } else {
+        uni.showToast({ title: res.result?.message || '操作失败', icon: 'none' });
+      }
     }
   }
 }
