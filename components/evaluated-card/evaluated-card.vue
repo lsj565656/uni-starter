@@ -14,7 +14,7 @@
       <view class="evaluated-card__header">
         <text class="evaluated-card__category" v-if="evaluated.category">{{
           evaluated.category
-          }}</text>
+        }}</text>
       </view>
       <text class="evaluated-card__description">{{ evaluated.description }}</text>
       <view class="evaluated-card__tag" v-if="evaluated.tags && evaluated.tags.length > 0">
@@ -179,11 +179,17 @@ const tagsOverflow = computed(() => {
     margin-bottom: 12rpx;
     white-space: normal;
     line-height: 1.4;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+  }
+
+  @supports (-webkit-line-clamp: 2) {
+    &__description {
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
   }
 
   &__tag {
