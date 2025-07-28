@@ -13,44 +13,20 @@
       <view class="navbar-placeholder"></view>
       <view class="navbar-search-mp">
         <view style="position: relative; width: 90%">
-          <uni-search-bar
-            v-model="keyword"
-            ref="searchBar"
-            radius="100"
-            cancelButton="auto"
-            clearButton="none"
-            disabled
-            :placeholder="inputPlaceholder"
-            @clear="resetKeyword"
-            @cancel="resetKeyword"
-          />
-          <view
-            class="search-click-area"
-            @click="goToSearch"
-            style="position: absolute; left: 0; top: 0; bottom: 0; right: 10%; z-index: 2"
-          ></view>
+          <uni-search-bar v-model="keyword" ref="searchBar" radius="100" cancelButton="auto" clearButton="none" disabled
+            :placeholder="inputPlaceholder" @clear="resetKeyword" @cancel="resetKeyword" />
+          <view class="search-click-area" @click="goToSearch"
+            style="position: absolute; left: 0; top: 0; bottom: 0; right: 10%; z-index: 2"></view>
         </view>
       </view>
       <!-- #endif -->
       <!-- #ifndef MP-WEIXIN -->
       <view class="navbar-search-app">
         <view style="position: relative; width: 90%">
-          <uni-search-bar
-            v-model="keyword"
-            ref="searchBar"
-            radius="100"
-            cancelButton="auto"
-            clearButton="none"
-            disabled
-            :placeholder="inputPlaceholder"
-            @clear="resetKeyword"
-            @cancel="resetKeyword"
-          />
-          <view
-            class="search-click-area"
-            @click="goToSearch"
-            style="position: absolute; left: 0; top: 0; bottom: 0; right: 10%; z-index: 2"
-          ></view>
+          <uni-search-bar v-model="keyword" ref="searchBar" radius="100" cancelButton="auto" clearButton="none" disabled
+            :placeholder="inputPlaceholder" @clear="resetKeyword" @cancel="resetKeyword" />
+          <view class="search-click-area" @click="goToSearch"
+            style="position: absolute; left: 0; top: 0; bottom: 0; right: 10%; z-index: 2"></view>
         </view>
       </view>
       <!-- #endif -->
@@ -63,44 +39,25 @@
         <uni-icons type="left" size="20" color="#4c82ff" />
       </view>
 
-      <scroll-view
-        class="category-scroll"
-        scroll-x
-        scroll-with-animation
-        :scroll-left="categoryScrollLeft"
-        ref="categoryScroll"
-        style="white-space: nowrap"
-      >
-        <view
-          v-for="(item, index) in categoryNames"
-          :key="index"
-          :id="'cat-' + index"
-          class="seg-item"
-          :class="{ active: currentCategory === index }"
-          :style="categoryItemStyle"
-          @click="onCategoryChange({ currentIndex: index })"
-        >
+      <scroll-view class="category-scroll" scroll-x scroll-with-animation :scroll-left="categoryScrollLeft"
+        ref="categoryScroll" style="white-space: nowrap">
+        <view v-for="(item, index) in categoryNames" :key="index" :id="'cat-' + index" class="seg-item"
+          :class="{ active: currentCategory === index }" :style="categoryItemStyle"
+          @click="onCategoryChange({ currentIndex: index })">
           {{ item }}
           <view v-if="currentCategory === index" class="seg-underline"></view>
         </view>
         <!-- 虚拟留白 - 确保最后一个分类项能完整显示 -->
-        <view
-          :style="{
-            display: 'inline-block',
-            width: '16px',
-            height: '1px'
-          }"
-        ></view>
+        <view :style="{
+          display: 'inline-block',
+          width: '16px',
+          height: '1px'
+        }"></view>
       </scroll-view>
       <!-- 筛选按钮 -->
       <view class="filter-icon-btn" @click.stop="toggleFilterDrawer">
-        <uni-badge
-          :text="activeFilterCount"
-          :absolute="'true'"
-          :offset="[0, 0]"
-          :is-dot="false"
-          v-if="activeFilterCount > 0"
-        >
+        <uni-badge :text="activeFilterCount" :absolute="'true'" :offset="[0, 0]" :is-dot="false"
+          v-if="activeFilterCount > 0">
           <uni-icons type="tune" size="26" color="#4c82ff" />
         </uni-badge>
         <uni-icons v-else type="tune" size="26" color="#4c82ff" />
@@ -108,15 +65,8 @@
     </view>
 
     <!-- 筛选抽屉 -->
-    <uni-drawer
-      ref="filterDrawer"
-      mode="right"
-      :mask="true"
-      :mask-click="false"
-      :width="300"
-      @close="onFilterDrawerClose"
-      @open="onFilterDrawerOpen"
-    >
+    <uni-drawer ref="filterDrawer" mode="right" :mask="true" :mask-click="false" :width="300"
+      @close="onFilterDrawerClose" @open="onFilterDrawerOpen">
       <view class="filter-drawer-content" @click.stop>
         <view class="filter-header">
           <text class="filter-title">筛选条件</text>
@@ -130,78 +80,44 @@
 
         <!-- 仅看类型按钮并排，无文本 -->
         <view class="filter-section mode-switch-row">
-          <button
-            :class="['mode-switch-btn', mode === 'score' ? 'active' : '']"
-            :disabled="isFiltering"
-            @click="onModeSwitch('score')"
-          >
+          <button :class="['mode-switch-btn', mode === 'score' ? 'active' : '']" :disabled="isFiltering"
+            @click="onModeSwitch('score')">
             仅看积分
           </button>
-          <button
-            :class="['mode-switch-btn', mode === 'price' ? 'active' : '']"
-            :disabled="isFiltering"
-            @click="onModeSwitch('price')"
-          >
+          <button :class="['mode-switch-btn', mode === 'price' ? 'active' : '']" :disabled="isFiltering"
+            @click="onModeSwitch('price')">
             仅看价格
           </button>
         </view>
 
         <view class="filter-section" v-if="mode === 'score' || mode === 'price'">
           <text class="filter-label">{{ mode === 'score' ? '积分排序' : '价格排序' }}</text>
-          <uni-data-select
-            v-model="selectedScoreOrPriceSort"
-            :localdata="scoreOrPriceSortOptions"
-            placeholder="不排序"
-            :clear="true"
-            :disabled="isFiltering"
-            class="filter-select"
-          />
+          <uni-data-select v-model="selectedScoreOrPriceSort" :localdata="scoreOrPriceSortOptions" placeholder="不排序"
+            :clear="true" :disabled="isFiltering" class="filter-select" />
         </view>
 
         <view class="filter-section">
           <text class="filter-label">点赞排序</text>
-          <uni-data-select
-            v-model="selectedLikeSort"
-            :localdata="likeSortOptions"
-            placeholder="不排序"
-            :clear="true"
-            :disabled="isFiltering"
-            class="filter-select"
-          />
+          <uni-data-select v-model="selectedLikeSort" :localdata="likeSortOptions" placeholder="不排序" :clear="true"
+            :disabled="isFiltering" class="filter-select" />
         </view>
 
         <view class="filter-section">
           <text class="filter-label">发布时间排序</text>
-          <uni-data-select
-            v-model="selectedDateSort"
-            :localdata="dateSortOptions"
-            placeholder="不排序"
-            :clear="true"
-            :disabled="isFiltering"
-            class="filter-select"
-          />
+          <uni-data-select v-model="selectedDateSort" :localdata="dateSortOptions" placeholder="不排序" :clear="true"
+            :disabled="isFiltering" class="filter-select" />
         </view>
 
         <view class="filter-section">
           <text class="filter-label">最大参与人数排序</text>
-          <uni-data-select
-            v-model="selectedScaleSort"
-            :localdata="scaleSortOptions"
-            placeholder="不排序"
-            :clear="true"
-            :disabled="isFiltering"
-            class="filter-select"
-          />
+          <uni-data-select v-model="selectedScaleSort" :localdata="scaleSortOptions" placeholder="不排序" :clear="true"
+            :disabled="isFiltering" class="filter-select" />
         </view>
 
         <!-- 清空筛选和取消按钮并排 -->
         <view class="filter-actions filter-actions-row">
-          <button
-            class="filter-btn filter-btn-reset"
-            :class="{ 'filter-btn-disabled': !hasActiveFilters }"
-            :disabled="!hasActiveFilters"
-            @click.stop="resetFilter"
-          >
+          <button class="filter-btn filter-btn-reset" :class="{ 'filter-btn-disabled': !hasActiveFilters }"
+            :disabled="!hasActiveFilters" @click.stop="resetFilter">
             清空筛选
           </button>
           <button class="filter-btn filter-btn-reset" @click.stop="onDrawerContentClick">
@@ -213,40 +129,25 @@
 
     <view class="masonry-scroll">
       <view class="masonry-row">
-        <view
-          class="masonry-col"
-          v-for="(col, colIdx) in getColumnsFiltered(tasksList)"
-          :key="colIdx"
-        >
-          <task-card
-            v-for="item in col"
-            :key="item._id"
-            :task="withLikeStatus(item)"
-            :user="item.userInfo"
-            @favorite="actionsClick('收藏', $event)"
-            @comment="actionsClick('评论', $event)"
-            @join="actionsClick('加入', $event)"
-            @like="actionsClick('点赞', $event)"
-          />
+        <view class="masonry-col" v-for="(col, colIdx) in getColumnsFiltered(tasksList)" :key="colIdx">
+          <task-card v-for="item in col" :key="item._id" :task="withLikeStatus(item)" :user="item.userInfo"
+            @favorite="actionsClick('收藏', $event)" @comment="actionsClick('评论', $event)"
+            @join="actionsClick('加入', $event)" @like="actionsClick('点赞', $event)" />
         </view>
       </view>
-      <uni-load-state
-        class="load-state"
-        :state="{ data: tasksList, pagination, hasMore, loading, error }"
-        @loadMore="loadMore"
-        @networkResume="refresh"
-        noMoreText="没有更多了"
-      />
+      <uni-load-state class="load-state" :state="{ data: tasksList, pagination, hasMore, loading, error }"
+        @loadMore="loadMore" @networkResume="refresh" noMoreText="没有更多了" />
     </view>
   </view>
 </template>
 
 <script>
-import statusBar from '@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar'
 import taskCard from '@/components/task-card/task-card.vue'
+import { useTaskLikeStore } from '@/store/taskLike.js'
+import statusBar from '@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar'
 import { categories } from '@/utils/categories'
 import { toggleTaskLike } from '@/utils/taskLike.js'
-import { useTaskLikeStore } from '@/store/taskLike.js'
+import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 
 export default {
   components: {
@@ -331,13 +232,13 @@ export default {
     scoreOrPriceSortOptions() {
       return this.mode === 'score'
         ? [
-            { value: 'asc', text: '积分升序' },
-            { value: 'desc', text: '积分降序' }
-          ]
+          { value: 'asc', text: '积分升序' },
+          { value: 'desc', text: '积分降序' }
+        ]
         : [
-            { value: 'asc', text: '价格升序' },
-            { value: 'desc', text: '价格降序' }
-          ]
+          { value: 'asc', text: '价格升序' },
+          { value: 'desc', text: '价格降序' }
+        ]
     },
     activeFilterCount() {
       let count = 0
@@ -573,11 +474,8 @@ export default {
     actionsClick(type, item) {
       if (type === '点赞') {
         // 登录校验
-        const userInfo =
-          getApp().globalData.userInfo ||
-          (uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo()) ||
-          {}
-        if (!userInfo._id) {
+        const userInfo = store.userInfo
+        if (!userInfo || !userInfo._id) {
           this.showLoginNotice()
           return
         }
@@ -763,31 +661,38 @@ view {
   box-sizing: border-box;
   flex-direction: column;
 }
+
 /* #endif */
 .pages {
   background-color: #ffffff;
 }
+
 .avatar {
   width: 200rpx;
   height: 200rpx;
   margin-right: 10rpx;
 }
+
 .main {
   justify-content: space-between;
   flex: 1;
 }
+
 .title {
   font-size: 16px;
 }
+
 .info {
   flex-direction: row;
   justify-content: space-between;
 }
+
 .author,
 .last_modify_date {
   font-size: 14px;
   color: #999999;
 }
+
 .custom-navbar {
   width: 100%;
   background: #fff;
@@ -802,11 +707,13 @@ view {
   z-index: 1000;
   border-bottom: 1px solid #f0f0f0;
 }
+
 .navbar-placeholder {
   width: 100%;
   height: 100%;
   display: inline-block;
 }
+
 .navbar-search-mp {
   flex: 1;
   display: flex;
@@ -814,6 +721,7 @@ view {
   height: 100%;
   position: relative;
 }
+
 .navbar-search-app {
   width: 100%;
   height: 60px;
@@ -822,9 +730,11 @@ view {
   justify-content: center;
   position: relative;
 }
+
 .navbar-search-app .uni-searchbar {
   width: 100%;
 }
+
 .search-click-area {
   position: absolute;
   top: 0;
@@ -834,6 +744,7 @@ view {
   z-index: 2;
   cursor: pointer;
 }
+
 .sticky-bar {
   position: sticky;
   top: 60px;
@@ -847,6 +758,7 @@ view {
   justify-content: flex-start;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
+
 .back-to-all-btn {
   position: fixed;
   top: 60px;
@@ -874,9 +786,11 @@ view {
   align-items: center;
   justify-content: center;
 }
+
 .uni-badge--x {
   right: 4px;
 }
+
 .search-row {
   display: flex;
   align-items: center;
@@ -888,6 +802,7 @@ view {
 .segmented-control {
   height: 40px;
 }
+
 .category-scroll {
   flex: 1;
   height: 100%;
@@ -896,12 +811,15 @@ view {
   overflow-y: hidden;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  padding: 0 16px; /* 左右各16px内边距，配合4.5个分类项显示 */
+  padding: 0 16px;
+  /* 左右各16px内边距，配合4.5个分类项显示 */
   box-sizing: border-box;
 }
+
 .category-scroll::-webkit-scrollbar {
   display: none;
 }
+
 .filter-icon-btn {
   height: 100%;
   display: flex;
@@ -909,6 +827,7 @@ view {
   justify-content: center;
   margin-left: 4px;
 }
+
 .seg-item {
   display: inline-flex !important;
   flex-direction: row !important;
@@ -930,11 +849,13 @@ view {
   flex-shrink: 0;
   position: relative;
 }
+
 .seg-item.active {
   background: #fff !important;
   color: #1976d2 !important;
   font-weight: 600;
 }
+
 .seg-underline {
   position: absolute;
   bottom: 0;
@@ -945,10 +866,12 @@ view {
   background: #1976d2;
   border-radius: 2px;
 }
+
 .masonry-scroll {
   width: 100%;
   background: #f8f8f8;
 }
+
 .masonry-row {
   display: flex;
   flex-direction: row;
@@ -958,22 +881,26 @@ view {
   padding: 10px 0;
   box-sizing: border-box;
 }
+
 .masonry-col {
   width: 49%;
   margin: 0 auto;
   margin-top: 50px;
   box-sizing: border-box;
 }
+
 .empty-state {
   padding: 60px 20px;
   text-align: center;
   color: #999;
   font-size: 14px;
 }
+
 .load-state {
   margin: 0 auto 16px auto;
   width: 90%;
 }
+
 /* 筛选抽屉样式 */
 .filter-drawer-content {
   padding: 20px 10px;
@@ -983,6 +910,7 @@ view {
   z-index: 1004;
   top: 110px !important;
 }
+
 .filter-header {
   display: flex;
   justify-content: space-between;
@@ -991,18 +919,22 @@ view {
   padding-bottom: 15px;
   border-bottom: 1px solid #f0f0f0;
 }
+
 .filter-title {
   font-size: 18px;
   font-weight: 600;
   color: #333;
 }
+
 .filter-desc {
   font-size: 14px;
   color: #999;
 }
+
 .filter-section {
   margin-bottom: 20px;
 }
+
 .filter-label {
   display: block;
   font-size: 14px;
@@ -1010,9 +942,11 @@ view {
   margin-bottom: 8px;
   font-weight: 500;
 }
+
 .filter-select {
   width: 100%;
 }
+
 .current-filters {
   margin-bottom: 6px;
   padding: 2px;
@@ -1020,17 +954,20 @@ view {
   border-radius: 8px;
   border-left: 4px solid #1976d2;
 }
+
 .current-filters-label {
   font-size: 14px;
   color: #666;
   font-weight: 500;
   margin-right: 8px;
 }
+
 .current-filters-text {
   font-size: 14px;
   color: #333;
   line-height: 1.4;
 }
+
 .filter-actions {
   margin-top: 10px;
   display: flex;
@@ -1039,6 +976,7 @@ view {
   align-items: center;
   width: 100%;
 }
+
 .filter-btn {
   width: 60%;
   height: 45px;
@@ -1049,29 +987,36 @@ view {
   cursor: pointer;
   transition: all 0.3s ease;
 }
+
 .filter-btn-reset {
   background-color: #f5f5f5;
   color: #666;
 }
+
 .filter-btn-reset:active {
   background-color: #e0e0e0;
 }
+
 .filter-btn-confirm {
   background-color: #1976d2;
   color: #fff;
 }
+
 .filter-btn-confirm:active {
   background-color: #1565c0;
 }
+
 .filter-btn-disabled {
   background-color: #f0f0f0 !important;
   color: #ccc !important;
   cursor: not-allowed !important;
   opacity: 0.6;
 }
+
 .filter-btn-disabled:active {
   background-color: #f0f0f0 !important;
 }
+
 .filter-actions-row {
   display: flex;
   flex-direction: row;
@@ -1079,6 +1024,7 @@ view {
   align-items: center;
   gap: 16px;
 }
+
 .mode-switch-row {
   display: flex;
   flex-direction: row;
@@ -1087,6 +1033,7 @@ view {
   margin-bottom: 20px;
   gap: 16px;
 }
+
 .mode-switch-btn {
   flex: 1;
   height: 45px;
@@ -1097,6 +1044,7 @@ view {
   cursor: pointer;
   transition: all 0.3s ease;
 }
+
 .mode-switch-btn.active {
   background-color: #1976d2;
   color: #fff;

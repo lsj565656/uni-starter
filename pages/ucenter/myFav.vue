@@ -1,4 +1,7 @@
 <template>
+  <view v-if="loginNoticeVisible" class="login-notice-bar" @click="handleLoginNoticeClick">
+    去登录 &gt;
+  </view>
   <view class="my-fav-container" :style="containerStyle">
     <!-- 自定义导航栏，最高层 -->
     <view class="custom-navbar-fixed" :style="`top:0;left:0;right:0;z-index:1001;padding-top:${statusBarHeight}px;`">
@@ -58,6 +61,7 @@ import taskCard from '@/components/task-card/task-card.vue'
 import uniLoadState from '@/components/uni-load-state/uni-load-state.vue'
 import { useTaskLikeStore } from '@/store/taskLike.js'
 import uniIcons from '@/uni_modules/uni-icons/components/uni-icons/uni-icons.vue'
+import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import uniPopup from '@/uni_modules/uni-popup/components/uni-popup/uni-popup.vue'
 import uniSearchBar from '@/uni_modules/uni-search-bar/components/uni-search-bar/uni-search-bar.vue'
 import { toggleTaskLike } from '@/utils/taskLike.js'
@@ -79,6 +83,23 @@ const hasMore = ref(true)
 const pagination = ref({})
 const page = ref(1)
 const tasksList = ref([])
+const loginNoticeVisible = ref(false)
+let loginNoticeTimer = null
+
+function showLoginNotice() {
+  loginNoticeVisible.value = true
+  if (loginNoticeTimer) clearTimeout(loginNoticeTimer)
+  loginNoticeTimer = setTimeout(() => {
+    loginNoticeVisible.value = false
+  }, 3000)
+}
+
+function handleLoginNoticeClick() {
+  loginNoticeVisible.value = false
+  uni.navigateTo({
+    url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
+  })
+}
 
 onPageScroll(e => {
   const st = e.scrollTop
@@ -263,6 +284,13 @@ function loadMore() {
   }
 }
 function onLike(item) {
+  // 登录校验
+  const userInfo = store.userInfo
+  if (!userInfo || !userInfo._id) {
+    showLoginNotice()
+    return
+  }
+
   const taskLikeStore = useTaskLikeStore()
   const oldLiked = item.is_liked
   const oldCount = item.like_count
@@ -461,5 +489,11 @@ onReachBottom(() => {
 .task-list-masonry {
   /* 不要设置 overflow/scroll，让页面自然流式布局 */
   position: sticky;
+}
+
+.login-notice-bar {
+  position: fixed;
+  margin-top: 10px !important;
+  right: 0;
 }
 </style>
