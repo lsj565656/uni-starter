@@ -135,11 +135,11 @@
 </template>
 
 <script>
-import { formatTime } from '@/utils/tools.js'
-import { store } from '@/uni_modules/uni-id-pages/common/store.js'
-import { onBackPress } from '@dcloudio/uni-app'
-import { toggleTaskLike } from '@/utils/taskLike.js'
 import { useTaskLikeStore } from '@/store/taskLike.js'
+import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+import { toggleTaskLike } from '@/utils/taskLike.js'
+import { formatTime } from '@/utils/tools.js'
+import { onBackPress } from '@dcloudio/uni-app'
 export default {
   data() {
     return {
@@ -171,7 +171,6 @@ export default {
         members: [] // 任务 参与成员数组
       },
       comments: [],
-      // comments: mockComments,
       taskOwnerId: 'u2', // 实际应从任务数据获取
       totalCommentCount: 0,
       barInputValue: '',

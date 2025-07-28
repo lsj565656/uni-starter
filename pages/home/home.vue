@@ -69,7 +69,7 @@
                         :src="page[(row - 1) * gridColumn + (col - 1)].icon || '/static/logo.png'" mode="aspectFit" />
                       <text class="grid-item-text">{{
                         page[(row - 1) * gridColumn + (col - 1)].text
-                        }}</text>
+                      }}</text>
                     </view>
                   </template>
                 </view>
@@ -120,57 +120,57 @@
     </view>
   </view>
   <!-- 优质案例 -->
-  <view class="section" id="ingredients-section">
+  <view class="section" id="evaluateds-section">
     <view class="section-header">
       <view class="section-title">
         <uni-icons type="shop" size="20" color="#007aff" />
         <text>优质案例</text>
       </view>
       <view class="section-actions">
-        <text class="update-time">{{ ingredientsUpdateTime }}</text>
-        <uni-icons type="refresh" size="16" color="#666" @click="refreshIngredients"></uni-icons>
+        <text class="update-time">{{ evaluatedsUpdateTime }}</text>
+        <uni-icons type="refresh" size="16" color="#666" @click="refreshevaluateds"></uni-icons>
       </view>
     </view>
-    <scroll-view class="ingredients-scroll" :class="{ 'scrolled-left': isIngredientsScrolledLeft }" scroll-x
-      show-scrollbar="false" @scroll="handleIngredientsScroll">
-      <view class="ingredients-container">
-        <ingredient-card v-for="ingredient in ingredients" :key="ingredient.id" :ingredient="ingredient"
-          @click="showIngredientDetail(ingredient)" />
+    <scroll-view class="evaluateds-scroll" :class="{ 'scrolled-left': isevaluatedsScrolledLeft }" scroll-x
+      show-scrollbar="false" @scroll="handleevaluatedsScroll">
+      <view class="evaluateds-container">
+        <evaluated-card v-for="evaluated in evaluateds" :key="evaluated.id" :evaluated="evaluated"
+          @click="showevaluatedDetail(evaluated)" />
       </view>
     </scroll-view>
   </view>
 
   <!-- 优质案例弹窗 -->
-  <uni-popup ref="ingredientPopup" type="center" :animation="true" :is-mask-click="true"
-    @change="onIngredientPopupChange">
-    <view class="ingredient-popup">
-      <view class="ingredient-popup-header">
-        <text class="ingredient-popup-title">{{ currentIngredient?.title }}</text>
+  <uni-popup ref="evaluatedPopup" type="center" :animation="true" :is-mask-click="true"
+    @change="onevaluatedPopupChange">
+    <view class="evaluated-popup">
+      <view class="evaluated-popup-header">
+        <text class="evaluated-popup-title">{{ currentevaluated?.title }}</text>
       </view>
-      <view class="ingredient-popup-publisher" v-if="currentIngredient?.publisher">
-        <image class="publisher-avatar" :src="currentIngredient.publisher.avatar" />
-        <text class="publisher-name">{{ currentIngredient.publisher.name }}</text>
+      <view class="evaluated-popup-publisher" v-if="currentevaluated?.publisher">
+        <image class="publisher-avatar" :src="currentevaluated.publisher.avatar" />
+        <text class="publisher-name">{{ currentevaluated.publisher.name }}</text>
       </view>
-      <view class="ingredient-popup-content">
+      <view class="evaluated-popup-content">
         <!-- 图片轮播 -->
-        <view class="ingredient-images">
-          <swiper class="ingredient-swiper" :indicator-dots="ingredientImages.length > 1" :autoplay="false"
+        <view class="evaluated-images">
+          <swiper class="evaluated-swiper" :indicator-dots="evaluatedImages.length > 1" :autoplay="false"
             indicator-color="rgba(255,255,255,0.3)" indicator-active-color="#fff" @change="onImageSwiperChange">
-            <swiper-item v-for="(image, index) in ingredientImages" :key="index">
-              <image class="ingredient-image-fixed" :src="image" mode="aspectFill" @click="previewImage(index)" />
+            <swiper-item v-for="(image, index) in evaluatedImages" :key="index">
+              <image class="evaluated-image-fixed" :src="image" mode="aspectFill" @click="previewImage(index)" />
             </swiper-item>
           </swiper>
           <!-- 图片计数器 -->
-          <view class="image-counter" v-if="ingredientImages.length > 0">
-            <text>{{ currentImageIndex + 1 }} / {{ ingredientImages.length }}</text>
+          <view class="image-counter" v-if="evaluatedImages.length > 0">
+            <text>{{ currentImageIndex + 1 }} / {{ evaluatedImages.length }}</text>
           </view>
         </view>
         <!-- 任务描述 -->
-        <view class="ingredient-description">
-          <text>{{ currentIngredient?.description }}</text>
+        <view class="evaluated-description">
+          <text>{{ currentevaluated?.description }}</text>
         </view>
         <!-- 评论区 -->
-        <view class="ingredient-comment" v-if="currentComment">
+        <view class="evaluated-comment" v-if="currentComment">
           <view class="comment-user">
             <image class="comment-avatar" :src="currentComment.user.avatar" />
             <text class="comment-username">{{ currentComment.user.name }}</text>
@@ -213,7 +213,7 @@
 // #ifdef APP
 import statusBar from '@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar'
 // #endif
-import ingredientCard from '@/components/ingredient-card/ingredient-card.vue'
+import evaluatedCard from '@/components/evaluated-card/evaluated-card.vue'
 import NoticeBar from '@/components/notice-bar/notice-bar.vue'
 import taskCard from '@/components/task-card/task-card.vue'
 import timeline from '@/components/timeline/timeline.vue'
@@ -223,9 +223,9 @@ import uniFab from '@/uni_modules/uni-fab/components/uni-fab/uni-fab.vue'
 import uniIcons from '@/uni_modules/uni-icons/components/uni-icons/uni-icons.vue'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { categories } from '@/utils/categories'
+import { evaluateds } from '@/utils/evaluateds'
 import { flourProcess as flourProcessData } from '@/utils/flourProcess'
 import { images } from '@/utils/images'
-import { ingredients } from '@/utils/ingredients'
 import { generateRandomNotice, notices } from '@/utils/notices'
 import { toggleTaskLike } from '@/utils/taskLike.js'
 import { onPageScroll } from '@dcloudio/uni-app'
@@ -270,20 +270,20 @@ const imageDatas = ref([
   {
     id: 1,
     name: 'banner1',
-    image: images.ingredients.wuhuarou
+    image: images.evaluateds.wuhuarou
   },
   {
     id: 2,
     name: 'banner2',
-    image: images.ingredients.shucai
+    image: images.evaluateds.shucai
   },
   {
     id: 3,
     name: 'banner3',
-    image: images.ingredients.mianfen
+    image: images.evaluateds.mianfen
   }
 ])
-const ingredientsUpdateTime = ref('12-01 14:30')
+const evaluatedsUpdateTime = ref('12-01 14:30')
 const flourProcess = ref(flourProcessData)
 
 // 通告消息相关
@@ -291,9 +291,9 @@ const noticeList = ref([...notices])
 const current = ref(0)
 
 // 食材弹窗相关变量
-const ingredientPopup = ref(null)
-const currentIngredient = ref(null)
-const ingredientImages = ref([])
+const evaluatedPopup = ref(null)
+const currentevaluated = ref(null)
+const evaluatedImages = ref([])
 const currentImageIndex = ref(0)
 const currentComment = ref(null)
 const savedScrollTop = ref(0)
@@ -338,7 +338,7 @@ const currentGridRows = computed(() => {
 })
 const gridSwiperHeight = computed(() => `${currentGridRows.value * 180}rpx`)
 
-const onIngredientPopupChange = e => {
+const onevaluatedPopupChange = e => {
   if (e.type === 'hide') {
     // 恢复页面滚动状态
     // #ifdef H5
@@ -363,12 +363,12 @@ const onIngredientPopupChange = e => {
       }
     })
   } else if (e.type === 'show') {
-    // 弹窗显示时的逻辑已经在 showIngredientDetail 中处理
+    // 弹窗显示时的逻辑已经在 showevaluatedDetail 中处理
   }
 }
 
 // 刷新优质案例信息方法
-function refreshIngredients() {
+function refreshevaluateds() {
   uni.showLoading({
     title: '刷新中...'
   })
@@ -381,7 +381,7 @@ function refreshIngredients() {
       const day = String(now.getDate()).padStart(2, '0')
       const hour = String(now.getHours()).padStart(2, '0')
       const minute = String(now.getMinutes()).padStart(2, '0')
-      ingredientsUpdateTime.value = `${month}-${day} ${hour}:${minute}`
+      evaluatedsUpdateTime.value = `${month}-${day} ${hour}:${minute}`
       uni.showToast({
         title: '已更新',
         icon: 'success'
@@ -396,31 +396,31 @@ function refreshIngredients() {
 }
 
 
-function showIngredientDetail(ingredient) {
-  currentIngredient.value = ingredient
+function showevaluatedDetail(evaluated) {
+  currentevaluated.value = evaluated
   // 图片和评论一一对应，取每条 afterComments 的第一张图片，没有则用默认图
-  const imgs = (ingredient.afterComments || []).map(c =>
+  const imgs = (evaluated.afterComments || []).map(c =>
     c.images && c.images.length > 0 ? c.images[0] : '/static/logo.png'
   )
-  ingredientImages.value = imgs.length > 0 ? imgs : ['/static/logo.png']
+  evaluatedImages.value = imgs.length > 0 ? imgs : ['/static/logo.png']
   currentImageIndex.value = 0
-  currentComment.value = (ingredient.afterComments && ingredient.afterComments[0]) || null
+  currentComment.value = (evaluated.afterComments && evaluated.afterComments[0]) || null
   nextTick(() => {
-    if (ingredientPopup.value) ingredientPopup.value.open()
+    if (evaluatedPopup.value) evaluatedPopup.value.open()
   })
 }
 
 function onImageSwiperChange(e) {
   currentImageIndex.value = e.detail.current
-  if (currentIngredient.value && currentIngredient.value.afterComments) {
-    currentComment.value = currentIngredient.value.afterComments[currentImageIndex.value] || null
+  if (currentevaluated.value && currentevaluated.value.afterComments) {
+    currentComment.value = currentevaluated.value.afterComments[currentImageIndex.value] || null
   }
 }
 
 function previewImage(index) {
   uni.previewImage({
     current: index,
-    urls: ingredientImages.value
+    urls: evaluatedImages.value
   })
 }
 
@@ -462,7 +462,7 @@ function clickBannerItem(item) {
   // 可以在这里添加banner点击逻辑
 }
 
-const isIngredientsScrolledLeft = ref(false)
+const isevaluatedsScrolledLeft = ref(false)
 const processUpdateTime = ref('12-01 14:30')
 
 function refreshProcess() {
@@ -938,13 +938,13 @@ onPageScroll(e => {
   color: #999;
 }
 
-.ingredients-scroll {
+.evaluateds-scroll {
   width: 100%;
   overflow-x: auto;
   white-space: nowrap;
 }
 
-.ingredients-container {
+.evaluateds-container {
   display: flex;
   gap: 12px;
 }
@@ -974,7 +974,7 @@ onPageScroll(e => {
 }
 
 /* 食材详情弹窗样式 */
-.ingredient-popup {
+.evaluated-popup {
   background-color: #fff;
   border-radius: 20rpx;
   width: 92vw;
@@ -984,21 +984,21 @@ onPageScroll(e => {
   box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.3);
 }
 
-.ingredient-popup-header {
+.evaluated-popup-header {
   display: flex;
   align-items: flex-end;
   padding: 30rpx 40rpx 0 40rpx;
   border-bottom: none;
 }
 
-.ingredient-popup-title {
+.evaluated-popup-title {
   font-size: 36rpx;
   font-weight: bold;
   color: #333;
   flex: 1;
 }
 
-.ingredient-popup-publisher {
+.evaluated-popup-publisher {
   display: flex;
   align-items: center;
   gap: 8rpx;
@@ -1018,11 +1018,11 @@ onPageScroll(e => {
   color: #666;
 }
 
-.ingredient-popup-content {
+.evaluated-popup-content {
   padding: 0 40rpx 40rpx 40rpx;
 }
 
-.ingredient-image-fixed {
+.evaluated-image-fixed {
   width: 100%;
   height: 400rpx;
   object-fit: cover;
@@ -1030,7 +1030,7 @@ onPageScroll(e => {
   background: #f5f5f5;
 }
 
-.ingredient-description {
+.evaluated-description {
   text-align: left;
   font-size: 28rpx;
   color: #666;
@@ -1039,7 +1039,7 @@ onPageScroll(e => {
   margin-bottom: 10rpx;
 }
 
-.ingredient-comment {
+.evaluated-comment {
   background: #f8f9fa;
   border-radius: 14rpx;
   margin: 18rpx 0 0 0;

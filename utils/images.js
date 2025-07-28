@@ -8,7 +8,7 @@ export const images = {
   },
 
   // 食材图片
-  ingredients: {
+  evaluateds: {
     wuhuarou: 'https://s3.bmp.ovh/imgs/2025/06/10/4eb95f29a59f699e.jpg',
     shucai: 'https://s3.bmp.ovh/imgs/2025/06/10/4eae7ca520806b92.jpg',
     mianfen: 'https://s3.bmp.ovh/imgs/2025/03/29/51528881eecdeb81.webp'

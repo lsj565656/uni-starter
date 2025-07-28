@@ -1,4 +1,4 @@
-export const ingredients = [
+export const evaluateds = [
   {
     id: 1,
     title: '帮采购赚积分',

@@ -1,47 +1,35 @@
 <template>
-  <view
-    class="ingredient-card"
-    :class="{ 'ingredient-card--active': isActive }"
-    @click="handleClick"
-    @touchstart="handleTouchStart"
-    @touchend="handleTouchEnd"
-    @touchcancel="handleTouchEnd"
-  >
-    <view class="ingredient-card__image-wrapper" :style="{ transform: `scale(${imageScale})` }">
-      <image class="ingredient-card__image" :src="coverImage" mode="aspectFill" lazy-load></image>
-      <view class="ingredient-card__cover-content">
-        <text class="ingredient-card__title-on-image">{{ ingredient.title }}</text>
+  <view class="evaluated-card" :class="{ 'evaluated-card--active': isActive }" @click="handleClick"
+    @touchstart="handleTouchStart" @touchend="handleTouchEnd" @touchcancel="handleTouchEnd">
+    <view class="evaluated-card__image-wrapper" :style="{ transform: `scale(${imageScale})` }">
+      <image class="evaluated-card__image" :src="coverImage" mode="aspectFill" lazy-load></image>
+      <view class="evaluated-card__cover-content">
+        <text class="evaluated-card__title-on-image">{{ evaluated.title }}</text>
       </view>
-      <view class="ingredient-card__overlay" v-if="isActive">
+      <view class="evaluated-card__overlay" v-if="isActive">
         <uni-icons type="eye" size="20" color="#fff"></uni-icons>
       </view>
     </view>
-    <view class="ingredient-card__content">
-      <view class="ingredient-card__header">
-        <text class="ingredient-card__category" v-if="ingredient.category">{{
-          ingredient.category
-        }}</text>
+    <view class="evaluated-card__content">
+      <view class="evaluated-card__header">
+        <text class="evaluated-card__category" v-if="evaluated.category">{{
+          evaluated.category
+          }}</text>
       </view>
-      <text class="ingredient-card__description">{{ ingredient.description }}</text>
-      <view class="ingredient-card__tag" v-if="ingredient.tags && ingredient.tags.length > 0">
-        <uni-badge
-          v-for="(tag, idx) in displayTags"
-          :key="tag"
-          :text="tag"
-          type="primary"
-          size="small"
-          :inverted="true"
-        />
+      <text class="evaluated-card__description">{{ evaluated.description }}</text>
+      <view class="evaluated-card__tag" v-if="evaluated.tags && evaluated.tags.length > 0">
+        <uni-badge v-for="(tag, idx) in displayTags" :key="tag" :text="tag" type="primary" size="small"
+          :inverted="true" />
       </view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const properties = defineProps({
-  ingredient: {
+  evaluated: {
     type: Object,
     required: true
   },
@@ -56,7 +44,7 @@ const imageScale = ref(1)
 const isActive = computed(() => properties.active)
 
 const handleClick = () => {
-  emit('click', properties.ingredient)
+  emit('click', properties.evaluated)
 }
 const handleTouchStart = () => {
   imageScale.value = 0.95
@@ -67,24 +55,24 @@ const handleTouchEnd = () => {
 
 // 封面图片优先取评论图片
 const coverImage = computed(() => {
-  const comments = properties.ingredient.comments || []
+  const comments = properties.evaluated.comments || []
   for (const c of comments) {
     if (c.images && c.images.length > 0) return c.images[0]
   }
   // 如无评论图片可用发布人头像或默认图
-  return properties.ingredient.publisher?.avatar || '/static/logo.png'
+  return properties.evaluated.publisher?.avatar || '/static/logo.png'
 })
 
 // 标签展示逻辑
-const displayTags = computed(() => (properties.ingredient.tags || []).slice(0, 3))
+const displayTags = computed(() => (properties.evaluated.tags || []).slice(0, 3))
 const tagsOverflow = computed(() => {
-  const length_ = (properties.ingredient.tags || []).length
+  const length_ = (properties.evaluated.tags || []).length
   return length_ > 3 ? length_ - 3 : 0
 })
 </script>
 
 <style lang="scss" scoped>
-.ingredient-card {
+.evaluated-card {
   width: 320rpx;
   min-width: 320rpx;
   background-color: var(--bg-primary);
@@ -120,6 +108,7 @@ const tagsOverflow = computed(() => {
     transition: none;
     border-radius: 0;
   }
+
   &__cover-content {
     position: absolute;
     left: 0;
@@ -135,6 +124,7 @@ const tagsOverflow = computed(() => {
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform;
   }
+
   &__title-on-image {
     color: #fff;
     font-size: 28rpx;
@@ -147,6 +137,7 @@ const tagsOverflow = computed(() => {
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform;
   }
+
   &__overlay {
     position: absolute;
     top: 0;
@@ -163,12 +154,14 @@ const tagsOverflow = computed(() => {
   &__content {
     padding: 18rpx 16rpx 14rpx 16rpx;
   }
+
   &__header {
     display: flex;
     align-items: center;
     gap: 8rpx;
     margin-bottom: 4rpx;
   }
+
   &__category {
     font-size: 20rpx;
     color: #1976d2;
@@ -178,6 +171,7 @@ const tagsOverflow = computed(() => {
     margin-right: 6rpx;
     font-weight: 600;
   }
+
   &__description {
     display: block;
     font-size: 24rpx;
@@ -191,6 +185,7 @@ const tagsOverflow = computed(() => {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
+
   &__tag {
     display: flex;
     align-items: center;
