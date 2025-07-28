@@ -19,10 +19,7 @@
 
     <!-- 状态栏占位和背景 -->
     <!-- #ifndef MP-WEIXIN -->
-    <view
-      class="status-bar-placeholder"
-      :style="{ height: statusBarHeight + 'px', background: statusBarBg }"
-    ></view>
+    <view class="status-bar-placeholder" :style="{ height: statusBarHeight + 'px', background: statusBarBg }"></view>
     <!-- #endif -->
 
     <!-- banner -->
@@ -38,13 +35,8 @@
 		</unicloud-db> -->
     <swiper class="swiper-box" @change="changeSwiper" :current="current" indicator-dots>
       <swiper-item v-for="(item, index) in imageDatas" :key="item.id">
-        <image
-          class="banner-image"
-          :src="item.image"
-          mode="aspectFill"
-          @click="clickBannerItem(item)"
-          :draggable="false"
-        />
+        <image class="banner-image" :src="item.image" mode="aspectFill" @click="clickBannerItem(item)"
+          :draggable="false" />
       </swiper-item>
     </swiper>
 
@@ -55,49 +47,29 @@
 
     <!-- 宫格功能区 -->
     <view class="section grid-section">
-      <uni-swiper-dot
-        :info="gridPages"
-        :current="gridSwiperCurrent"
-        mode="round"
-        :dotsStyles="{
-          backgroundColor: '#e0e6ed',
-          selectedBackgroundColor: '#1976d2',
-          width: 8,
-          height: 8,
-          selectedWidth: 24,
-          border: 'none',
-          selectedBorder: 'none',
-          bottom: 0
-        }"
-        style="margin-top: -1px"
-      >
-        <swiper
-          class="grid-swiper"
-          :style="{ height: gridSwiperHeight }"
-          :indicator-dots="false"
-          :current="gridSwiperCurrent"
-          @change="handleGridChange"
-          circular
-          :autoplay="false"
-          :duration="300"
-        >
+      <uni-swiper-dot :info="gridPages" :current="gridSwiperCurrent" mode="round" :dotsStyles="{
+        backgroundColor: '#e0e6ed',
+        selectedBackgroundColor: '#1976d2',
+        width: 8,
+        height: 8,
+        selectedWidth: 24,
+        border: 'none',
+        selectedBorder: 'none',
+        bottom: 0
+      }" style="margin-top: -1px">
+        <swiper class="grid-swiper" :style="{ height: gridSwiperHeight }" :indicator-dots="false"
+          :current="gridSwiperCurrent" @change="handleGridChange" circular :autoplay="false" :duration="300">
           <swiper-item v-for="(page, pageIdx) in gridPages" :key="pageIdx">
             <view class="grid-page">
               <view class="grid-row" v-for="row in currentGridRows" :key="row">
                 <view class="grid-col" v-for="col in gridColumn" :key="col">
                   <template v-if="page[(row - 1) * gridColumn + (col - 1)]">
-                    <view
-                      class="grid-item"
-                      @click="handleGridItemClick(page[(row - 1) * gridColumn + (col - 1)])"
-                    >
-                      <image
-                        class="grid-item-icon"
-                        :src="page[(row - 1) * gridColumn + (col - 1)].icon || '/static/logo.png'"
-                        mode="aspectFit"
-                      />
+                    <view class="grid-item" @click="handleGridItemClick(page[(row - 1) * gridColumn + (col - 1)])">
+                      <image class="grid-item-icon"
+                        :src="page[(row - 1) * gridColumn + (col - 1)].icon || '/static/logo.png'" mode="aspectFit" />
                       <text class="grid-item-text">{{
                         page[(row - 1) * gridColumn + (col - 1)].text
-                      }}</text>
+                        }}</text>
                     </view>
                   </template>
                 </view>
@@ -108,89 +80,43 @@
       </uni-swiper-dot>
     </view>
 
-    <!-- 店铺信息卡片 -->
-    <!-- <shop-info-card
-			:store-name="storeName"
-			:business-status-text="businessStatusText"
-			:business-status-class="businessStatusClass"
-			:business-status-icon="businessStatusIcon"
-			:business-hours="businessHours"
-			:address="address"
-			:phone="phone"
-			@address-click="openMap"
-			@phone-click="makePhoneCall"
-		/> -->
-
     <!-- 热门任务瀑布流区块 -->
     <view class="section hot-tasks-section">
       <view class="section-header">
         <uni-icons type="fire" size="20" color="#007aff" />
         <text class="section-title">热门任务</text>
       </view>
-      <unicloud-db
-        collection="kl-tasks"
-        :where="'isActive == true && isHot == true'"
-        field="image,media,media_detail,location,location_text,name,description,like_count,category,category_name,mode,score,price,joined_count,max_participants,isActive,user_id,_id,create_date,is_liked,start_time,end_time"
-        :options="{
-          join: { 0: { leftKey: 'user_id', rightKey: '_id', from: 1, as: 'user_id', type: 'left' } }
-        }"
-        orderby="create_date desc"
-        :page-size="5"
-        v-slot:default="{ data, loading, error }"
-      >
-        <view class="masonry-scroll">
-          <view class="masonry-row">
-            <template v-if="!loading && data && data.length > 0">
-              <view
-                class="masonry-col"
-                v-for="(col, colIdx) in homeHotColumnsWithMoreCard(data)"
-                :key="colIdx"
-              >
-                <template v-for="item in col">
-                  <task-card
-                    v-if="!item._isMoreCard"
-                    :key="item._id"
-                    :task="item"
-                    :user="getUserObj(item.user_id)"
-                    :showActions="false"
-                    @like="handleLikeTask"
-                  />
-                  <uni-card
-                    v-else
-                    class="masonry-card more-card"
-                    :style="{
-                      minHeight: '80px',
-                      maxHeight: '160px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer'
-                    }"
-                    @click="goToListPage"
-                  >
-                    <view class="more-card-content">
-                      <text class="more-card-text">查看更多</text>
-                      <uni-icons type="arrowright" color="#1976d2" style="margin-bottom: 8px" />
-                    </view>
-                  </uni-card>
-                </template>
-              </view>
-            </template>
-            <template v-else>
-              <view class="masonry-col" v-for="(col, colIdx) in homeHotColumns(data)" :key="colIdx">
-                <task-card
-                  v-for="item in col"
-                  :key="item._id"
-                  :task="item"
-                  :user="getUserObj(item.user_id)"
-                  :showActions="false"
-                  @like="handleLikeTask"
-                />
-              </view>
-            </template>
-          </view>
+      <view class="masonry-scroll">
+        <view class="masonry-row">
+          <template v-if="!hotTasksLoading && hotTasksList && hotTasksList.length > 0">
+            <view class="masonry-col" v-for="(col, colIdx) in homeHotColumnsWithMoreCard(hotTasksList)" :key="colIdx">
+              <template v-for="item in col">
+                <task-card v-if="!item._isMoreCard" :key="item._id" :task="withLikeStatus(item)" :user="item.user"
+                  :showActions="false" @like="handleLikeTask" />
+                <uni-card v-else class="masonry-card more-card" :style="{
+                  minHeight: '80px',
+                  maxHeight: '160px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }" @click="goToHotTasksPage">
+                  <view class="more-card-content">
+                    <text class="more-card-text">查看更多</text>
+                    <uni-icons type="arrowright" color="#1976d2" style="margin-bottom: 8px" />
+                  </view>
+                </uni-card>
+              </template>
+            </view>
+          </template>
+          <template v-else>
+            <view class="masonry-col" v-for="(col, colIdx) in homeHotColumns(hotTasksList)" :key="colIdx">
+              <task-card v-for="item in col" :key="item._id" :task="withLikeStatus(item)" :user="item.user"
+                :showActions="false" @like="handleLikeTask" />
+            </view>
+          </template>
         </view>
-      </unicloud-db>
+      </view>
     </view>
   </view>
   <!-- 优质案例 -->
@@ -205,32 +131,18 @@
         <uni-icons type="refresh" size="16" color="#666" @click="refreshIngredients"></uni-icons>
       </view>
     </view>
-    <scroll-view
-      class="ingredients-scroll"
-      :class="{ 'scrolled-left': isIngredientsScrolledLeft }"
-      scroll-x
-      show-scrollbar="false"
-      @scroll="handleIngredientsScroll"
-    >
+    <scroll-view class="ingredients-scroll" :class="{ 'scrolled-left': isIngredientsScrolledLeft }" scroll-x
+      show-scrollbar="false" @scroll="handleIngredientsScroll">
       <view class="ingredients-container">
-        <ingredient-card
-          v-for="ingredient in ingredients"
-          :key="ingredient.id"
-          :ingredient="ingredient"
-          @click="showIngredientDetail(ingredient)"
-        />
+        <ingredient-card v-for="ingredient in ingredients" :key="ingredient.id" :ingredient="ingredient"
+          @click="showIngredientDetail(ingredient)" />
       </view>
     </scroll-view>
   </view>
 
   <!-- 优质案例弹窗 -->
-  <uni-popup
-    ref="ingredientPopup"
-    type="center"
-    :animation="true"
-    :is-mask-click="true"
-    @change="onIngredientPopupChange"
-  >
+  <uni-popup ref="ingredientPopup" type="center" :animation="true" :is-mask-click="true"
+    @change="onIngredientPopupChange">
     <view class="ingredient-popup">
       <view class="ingredient-popup-header">
         <text class="ingredient-popup-title">{{ currentIngredient?.title }}</text>
@@ -242,21 +154,10 @@
       <view class="ingredient-popup-content">
         <!-- 图片轮播 -->
         <view class="ingredient-images">
-          <swiper
-            class="ingredient-swiper"
-            :indicator-dots="ingredientImages.length > 1"
-            :autoplay="false"
-            indicator-color="rgba(255,255,255,0.3)"
-            indicator-active-color="#fff"
-            @change="onImageSwiperChange"
-          >
+          <swiper class="ingredient-swiper" :indicator-dots="ingredientImages.length > 1" :autoplay="false"
+            indicator-color="rgba(255,255,255,0.3)" indicator-active-color="#fff" @change="onImageSwiperChange">
             <swiper-item v-for="(image, index) in ingredientImages" :key="index">
-              <image
-                class="ingredient-image-fixed"
-                :src="image"
-                mode="aspectFill"
-                @click="previewImage(index)"
-              />
+              <image class="ingredient-image-fixed" :src="image" mode="aspectFill" @click="previewImage(index)" />
             </swiper-item>
           </swiper>
           <!-- 图片计数器 -->
@@ -276,14 +177,8 @@
           </view>
           <view class="comment-content">{{ currentComment.content }}</view>
           <view class="comment-tags">
-            <uni-badge
-              v-for="tag in currentComment.tags"
-              :key="tag"
-              :text="tag"
-              type="primary"
-              size="small"
-              :inverted="true"
-            />
+            <uni-badge v-for="tag in currentComment.tags" :key="tag" :text="tag" type="primary" size="small"
+              :inverted="true" />
           </view>
         </view>
       </view>
@@ -295,65 +190,46 @@
       <uni-icons type="gear" size="20" color="#007aff" />
       <text class="section-title">玩法技巧</text>
       <view class="timeline-mode-switch">
-        <uni-icons
-          custom-prefix="iconfont"
-          type="icon-align-text-center"
-          :color="flourTimelineMode === 'tree' ? '#007aff' : '#bbb'"
-          size="22"
-          @click="flourTimelineMode = 'tree'"
-          class="mode-icon"
-        />
-        <uni-icons
-          custom-prefix="iconfont"
-          type="icon-wenzijuzuo"
-          :color="flourTimelineMode === 'vertical' ? '#007aff' : '#bbb'"
-          size="22"
-          @click="flourTimelineMode = 'vertical'"
-          class="mode-icon"
-        />
+        <uni-icons custom-prefix="iconfont" type="icon-align-text-center"
+          :color="flourTimelineMode === 'tree' ? '#007aff' : '#bbb'" size="22" @click="flourTimelineMode = 'tree'"
+          class="mode-icon" />
+        <uni-icons custom-prefix="iconfont" type="icon-wenzijuzuo"
+          :color="flourTimelineMode === 'vertical' ? '#007aff' : '#bbb'" size="22"
+          @click="flourTimelineMode = 'vertical'" class="mode-icon" />
       </view>
       <view class="section-actions">
         <text class="update-time">{{ processUpdateTime }}</text>
         <uni-icons type="refresh" size="16" color="#666" @click="refreshProcess" />
       </view>
     </view>
-    <timeline
-      :process-data="flourProcess"
-      :mode="flourTimelineMode"
-      @image-click="handleFlourTimelineImageClick"
-    />
+    <timeline :process-data="flourProcess" :mode="flourTimelineMode" @image-click="handleFlourTimelineImageClick" />
   </view>
   <!-- 悬浮发布按钮和返回顶部按钮（均用uni-fab） -->
-  <uni-fab
-    :pattern="fabPattern"
-    :content="fabContent"
-    :horizontal="'right'"
-    :vertical="'bottom'"
-    :popMenu="true"
-    :direction="'horizontal'"
-    @trigger="onFabMenuClick"
-  />
+  <uni-fab :pattern="fabPattern" :content="fabContent" :horizontal="'right'" :vertical="'bottom'" :popMenu="true"
+    :direction="'horizontal'" @trigger="onFabMenuClick" />
 </template>
 
 <script setup>
 // #ifdef APP
 import statusBar from '@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar'
 // #endif
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
-import { images } from '@/utils/images'
 import ingredientCard from '@/components/ingredient-card/ingredient-card.vue'
-import timeline from '@/components/timeline/timeline.vue'
-import shopInfoCard from '@/components/shop-info-card/shop-info-card.vue'
-import taskCard from '@/components/task-card/task-card.vue'
-import { ingredients } from '@/utils/ingredients'
-import { flourProcess as flourProcessData } from '@/utils/flourProcess'
-import { notices, getNoticeIcon, getNoticeColor, generateRandomNotice } from '@/utils/notices'
 import NoticeBar from '@/components/notice-bar/notice-bar.vue'
-import { categories } from '@/utils/categories'
+import taskCard from '@/components/task-card/task-card.vue'
+import timeline from '@/components/timeline/timeline.vue'
+import { useTaskLikeStore } from '@/store/taskLike.js'
+import uniCard from '@/uni_modules/uni-card/components/uni-card/uni-card.vue'
 import uniFab from '@/uni_modules/uni-fab/components/uni-fab/uni-fab.vue'
 import uniIcons from '@/uni_modules/uni-icons/components/uni-icons/uni-icons.vue'
-import { onPageScroll } from '@dcloudio/uni-app'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+import { categories } from '@/utils/categories'
+import { flourProcess as flourProcessData } from '@/utils/flourProcess'
+import { images } from '@/utils/images'
+import { ingredients } from '@/utils/ingredients'
+import { generateRandomNotice, notices } from '@/utils/notices'
+import { toggleTaskLike } from '@/utils/taskLike.js'
+import { onPageScroll } from '@dcloudio/uni-app'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 
 // 状态栏高度
 const statusBarHeight = ref(0)
@@ -412,39 +288,7 @@ const flourProcess = ref(flourProcessData)
 
 // 通告消息相关
 const noticeList = ref([...notices])
-const currentFlourStep = ref(6)
-const currentMeatStep = ref(2)
-const storeName = ref('***餐饮店')
-const businessHours = ref('09:00-21:00')
-const address = ref('郑州市中原区煤机路与牛庄南街交叉口西120米')
-const phone = ref('13673989888')
 const current = ref(0)
-const homeList = ref(['优质案例', '玩法技巧', '热门兑换', '我的订单'])
-const hasLogin = ref(false)
-
-const businessStatus = computed(() => {
-  const now = new Date()
-  const [open, close] = businessHours.value.split('-')
-  const [openH, openM] = open.split(':').map(Number)
-  const [closeH, closeM] = close.split(':').map(Number)
-  const nowMins = now.getHours() * 60 + now.getMinutes()
-  const openMins = openH * 60 + openM
-  const closeMins = closeH * 60 + closeM
-  return nowMins >= openMins && nowMins < closeMins
-    ? {
-        text: '营业中',
-        class: 'status-open',
-        icon: 'checkmarkempty'
-      }
-    : {
-        text: '休息中',
-        class: 'status-closed',
-        icon: 'closeempty'
-      }
-})
-const businessStatusText = computed(() => businessStatus.value.text)
-const businessStatusClass = computed(() => businessStatus.value.class)
-const businessStatusIcon = computed(() => businessStatus.value.icon)
 
 // 食材弹窗相关变量
 const ingredientPopup = ref(null)
@@ -551,98 +395,6 @@ function refreshIngredients() {
   }, 1000)
 }
 
-// 其它交互方法
-function openMap() {
-  // #ifdef APP-PLUS
-  // APP端调用地图
-  uni.openLocation({
-    latitude: 34.761_829_904_749_774,
-    longitude: 113.592_115_371_612_64,
-    name: 'xx餐饮店',
-    address: address.value,
-    scale: 18
-  })
-  // #endif
-
-  // #ifdef H5
-  // H5端跳转到高德地图
-  const encodedAddress = encodeURIComponent(address.value)
-  window.open(
-    `https://uri.amap.com/marker?position=113.59211537161264,34.761829904749774&name=卤肉烧饼&address=${encodedAddress}`
-  )
-  // #endif
-
-  // #ifdef MP-WEIXIN
-  // 微信小程序调用地图
-  uni.openLocation({
-    latitude: 34.761_829_904_749_774,
-    longitude: 113.592_115_371_612_64,
-    name: 'xx餐饮店',
-    address: address.value,
-    scale: 18
-  })
-  // #endif
-}
-
-function makePhoneCall() {
-  // 检查拨打电话权限
-  // #ifdef APP-PLUS
-  uni.authorize({
-    scope: 'scope.phoneCall',
-    success: () => {
-      // 权限获取成功，拨打电话
-      callPhone()
-    },
-    fail: () => {
-      // 权限获取失败，引导用户手动开启
-      uni.showModal({
-        title: '需要拨打电话权限',
-        content: '请在设置中开启拨打电话权限，或手动拨打：' + phone.value,
-        confirmText: '去设置',
-        cancelText: '取消',
-        success: res => {
-          if (res.confirm) {
-            // 打开应用设置页面
-            uni.openSetting({
-              success: settingRes => {
-                if (settingRes.authSetting['scope.phoneCall']) {
-                  callPhone()
-                }
-              }
-            })
-          }
-        }
-      })
-    }
-  })
-  // #endif
-
-  // #ifdef H5
-  // H5端直接拨打电话
-  callPhone()
-  // #endif
-
-  // #ifdef MP-WEIXIN
-  // 微信小程序直接拨打电话
-  callPhone()
-  // #endif
-}
-
-function callPhone() {
-  uni.makePhoneCall({
-    phoneNumber: phone.value,
-    success: () => {
-      console.log('拨打电话成功')
-    },
-    fail: error => {
-      console.error('拨打电话失败：', error)
-      uni.showToast({
-        title: '拨打电话失败',
-        icon: 'none'
-      })
-    }
-  })
-}
 
 function showIngredientDetail(ingredient) {
   currentIngredient.value = ingredient
@@ -766,12 +518,82 @@ function goToListPage() {
   // #endif
 }
 
+function goToHotTasksPage() {
+  uni.navigateTo({
+    url: '/pages/hot-tasks/index'
+  })
+}
+
+// 获取热门任务
+async function fetchHotTasks() {
+  if (hotTasksLoading.value) return
+  hotTasksLoading.value = true
+
+  try {
+    const userId = uniCloud.getCurrentUserInfo && uniCloud.getCurrentUserInfo().uid
+    const res = await uniCloud.callFunction({
+      name: 'getHotTasks',
+      data: {
+        userId,
+        limit: loadMaxHotTasksCount,
+        orderBy: [{ field: 'create_date', order: 'desc' }]
+      }
+    })
+
+    if (res.result && res.result.code === 0) {
+      hotTasksList.value = res.result.data || []
+      // 同步已点赞任务到 useTaskLikeStore
+      const taskLikeStore = useTaskLikeStore()
+      for (const item of hotTasksList.value) {
+        if (item.is_liked) {
+          taskLikeStore.setLike(item._id, true, item.like_count)
+        }
+      }
+    } else {
+      console.error('获取热门任务失败:', res.result?.message)
+    }
+  } catch (error) {
+    console.error('获取热门任务失败:', error)
+  } finally {
+    hotTasksLoading.value = false
+  }
+}
+
+// 处理任务点赞状态
+function withLikeStatus(item) {
+  const taskLikeStore = useTaskLikeStore()
+  const likeInfo = taskLikeStore.getLike(item._id)
+  return {
+    ...item,
+    is_liked: likeInfo ? likeInfo.isLiked : item.is_liked,
+    like_count: likeInfo ? likeInfo.likeCount : item.like_count
+  }
+}
+
 // 处理任务点赞
 function handleLikeTask(task) {
-  uni.showToast({
-    title: '点赞功能开发中',
-    icon: 'none'
-  })
+  // 登录校验
+  const userInfo = store.userInfo
+  if (!userInfo || !userInfo._id) {
+    showLoginNotice()
+    return
+  }
+
+  const taskLikeStore = useTaskLikeStore()
+  const oldLiked = task.is_liked
+  const oldCount = task.like_count
+  const newLiked = !oldLiked
+  const newCount = oldLiked ? oldCount - 1 : oldCount + 1
+  // 乐观UI
+  taskLikeStore.setLike(task._id, newLiked, newCount)
+  toggleTaskLike(task._id, oldLiked)
+    .then(({ isLiked, likeCount }) => {
+      taskLikeStore.setLike(task._id, isLiked, likeCount)
+    })
+    .catch(error => {
+      taskLikeStore.setLike(task._id, oldLiked, oldCount)
+      uni.showToast({ title: error.message || '操作失败', icon: 'none' })
+    })
 }
 
 function homeHotColumnsWithMoreCard(data) {
@@ -779,11 +601,14 @@ function homeHotColumnsWithMoreCard(data) {
   for (const [index, item] of (data || []).entries()) {
     columns[index % 2].push(item)
   }
-  // 找到最短列
-  const minIndex = columns[0].length <= columns[1].length ? 0 : 1
-  columns[minIndex].push({
-    _isMoreCard: true
-  })
+  // 只有当数据达到最大显示数量时才显示"查看更多"按钮
+  if (data && data.length >= loadMaxHotTasksCount) {
+    // 找到最短列
+    const minIndex = columns[0].length <= columns[1].length ? 0 : 1
+    columns[minIndex].push({
+      _isMoreCard: true
+    })
+  }
   return columns
 }
 
@@ -813,6 +638,9 @@ onMounted(() => {
   const systemInfo = uni.getSystemInfoSync()
   statusBarHeight.value = systemInfo.statusBarHeight || 0
 
+  // 获取热门任务
+  fetchHotTasks()
+
   // 每60秒添加一条新的随机通告
   addNoticeTimer = setInterval(() => {
     const newNotice = generateRandomNotice()
@@ -831,6 +659,11 @@ onUnmounted(() => {
 })
 
 const showBackToTop = ref(false)
+
+// 热门任务相关
+const hotTasksList = ref([])
+const hotTasksLoading = ref(false)
+const loadMaxHotTasksCount = 3 // 首页最多显示3个热门任务
 
 const loginNoticeVisible = ref(false)
 let loginNoticeTimer = null
@@ -1037,16 +870,16 @@ onPageScroll(e => {
 /* #ifndef APP-NVUE || VUE3*/
 ::v-deep
 
-	/* #endif */
-	.uni-searchbar__box {
+/* #endif */
+.uni-searchbar__box {
   border-width: 0;
 }
 
 /* #ifndef APP-NVUE || VUE3 */
 ::v-deep
 
-	/* #endif */
-	.uni-input-placeholder {
+/* #endif */
+.uni-input-placeholder {
   font-size: 28rpx;
 }
 

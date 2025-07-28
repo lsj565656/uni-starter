@@ -223,13 +223,17 @@ export default {
   async onLoad() {
     //#ifdef APP-PLUS
     const appVersion = this.appVersion
-    this.ucenterList.at(-2).unshift({
-      title: this.$t('mine.checkUpdate'),
-      rightText: appVersion ? appVersion.version + '-' + appVersion.versionCode : '',
-      event: 'checkVersion',
-      icon: 'loop',
-      showBadge: appVersion ? appVersion.hasNew : false
-    })
+    // 使用兼容的方式获取倒数第二个元素
+    const secondLastIndex = this.ucenterList.length - 2
+    if (secondLastIndex >= 0) {
+      this.ucenterList[secondLastIndex].unshift({
+        title: this.$t('mine.checkUpdate'),
+        rightText: appVersion ? appVersion.version + '-' + appVersion.versionCode : '',
+        event: 'checkVersion',
+        icon: 'loop',
+        showBadge: appVersion ? appVersion.hasNew : false
+      })
+    }
     //#endif
     this.userScore = store.userInfo.score || 0
     // 统计任务数量
