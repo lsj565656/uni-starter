@@ -16,13 +16,8 @@
     <view v-if="showFilter" class="filter-bar">
       <scroll-view scroll-x class="filter-scroll">
         <view class="filter-tags">
-          <view 
-            v-for="city in availableCities" 
-            :key="city"
-            class="filter-tag"
-            :class="{ active: selectedCity === city }"
-            @click="toggleCityFilter(city)"
-          >
+          <view v-for="city in availableCities" :key="city" class="filter-tag"
+            :class="{ active: selectedCity === city }" @click="toggleCityFilter(city)">
             {{ city }}
           </view>
         </view>
@@ -32,52 +27,14 @@
       </view>
     </view>
 
-    <!-- 星球分布区域 -->
+    <!-- 3D球体区域 -->
     <view class="planet-container">
-      <!-- 中央的"我" -->
-      <view class="my-planet" @click="goToMyProfile">
-        <view class="planet-avatar">
-          <image :src="myAvatar" mode="aspectFill" />
-          <view class="planet-status">我</view>
-        </view>
-      </view>
-
-      <!-- 其他用户的星球 -->
-      <view
-        v-for="(card, index) in displayCards"
-        :key="card._id"
-        class="user-planet"
-        :class="{ 'planet-active': selectedPlanet === card._id }"
-        :style="getPlanetStyle(card, index)"
-        @click="selectPlanet(card)"
-      >
-        <view class="planet-avatar">
-          <image :src="card.avatar" mode="aspectFill" />
-          <view class="planet-glow"></view>
-        </view>
-        <view class="planet-info">
-          <text class="planet-name">{{ card.nickname }}</text>
-          <view class="planet-tags">
-            <text 
-              v-for="tag in card.tags.slice(0, 2)" 
-              :key="tag" 
-              class="planet-tag"
-            >
-              {{ tag }}
-            </text>
-          </view>
-        </view>
-      </view>
+      <planet-sphere :items="sphereItems" :center-avatar="myAvatar" :auto-rotate="true" :rotation-speed="0.3"
+        @item-click="onSphereItemClick" @center-click="goToMyProfile" />
     </view>
 
     <!-- 用户详情弹窗 -->
-    <uni-popup 
-      ref="userPopup" 
-      type="center" 
-      :animation="true" 
-      :is-mask-click="true"
-      @change="onPopupChange"
-    >
+    <uni-popup ref="userPopup" type="center" :animation="true" :is-mask-click="true" @change="onPopupChange">
       <view class="user-detail-popup">
         <view class="popup-header">
           <image :src="selectedCard?.avatar" class="popup-avatar" mode="aspectFill" />
@@ -99,11 +56,7 @@
           <view v-if="selectedCard?.show_fields?.skills && selectedCard?.skills?.length" class="popup-section">
             <view class="section-title">技能标签</view>
             <view class="skill-tags">
-              <text 
-                v-for="skill in selectedCard.skills" 
-                :key="skill" 
-                class="skill-tag"
-              >
+              <text v-for="skill in selectedCard.skills" :key="skill" class="skill-tag">
                 {{ skill }}
               </text>
             </view>
@@ -119,11 +72,7 @@
           <view v-if="selectedCard?.show_fields?.tags && selectedCard?.tags?.length" class="popup-section">
             <view class="section-title">擅长领域</view>
             <view class="tag-list">
-              <text 
-                v-for="tag in selectedCard.tags" 
-                :key="tag" 
-                class="tag-item"
-              >
+              <text v-for="tag in selectedCard.tags" :key="tag" class="tag-item">
                 {{ tag }}
               </text>
             </view>
@@ -134,14 +83,8 @@
             <view class="section-title">个人照片</view>
             <scroll-view class="photo-scroll" scroll-x>
               <view class="photo-list">
-                <image 
-                  v-for="(photo, index) in selectedCard.photos" 
-                  :key="index"
-                  :src="photo" 
-                  mode="aspectFill" 
-                  class="photo-item"
-                  @click="previewPhoto(selectedCard.photos, index)"
-                />
+                <image v-for="(photo, index) in selectedCard.photos" :key="index" :src="photo" mode="aspectFill"
+                  class="photo-item" @click="previewPhoto(selectedCard.photos, index)" />
               </view>
             </scroll-view>
           </view>
@@ -164,12 +107,8 @@
           </view>
         </view>
         <view class="search-input-wrapper">
-          <uni-search-bar 
-            v-model="searchKeyword"
-            placeholder="搜索昵称、技能、城市..."
-            @confirm="performSearch"
-            @cancel="closeSearch"
-          />
+          <uni-search-bar v-model="searchKeyword" placeholder="搜索昵称、技能、城市..." @confirm="performSearch"
+            @cancel="closeSearch" />
         </view>
       </view>
     </uni-popup>
@@ -185,21 +124,21 @@
 </template>
 
 <script setup>
-import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import {
-    addRandomPositions,
-    getActiveParjobCards,
-    getAvailableCities,
-    getFilteredParjobCards
+  parjobCards,
+  getActiveParjobCards,
+  getFilteredParjobCards,
+  getAvailableCities
 } from '@/utils/parjob-cards.js'
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+import PlanetSphere from '@/components/3d-planet-sphere/3d-planet-sphere.vue'
 
 // 响应式数据
 const showFilter = ref(false)
 const showSearch = ref(false)
 const searchKeyword = ref('')
 const selectedCity = ref('')
-const selectedPlanet = ref('')
 const selectedCard = ref(null)
 const userPopup = ref(null)
 const searchPopup = ref(null)
@@ -221,7 +160,7 @@ const filteredCards = computed(() => {
   }
   if (searchKeyword.value) {
     // 简单搜索实现
-    return getActiveParjobCards().filter(card => 
+    return getActiveParjobCards().filter(card =>
       card.nickname.includes(searchKeyword.value) ||
       card.skills.some(skill => skill.includes(searchKeyword.value)) ||
       card.city.includes(searchKeyword.value)
@@ -230,20 +169,21 @@ const filteredCards = computed(() => {
   return getFilteredParjobCards(filters)
 })
 
-// 添加随机位置的显示卡片
-const displayCards = computed(() => {
-  return addRandomPositions(filteredCards.value)
+// 转换为球体组件需要的格式
+const sphereItems = computed(() => {
+  return filteredCards.value.map(card => ({
+    id: card._id,
+    text: card.nickname,
+    type: getRandomType(),
+    weight: Math.random(),
+    data: card
+  }))
 })
 
-// 获取星球样式
-function getPlanetStyle(card) {
-  const position = card.position || { x: 50, y: 50, z: 0 }
-  return {
-    left: `${position.x}%`,
-    top: `${position.y}%`,
-    transform: `translate(-50%, -50%) scale(${1 + position.z * 0.1})`,
-    zIndex: Math.floor(position.z)
-  }
+// 随机分配类型
+function getRandomType() {
+  const types = ['primary', 'success', 'warning', 'danger']
+  return types[Math.floor(Math.random() * types.length)]
 }
 
 // 筛选相关方法
@@ -255,10 +195,9 @@ function toggleCityFilter(city) {
   }
 }
 
-// 星球选择
-function selectPlanet(card) {
-  selectedCard.value = card
-  selectedPlanet.value = card._id
+// 球体项目点击
+function onSphereItemClick(item) {
+  selectedCard.value = item.data
   nextTick(() => {
     userPopup.value?.open()
   })
@@ -267,13 +206,10 @@ function selectPlanet(card) {
 // 弹窗相关
 function closeUserPopup() {
   userPopup.value?.close()
-  selectedPlanet.value = ''
 }
 
 function onPopupChange(e) {
-  if (e.type === 'hide') {
-    selectedPlanet.value = ''
-  }
+  // 弹窗状态变化处理
 }
 
 // 搜索相关
@@ -334,7 +270,6 @@ function goToMyProfile() {
 
 // 生命周期
 onMounted(() => {
-  // 初始化数据
   console.log('趴活广场页面加载完成')
 })
 </script>
@@ -356,6 +291,8 @@ onMounted(() => {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 100;
+  position: relative;
 }
 
 .nav-title {
@@ -382,6 +319,8 @@ onMounted(() => {
   padding: 20rpx 30rpx;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
+  z-index: 99;
+  position: relative;
 }
 
 .filter-scroll {
@@ -413,142 +352,12 @@ onMounted(() => {
   padding: 10rpx;
 }
 
-/* 星球容器 */
+/* 球体容器 */
 .planet-container {
   position: relative;
   width: 100%;
   height: calc(100vh - 200rpx);
   overflow: hidden;
-}
-
-/* 我的星球 */
-.my-planet {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 100;
-}
-
-.my-planet .planet-avatar {
-  position: relative;
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 50%;
-  border: 4rpx solid #fff;
-  box-shadow: 0 0 30rpx rgba(255, 255, 255, 0.5);
-  overflow: hidden;
-}
-
-.my-planet .planet-avatar image {
-  width: 100%;
-  height: 100%;
-}
-
-.my-planet .planet-status {
-  position: absolute;
-  bottom: -10rpx;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #007aff;
-  color: #fff;
-  padding: 4rpx 12rpx;
-  border-radius: 10rpx;
-  font-size: 20rpx;
-}
-
-/* 用户星球 */
-.user-planet {
-  position: absolute;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.user-planet:hover {
-  transform: translate(-50%, -50%) scale(1.1) !important;
-}
-
-.user-planet.planet-active {
-  transform: translate(-50%, -50%) scale(1.2) !important;
-}
-
-.user-planet .planet-avatar {
-  position: relative;
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 50%;
-  border: 3rpx solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 0 20rpx rgba(255, 255, 255, 0.3);
-  overflow: hidden;
-  animation: planetFloat 3s ease-in-out infinite;
-}
-
-.user-planet .planet-avatar image {
-  width: 100%;
-  height: 100%;
-}
-
-.user-planet .planet-glow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
-  animation: planetGlow 2s ease-in-out infinite alternate;
-}
-
-.user-planet .planet-info {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-top: 10rpx;
-  text-align: center;
-  opacity: 0;
-  transition: opacity 0.3s;
-  pointer-events: none;
-}
-
-.user-planet:hover .planet-info {
-  opacity: 1;
-}
-
-.planet-name {
-  display: block;
-  font-size: 24rpx;
-  color: #fff;
-  font-weight: bold;
-  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.5);
-  white-space: nowrap;
-}
-
-.planet-tags {
-  display: flex;
-  gap: 8rpx;
-  justify-content: center;
-  margin-top: 4rpx;
-}
-
-.planet-tag {
-  font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(0, 0, 0, 0.3);
-  padding: 2rpx 8rpx;
-  border-radius: 8rpx;
-  white-space: nowrap;
-}
-
-/* 动画 */
-@keyframes planetFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10rpx); }
-}
-
-@keyframes planetGlow {
-  0% { opacity: 0.3; }
-  100% { opacity: 0.8; }
 }
 
 /* 用户详情弹窗 */
@@ -617,13 +426,15 @@ onMounted(() => {
   margin-bottom: 15rpx;
 }
 
-.skill-tags, .tag-list {
+.skill-tags,
+.tag-list {
   display: flex;
   flex-wrap: wrap;
   gap: 15rpx;
 }
 
-.skill-tag, .tag-item {
+.skill-tag,
+.tag-item {
   background: #f0f8ff;
   color: #007aff;
   padding: 8rpx 16rpx;
@@ -732,4 +543,4 @@ onMounted(() => {
   font-size: 26rpx;
   font-weight: bold;
 }
-</style> 
+</style>

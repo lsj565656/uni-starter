@@ -34,7 +34,7 @@
 			</swiper>
 		</unicloud-db> -->
     <swiper class="swiper-box" @change="changeSwiper" :current="current" indicator-dots>
-      <swiper-item v-for="(item, index) in imageDatas" :key="item.id">
+      <swiper-item v-for="(item) in imageDatas" :key="item.id">
         <image class="banner-image" :src="item.image" mode="aspectFill" @click="clickBannerItem(item)"
           :draggable="false" />
       </swiper-item>
@@ -69,7 +69,7 @@
                         :src="page[(row - 1) * gridColumn + (col - 1)].icon || '/static/logo.png'" mode="aspectFit" />
                       <text class="grid-item-text">{{
                         page[(row - 1) * gridColumn + (col - 1)].text
-                      }}</text>
+                        }}</text>
                     </view>
                   </template>
                 </view>
@@ -233,29 +233,6 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 
 // 状态栏高度
 const statusBarHeight = ref(0)
-
-// 统一的登录校验方法
-function checkLogin(actionName = '操作') {
-  const userInfo = store.userInfo
-  if (!userInfo || !userInfo._id) {
-    uni.showModal({
-      title: '提示',
-      content: `请先登录后再${actionName}`,
-      confirmText: '去登录',
-      cancelText: '取消',
-      success: res => {
-        if (res.confirm) {
-          // 统一配置登录页面路径
-          uni.navigateTo({
-            url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
-          })
-        }
-      }
-    })
-    return false
-  }
-  return true
-}
 
 const statusBarAlpha = ref(0.4) // 初始状态栏半透明色
 function updateStatusBarAlpha(scrollTop) {
@@ -432,16 +409,6 @@ function handleFlourTimelineImageClick({ allImages, currentIndex }) {
   })
 }
 
-// 通告消息相关方法
-function addRandomNotice() {
-  const newNotice = generateRandomNotice()
-  noticeList.value.unshift(newNotice)
-  // 保持最多20条消息
-  if (noticeList.value.length > 20) {
-    noticeList.value = noticeList.value.slice(0, 20)
-  }
-}
-
 function handleNoticeClick(notice) {
   if (notice) {
     uni.showToast({
@@ -490,32 +457,6 @@ function refreshProcess() {
       })
     }
   }, 1000)
-}
-
-function goToTaskDetail(id) {
-  uni.navigateTo({
-    url: `/pages/list/detail?id=${id}`
-  })
-}
-
-function likeTask(id) {
-  uni.showToast({
-    title: '点赞功能开发中',
-    icon: 'none'
-  })
-}
-
-function goToListPage() {
-  // #ifdef H5 || APP-PLUS
-  uni.switchTab({
-    url: '/pages/list/list'
-  })
-  // #endif
-  // #ifdef MP-WEIXIN
-  uni.switchTab({
-    url: '/pages/list/list'
-  })
-  // #endif
 }
 
 function goToHotTasksPage() {
@@ -620,16 +561,6 @@ function homeHotColumns(data) {
   return columns
 }
 
-// 在 <script setup> 内部添加 getUserObj 方法
-function getUserObj(user_id) {
-  // 如果是数组且有对象，返回第一个对象
-  if (Array.isArray(user_id) && user_id.length > 0 && typeof user_id[0] === 'object') {
-    return user_id[0]
-  }
-  // 不是对象，返回 null
-  return null
-}
-
 // 生命周期钩子
 let addNoticeTimer = null
 
@@ -692,13 +623,6 @@ function goToPublish() {
   })
 }
 
-function scrollToTop() {
-  uni.pageScrollTo({
-    scrollTop: 0,
-    duration: 300
-  })
-}
-
 // 直接注册页面滚动钩子
 onPageScroll(e => {
   // 实时更新状态栏透明度
@@ -734,7 +658,7 @@ const fabContent = [
   }
 ]
 
-function onFabMenuClick({ index, item }) {
+function onFabMenuClick({ item }) {
   if (item.text === '发布') {
     goToPublish()
   } else if (item.text === '置顶' && !isAtTop.value) {

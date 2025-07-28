@@ -165,6 +165,13 @@
 			}
 		},
 		{
+			"path": "pages/parjob-square/demo",
+			"style": {
+				"navigationBarTitleText": "3D球体演示",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/ucenter/myTasks/joined",
 			"style": {
 				"navigationBarTitleText": "参与的任务",

@@ -38,6 +38,7 @@ module.exports = {
     'vue/require-explicit-emits': 'warn',
     'vue/no-unused-vars': 'warn', // 改为warn
     'vue/no-unused-components': 'warn', // 改为warn
+    'vue/valid-v-for': 'off', // 关闭 v-for key 检查
 
     // JavaScript 规则 - 更宽松
     'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
@@ -48,6 +49,9 @@ module.exports = {
     'no-var': 'warn', // 改为warn
     'no-useless-catch': 'off', // 关闭不必要的 try/catch 检查
     'no-empty': 'off', // 关闭空代码块检查
+
+    // Promise 相关规则 - 更宽松
+    'promise/always-return': 'off', // 关闭 Promise then 返回值检查
 
     // 代码风格 - 更宽松
     indent: ['warn', 2], // 改为warn
