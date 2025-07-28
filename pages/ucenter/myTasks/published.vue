@@ -1,32 +1,12 @@
 <template>
   <view>
     <view class="filter-bar-scroll">
-      <scroll-view
-        class="category-scroll"
-        scroll-x
-        scroll-with-animation
-        :scroll-left="categoryScrollLeft"
-        @scroll="onCategoryScroll"
-        ref="categoryScroll"
-        :show-scrollbar="false"
-      >
-        <view
-          v-for="(item, idx) in filterOptions"
-          :key="idx"
-          :id="'cat-' + idx"
-          class="seg-item"
-          :class="{ active: filterIndex === idx }"
-          :style="categoryItemStyle"
-          @click="onFilterTab(idx)"
-        >
-          <uni-badge
-            v-if="categoryCounts[item] > 0"
-            :text="categoryCounts[item]"
-            absolute="rightTop"
-            size="small"
-            type="error"
-            :offset="[-3, -3]"
-          >
+      <scroll-view class="category-scroll" scroll-x scroll-with-animation :scroll-left="categoryScrollLeft"
+        @scroll="onCategoryScroll" ref="categoryScroll" :show-scrollbar="false">
+        <view v-for="(item, idx) in filterOptions" :key="idx" :id="'cat-' + idx" class="seg-item"
+          :class="{ active: filterIndex === idx }" :style="categoryItemStyle" @click="onFilterTab(idx)">
+          <uni-badge v-if="categoryCounts[item] > 0" :text="categoryCounts[item]" absolute="rightTop" size="small"
+            type="error" :offset="[-3, -3]">
             <text class="seg-text">{{ item }}</text>
           </uni-badge>
           <text v-if="categoryCounts[item] <= 0" class="seg-text">{{ item }}</text>
@@ -39,47 +19,26 @@
       </view>
       <uni-popup ref="filterDrawer" type="bottom" :is-mask-click="true">
         <view class="filter-popup-content">
-          <view
-            class="filter-popup-option"
-            v-for="(item, idx) in filterExtraOptions"
-            :key="idx"
-            :class="{ active: filterExtraIndex === idx }"
-            @click="onFilterExtra(idx)"
-          >
+          <view class="filter-popup-option" v-for="(item, idx) in filterExtraOptions" :key="idx"
+            :class="{ active: filterExtraIndex === idx }" @click="onFilterExtra(idx)">
             <text>{{ item }}</text>
-            <uni-icons
-              v-if="filterExtraIndex === idx"
-              type="checkbox-filled"
-              color="#1976d2"
-              size="18"
-              style="margin-left: 8px"
-            />
+            <uni-icons v-if="filterExtraIndex === idx" type="checkbox-filled" color="#1976d2" size="18"
+              style="margin-left: 8px" />
           </view>
         </view>
       </uni-popup>
     </view>
     <view class="page-content">
       <uni-swipe-action>
-        <uni-swipe-action-item
-          v-for="task in tasks"
-          :key="task._id"
-          :right-options="getSwipeOptions(task)"
-          @click="e => onSwipeAction(e, task)"
-        >
-          <uni-card
-            :thumbnail="task.userInfo?.avatar_file?.url || defaultAvatar"
-            :title="task.name"
-            :extra="getStatusText(task)"
-            :sub-title="formatTime(task.start_time) + ' ~ ' + formatTime(task.end_time)"
-            :is-shadow="true"
-            :is-full="false"
-            margin="4px 6px"
-          >
+        <uni-swipe-action-item v-for="task in tasks" :key="task._id" :right-options="getSwipeOptions(task)"
+          @click="e => onSwipeAction(e, task)">
+          <uni-card :thumbnail="task.userInfo?.avatar_file?.url || defaultAvatar" :title="task.name"
+            :extra="getStatusText(task)" :sub-title="formatTime(task.start_time) + ' ~ ' + formatTime(task.end_time)"
+            :is-shadow="true" :is-full="false" margin="4px 6px">
             <view class="card-header-row">
               <view class="card-title-row">
                 <view class="stamp">{{ task.category_name }}</view>
-                <view v-if="task.user_id === userId && isUserAlsoMember(task)" class="stamp"
-                  >发布并参与
+                <view v-if="task.user_id === userId && isUserAlsoMember(task)" class="stamp">发布并参与
                 </view>
                 <text class="reward-value">{{
                   task.mode === 'score' ? task.score + '积分' : task.price + '元'
@@ -87,20 +46,13 @@
               </view>
               <view class="card-sub-row">
                 <text class="meta-label">参与人数：</text>
-                <text class="meta-value"
-                  >{{ task.members?.length || 0 }}/{{ task.max_participants }}</text
-                >
+                <text class="meta-value">{{ task.members?.length || 0 }}/{{ task.max_participants }}</text>
                 <view class="avatars-row">
-                  <image
-                    v-for="(member, idx) in getDisplayMembers(task)"
-                    :key="member._id || idx"
-                    :src="member.avatar || defaultAvatar"
-                    class="avatar-img"
-                    :style="{ marginLeft: idx === 0 ? '0' : '-16px' }"
-                  />
+                  <image v-for="(member, idx) in getDisplayMembers(task)" :key="member._id || idx"
+                    :src="member.avatar || defaultAvatar" class="avatar-img"
+                    :style="{ marginLeft: idx === 0 ? '0' : '-16px' }" />
                   <view v-if="getMoreMemberCount(task) > 0" class="avatar-more">
-                    +{{ getMoreMemberCount(task) }}</view
-                  >
+                    +{{ getMoreMemberCount(task) }}</view>
                 </view>
               </view>
               <view class="card-desc-row">
@@ -110,23 +62,11 @@
           </uni-card>
         </uni-swipe-action-item>
       </uni-swipe-action>
-      <uni-load-state
-        class="load-state"
-        :state="{ data: tasks, pagination, hasMore, loading, error }"
-        @loadMore="loadMore"
-        @networkResume="refresh"
-        noMoreText="没有更多了"
-      />
+      <uni-load-state class="load-state" :state="{ data: tasks, pagination, hasMore, loading, error }"
+        @loadMore="loadMore" @networkResume="refresh" noMoreText="没有更多了" />
     </view>
-    <uni-drawer
-      ref="rateDrawer"
-      mode="right"
-      :mask-click="false"
-      :width="rateDrawerWidth"
-      :style="{ zIndex: 1200 }"
-    >
-      <view
-        style="
+    <uni-drawer ref="rateDrawer" mode="right" :mask-click="false" :width="rateDrawerWidth" :style="{ zIndex: 1200 }">
+      <view style="
           padding: 24px 20px;
           min-width: 240px;
           max-width: 90vw;
@@ -135,8 +75,7 @@
           align-items: center;
           justify-content: center;
           min-height: 60vh;
-        "
-      >
+        ">
         <view style="font-size: 17px; font-weight: 600; margin-bottom: 12px">我的评价</view>
         <uni-rate :value="currentRate" allow-half readonly size="28" margin="2" />
         <view style="margin: 12px 0 4px 0; color: #888">{{
@@ -146,15 +85,9 @@
         <button style="margin-top: 18px" @click="closeRateDrawer">关闭</button>
       </view>
     </uni-drawer>
-    <uni-drawer
-      ref="rateEditDrawer"
-      mode="right"
-      :mask-click="false"
-      :width="rateDrawerWidth"
-      :style="{ zIndex: 1200 }"
-    >
-      <view
-        style="
+    <uni-drawer ref="rateEditDrawer" mode="right" :mask-click="false" :width="rateDrawerWidth"
+      :style="{ zIndex: 1200 }">
+      <view style="
           padding: 24px 20px;
           min-width: 240px;
           max-width: 90vw;
@@ -163,55 +96,35 @@
           align-items: center;
           justify-content: center;
           min-height: 60vh;
-        "
-      >
+        ">
         <view style="font-size: 17px; font-weight: 600; margin-bottom: 12px">任务评价</view>
         <uni-rate v-model="rateEditValue" allow-half :max="5" size="28" margin="2" />
-        <uni-easyinput
-          v-model="rateEditComment"
-          type="textarea"
-          maxlength="80"
-          placeholder="请输入评价内容（80字以内）"
-          style="margin: 12px 0 4px 0; width: 100%"
-        />
-        <button
-          style="margin-top: 18px; width: 100%"
-          :loading="rateEditLoading"
-          @click="submitRate"
-        >
+        <uni-easyinput v-model="rateEditComment" type="textarea" maxlength="80" placeholder="请输入评价内容（80字以内）"
+          style="margin: 12px 0 4px 0; width: 100%" />
+        <button style="margin-top: 18px; width: 100%" :loading="rateEditLoading" @click="submitRate">
           提交评价
         </button>
-        <button
-          style="margin-top: 8px; width: 100%"
-          @click="
-            () => {
-              showRateEditDrawer = false
-              $refs.rateEditDrawer.close()
-            }
-          "
-        >
+        <button style="margin-top: 8px; width: 100%" @click="
+          () => {
+            showRateEditDrawer = false
+            $refs.rateEditDrawer.close()
+          }
+        ">
           取消
         </button>
       </view>
     </uni-drawer>
     <!-- 进度查看抽屉 -->
-    <uni-drawer
-      ref="progressDrawer"
-      mode="right"
-      :mask-click="false"
-      :width="rateDrawerWidth"
-      :style="{ zIndex: 1200 }"
-    >
-      <view
-        style="
+    <uni-drawer ref="progressDrawer" mode="right" :mask-click="false" :width="rateDrawerWidth"
+      :style="{ zIndex: 1200 }">
+      <view style="
           padding: 24px 20px;
           min-width: 240px;
           max-width: 90vw;
           display: flex;
           flex-direction: column;
           min-height: 60vh;
-        "
-      >
+        ">
         <view class="progress-header">
           <text class="progress-title">{{
             progressData?.task?.status === 'not_started' ? '就绪状态' : '任务进度'
@@ -235,13 +148,8 @@
             <view v-if="progressData.progress && progressData.progress.length > 0">
               <view v-for="member in progressData.progress" :key="member._id" class="member-item">
                 <view class="member-avatar">
-                  <cloud-image
-                    v-if="member.avatar"
-                    :src="member.avatar"
-                    width="40rpx"
-                    height="40rpx"
-                    style="border-radius: 50%"
-                  />
+                  <cloud-image v-if="member.avatar" :src="member.avatar" width="40rpx" height="40rpx"
+                    style="border-radius: 50%" />
                   <view v-else class="default-avatar">
                     <uni-icons type="person-filled" size="20" color="#999" />
                   </view>
@@ -310,11 +218,7 @@
 
         <view class="progress-footer">
           <view class="action-buttons">
-            <button
-              class="refresh-btn"
-              @click="refreshProgress"
-              :disabled="!progressData?.task?._id"
-            >
+            <button class="refresh-btn" @click="refreshProgress" :disabled="!progressData?.task?._id">
               <uni-icons type="reload" size="16" color="#1976d2" />
               <text>{{
                 progressData?.task?.status === 'not_started' ? '刷新状态' : '刷新进度'
@@ -323,12 +227,8 @@
 
             <!-- 待开始状态：显示开始任务按钮 -->
             <template v-if="progressData?.task?.status === 'not_started'">
-              <button
-                class="end-task-btn"
-                @click="startTaskFromProgress"
-                :disabled="!progressData?.allReady"
-                :class="{ disabled: !progressData?.allReady }"
-              >
+              <button class="end-task-btn" @click="startTaskFromProgress" :disabled="!progressData?.allReady"
+                :class="{ disabled: !progressData?.allReady }">
                 <uni-icons type="play" size="16" color="#fff" />
                 <text>开始任务</text>
               </button>
@@ -336,12 +236,8 @@
 
             <!-- 进行中状态：显示结束任务按钮 -->
             <template v-else-if="progressData?.task?.status === 'in_progress'">
-              <button
-                class="end-task-btn"
-                @click="endTaskFromProgress"
-                :disabled="!progressData?.allFinished"
-                :class="{ disabled: !progressData?.allFinished }"
-              >
+              <button class="end-task-btn" @click="endTaskFromProgress" :disabled="!progressData?.allFinished"
+                :class="{ disabled: !progressData?.allFinished }">
                 <uni-icons type="checkmarkempty" size="16" color="#fff" />
                 <text>{{ isPublisherAndMember ? '确认完成' : '结束任务' }}</text>
               </button>
@@ -490,7 +386,6 @@ export default {
       const status = this.filterOptions[this.filterIndex] === '已评价' ? 'evaluated' : task.status
       const myStatus = task.myJoinStatus
       const isPublisher = task.user_id === this.userId
-      const isAlsoMember = this.isUserAlsoMember(task)
       const options = []
 
       // 进行中状态的特殊处理
@@ -794,9 +689,6 @@ export default {
       else if (targetScrollLeft > maxScrollLeft) targetScrollLeft = maxScrollLeft
       this.categoryScrollLeft = targetScrollLeft
     },
-    onCategoryScroll(e) {
-      // 可以在这里添加滚动事件处理逻辑
-    },
     openFilterDrawer() {
       this.$refs.filterDrawer.open('bottom')
     },
@@ -858,7 +750,7 @@ export default {
         url: `/pages/publish/publish?id=${id}&edit=1`
       })
     },
-    deleteTask(id, task) {
+    deleteTask(id) {
       const title = '删除任务',
         content = '确定要删除该任务吗？删除后不可恢复',
         confirmText = '删除'
@@ -986,9 +878,6 @@ export default {
       } finally {
         this.rateEditLoading = false
       }
-    },
-    isStartable(task) {
-      return true
     },
     async onStartTask(task) {
       const res = await uniCloud.callFunction({
@@ -1329,7 +1218,7 @@ export default {
     },
 
     // 处理任务状态变更
-    handleTaskStatusChange(taskId, oldStatus, newStatus) {
+    handleTaskStatusChange() {
       // 直接刷新当前分类数据
       this.refreshCurrentCategory()
     },

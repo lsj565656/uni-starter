@@ -110,22 +110,22 @@ export const notices = [
 // 根据类型获取不同的图标
 export const getNoticeIcon = type => {
   switch (type) {
-    case 'browse': {
+  case 'browse': {
     return 'eye'
   }
-    case 'publish': {
+  case 'publish': {
     return 'plus'
   }
-    case 'join': {
+  case 'join': {
     return 'personadd'
   }
-    case 'seek': {
+  case 'seek': {
     return 'search'
   }
-    case 'complete': {
+  case 'complete': {
     return 'checkmarkempty'
   }
-    default: {
+  default: {
     return 'info'
   }
   }
@@ -134,22 +134,22 @@ export const getNoticeIcon = type => {
 // 根据类型获取不同的颜色
 export const getNoticeColor = type => {
   switch (type) {
-    case 'browse': {
+  case 'browse': {
     return '#2979ff'
   }
-    case 'publish': {
+  case 'publish': {
     return '#19be6b'
   }
-    case 'join': {
+  case 'join': {
     return '#ff9900'
   }
-    case 'seek': {
+  case 'seek': {
     return '#9c26b0'
   }
-    case 'complete': {
+  case 'complete': {
     return '#f56c6c'
   }
-    default: {
+  default: {
     return '#909399'
   }
   }

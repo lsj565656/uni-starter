@@ -146,8 +146,22 @@
 		{
 			"path": "pages/ucenter/myTasks/published",
 			"style": {
-				"navigationBarTitleText": "发布的任务",
-				"enablePullDownRefresh": true
+				"navigationBarTitleText": "发布的任务"
+			}
+		},
+		{
+			"path": "pages/parjob-square/index",
+			"style": {
+				"navigationBarTitleText": "趴活广场",
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/parjob-square/edit",
+			"style": {
+				"navigationBarTitleText": "编辑趴活信息",
+				"navigationStyle": "custom"
 			}
 		},
 		{

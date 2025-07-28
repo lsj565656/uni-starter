@@ -54,7 +54,7 @@ export const categories = [
     catId: 7,
     text: '趴活广场',
     icon: '/static/grids/JobMarket.png',
-    route: '/pages/livelihood-square/index?catId=7&catName=趴活广场',
+    route: '/pages/parjob-square/index',
     use_home_grid: true,
     use_list: false
   },

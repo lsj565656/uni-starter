@@ -854,7 +854,7 @@ export default {
           })
       })
     },
-    onCategoryScroll(e) {
+    onCategoryScroll() {
       this.updateBackToAllBtnVisibility()
     },
     onBackToAll() {
@@ -910,7 +910,6 @@ export default {
       })
     },
     deleteTask(id, task) {
-      const status = task.status
       const isPublisher = task.user_id === this.userId
       const isAlsoMember = this.isUserAlsoMember(task)
       let title = '退出任务',
@@ -1303,7 +1302,7 @@ export default {
     },
 
     // 处理任务状态变更
-    handleTaskStatusChange(taskId, oldStatus, newStatus) {
+    handleTaskStatusChange() {
       // 直接刷新当前分类数据
       this.refreshCurrentCategory()
     },
