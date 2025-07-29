@@ -154,20 +154,21 @@
 			"style": {
 				"navigationBarTitleText": "趴活广场",
 				"navigationStyle": "custom",
-				"enablePullDownRefresh": false
+				"enablePullDownRefresh": false,
+				"disableScroll": true,
+				"app-plus": {
+					"bounce": "none",
+					"scrollIndicator": "none"
+				},
+				"h5": {
+					"bounce": "none"
+				}
 			}
 		},
 		{
 			"path": "pages/parjob-square/edit",
 			"style": {
 				"navigationBarTitleText": "编辑趴活信息",
-				"navigationStyle": "custom"
-			}
-		},
-		{
-			"path": "pages/parjob-square/demo",
-			"style": {
-				"navigationBarTitleText": "3D球体演示",
 				"navigationStyle": "custom"
 			}
 		},
