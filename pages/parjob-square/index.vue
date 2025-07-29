@@ -19,17 +19,18 @@
     </uni-nav-bar>
 
     <!-- 3D球体容器 -->
-    <view class="sphere-container" :style="sphereContainerStyle">
+    <view class="sphere-container" :style="sphereContainerStyle" @touchstart.passive="onTouchStart"
+      @touchmove.passive="onTouchMove" @touchend.passive="onTouchEnd">
       <!-- 旋转球体 -->
       <view class="sphere" :class="{ 'paused': isPaused }" :style="sphereRotationStyle">
         <view v-for="(user, index) in activeUsers" :key="user._id" class="sphere-item"
-          :style="getSphereItemStyle(index)" @click="showUserDetail(user)">
-          <view class="item-content" @touchstart="pauseRotation" @touchend="resumeRotation">
+          :style="getSphereItemStyle(index)">
+          <view class="item-content">
             <!-- 实心点 -->
-            <view class="item-dot"></view>
+            <view class="item-dot" @click="handleUserDotClick(user, $event)"></view>
 
             <!-- 用户信息 -->
-            <view class="item-info">
+            <view class="item-info" @click="handleUserInfoClick(user, $event)">
               <text class="item-name">{{ user.nickname }}</text>
               <view class="item-gender">
                 <uni-icons :type="getGenderIcon(user.gender)" size="16" :color="getGenderColor(user.gender)" />
@@ -39,10 +40,7 @@
         </view>
       </view>
 
-      <!-- Canvas渲染层 - 只有这里响应手势 -->
-      <canvas id="sphere-canvas" class="sphere-canvas" @touchstart.passive="onTouchStart"
-        @touchmove.passive="onTouchMove" @touchend.passive="onTouchEnd" :style="{ willReadFrequently: 'true' }">
-      </canvas>
+
     </view>
 
     <!-- 底部统计 -->
@@ -205,6 +203,41 @@
         <view class="debug-row">
           <text class="debug-text">是否暂停: {{ isPaused ? '是' : '否' }}</text>
         </view>
+        <view class="debug-row">
+          <text class="debug-text">查看暂停: {{ isPausedForViewing ? '是' : '否' }}</text>
+        </view>
+        <view class="debug-row">
+          <text class="debug-text">弹窗状态: {{ isUserDetailOpen ? '打开' : '关闭' }}</text>
+        </view>
+        <view class="debug-row">
+          <text class="debug-text">触摸持续时间: {{ touchHoldDuration }}ms</text>
+        </view>
+
+        <view class="debug-row">
+          <text class="debug-text">缓存速度: {{ cachedRotationSpeed.toFixed(2) }}</text>
+        </view>
+        <view class="debug-row">
+          <text class="debug-text">缓存方向: {{ cachedRotationDirection === 1 ? '顺时针' : '逆时针' }}</text>
+        </view>
+        <view class="debug-row">
+          <text class="debug-text">缓存状态: {{ isRestoringFromCache ? '需要恢复' : '正常' }}</text>
+        </view>
+        <view class="debug-row">
+          <text class="debug-text">需要恢复: {{ isRestoringFromCache ? '是' : '否' }}</text>
+        </view>
+        <view class="debug-row">
+          <text class="debug-text">自动恢复定时器: {{ autoResumeTimer ? '运行中' : '已停止' }}</text>
+        </view>
+
+        <view class="debug-row">
+          <text class="debug-text">自动恢复延迟: {{ autoResumeDelay }}ms</text>
+        </view>
+        <view class="debug-row">
+          <text class="debug-text">点击调试: {{ showClickDebug ? '开启' : '关闭' }}</text>
+          <button class="debug-btn" :class="{ active: showClickDebug }" @click="showClickDebug = !showClickDebug">
+            {{ showClickDebug ? '关闭' : '开启' }}
+          </button>
+        </view>
       </view>
 
       <!-- 手势调试信息 -->
@@ -337,6 +370,7 @@
 </template>
 
 <script setup>
+import { getActiveParjobCards, getAvailableCities, getAvailableSkills, getFilteredParjobCards } from '@/utils/parjob-cards.js'
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 
 // 响应式数据
@@ -345,6 +379,7 @@ const selectedUser = ref(null)
 const isPaused = ref(false)
 const rotationTimer = ref(null)
 const currentRotation = ref(0)
+const isUserDetailOpen = ref(false) // 新增：用户详情弹窗是否打开
 
 // 屏幕信息
 const screenInfo = ref({
@@ -373,9 +408,9 @@ const sphereConfig = ref({
   sphereBorderWidth: 1, // 球体边框宽度 - 更细
 
   // 公转速度配置
-  baseSpeed: 1, // 基础旋转速度
-  maxSpeed: 3,  // 最大旋转速度
-  minSpeed: 0.5, // 最小旋转速度
+  baseSpeed: 0.4, // 基础旋转速度
+  maxSpeed: 2,  // 最大旋转速度
+  minSpeed: 0.2, // 最小旋转速度
 
   // 公转方向配置
   defaultDirection: 1, // 默认旋转方向 (1=顺时针, -1=逆时针)
@@ -386,6 +421,7 @@ const rotationDirection = ref(sphereConfig.value.defaultDirection) // 旋转方�
 
 // 调试面板相关
 const showDebugPanel = ref(false) // 是否显示调试面板
+const showClickDebug = ref(false) // 是否显示点击调试信息
 
 // 手势控制相关
 const touchStartX = ref(0)
@@ -398,12 +434,33 @@ const velocityX = ref(0)
 const velocityY = ref(0)
 const velocityDecayTimer = ref(null)
 
+// 智能暂停和恢复机制相关变量
+const isPausedForViewing = ref(false) // 是否因查看而暂停
+const touchHoldDuration = ref(0) // 触摸持续时间
+
+// 缓存原始公转状态
+const cachedRotationSpeed = ref(0) // 缓存的旋转速度
+const cachedRotationDirection = ref(1) // 缓存的旋转方向
+const isRestoringFromCache = ref(false) // 是否正在从缓存恢复
+
+// 自动恢复相关
+const autoResumeTimer = ref(null) // 自动恢复定时器
+
+const autoResumeDelay = 3000 // 自动恢复延迟（3秒）
+
 // 筛选相关
 const filterGender = ref('')
 const filterAgeMin = ref('')
 const filterAgeMax = ref('')
 const filterSkills = ref([])
 const filterCities = ref([])
+
+// 性别选项
+const genderOptions = [
+  { value: '', label: '全部' },
+  { value: 'male', label: '男' },
+  { value: 'female', label: '女' }
+]
 
 // 添加ref引用
 const userDetailPopup = ref(null)
@@ -431,23 +488,11 @@ const totalCities = computed(() => {
 })
 
 const availableSkills = computed(() => {
-  const skills = new Set()
-  activeUsers.value.forEach(user => {
-    if (user.skills) {
-      user.skills.forEach(skill => skills.add(skill))
-    }
-  })
-  return [...skills]
+  return getAvailableSkills()
 })
 
 const availableCities = computed(() => {
-  const cities = new Set()
-  activeUsers.value.forEach(user => {
-    if (user.city) {
-      cities.add(user.city)
-    }
-  })
-  return [...cities]
+  return getAvailableCities()
 })
 
 // 球体旋转样式 - 使用可配置的中心点
@@ -566,7 +611,7 @@ function getSphereItemStyle(index) {
   const goldenAngle = 2 * Math.PI / goldenRatio
 
   // 计算纬度角，避开极点（0度和180度）
-  // 使用0.1到π-0.1的范围，确保不在极点
+  // 使用0.1到 π-0.1的范围，确保不在极点
   const minLat = 0.1 // 最小纬度，避开北极
   const maxLat = Math.PI - 0.1 // 最大纬度，避开南极
   const latRange = maxLat - minLat
@@ -587,8 +632,8 @@ function getSphereItemStyle(index) {
   const z = Math.cos(adjustedPhi)
 
   // 让卡片往横轴线靠拢 - 压缩Y轴坐标
-  const compressedY = y * 0.5 // 压缩Y轴到50%
-  const adjustedZ = z * 0.8 // 稍微压缩Z轴到80%
+  const compressedY = y * 0.9 // 压缩Y轴到50%
+  const adjustedZ = z * 0.9 // 稍微压缩Z轴到80%
 
   // 缩放到球体半径
   const scaledX = x * radius
@@ -597,6 +642,36 @@ function getSphereItemStyle(index) {
 
   // 计算自转角度，抵消公转翻转，确保卡片始终面向用户
   const selfRotation = -currentRotation.value
+
+  // 生成现代设计色彩
+  const colors = [
+    'hsl(220, 85%, 65%)', // 蓝色
+    'hsl(120, 75%, 60%)', // 绿色
+    'hsl(350, 80%, 65%)', // 红色
+    'hsl(280, 75%, 65%)', // 紫色
+    'hsl(40, 85%, 65%)',  // 橙色
+    'hsl(180, 75%, 60%)', // 青色
+    'hsl(320, 80%, 65%)', // 粉色
+    'hsl(90, 75%, 60%)',  // 黄绿色
+    'hsl(260, 75%, 65%)', // 蓝紫色
+    'hsl(15, 85%, 65%)',  // 红橙色
+    'hsl(150, 75%, 60%)', // 青绿色
+    'hsl(300, 80%, 65%)', // 洋红色
+    'hsl(200, 75%, 65%)', // 天蓝色
+    'hsl(60, 85%, 65%)',  // 金黄色
+    'hsl(340, 75%, 60%)', // 玫红色
+    'hsl(240, 80%, 65%)', // 深蓝色
+    'hsl(100, 75%, 65%)', // 草绿色
+    'hsl(20, 85%, 65%)',  // 橙红色
+    'hsl(270, 75%, 60%)', // 紫蓝色
+    'hsl(140, 80%, 65%)'  // 薄荷绿
+  ]
+
+  // 如果超过预定义颜色数量，使用循环生成
+  const colorIndex = index % colors.length
+  const dynamicColor = index >= colors.length
+    ? `hsl(${(index * 18) % 360}, 75%, 60%)`
+    : colors[colorIndex]
 
   return {
     '--index': index,
@@ -610,6 +685,7 @@ function getSphereItemStyle(index) {
     '--scaled-x': scaledX,
     '--scaled-y': scaledY,
     '--scaled-z': scaledZ,
+    '--color': dynamicColor, // 动态设置颜色
     // 使用translate3d定位，添加自转抵消翻转，强制覆盖CSS
     transform: `translate3d(${scaledX}rpx, ${scaledY}rpx, ${scaledZ}rpx) rotateY(${selfRotation}deg) !important`,
     position: 'absolute !important',
@@ -625,14 +701,25 @@ function startRotation() {
     clearInterval(rotationTimer.value)
   }
 
+  console.log('🔄 启动旋转动画')
   rotationTimer.value = setInterval(() => {
-    if (!isPaused.value) {
-      currentRotation.value += rotationSpeed.value * rotationDirection.value
-      if (currentRotation.value >= 360) {
-        currentRotation.value = 0
-      } else if (currentRotation.value < 0) {
-        currentRotation.value = 360
+    try {
+      // 只在没有手动操作、不在查看暂停状态、且用户详情弹窗未打开时才自动旋转
+      if (!isDragging.value && !isPaused.value && !isPausedForViewing.value && !isUserDetailOpen.value) {
+        currentRotation.value += rotationSpeed.value * rotationDirection.value
+        if (currentRotation.value >= 360) {
+          currentRotation.value = 0
+        } else if (currentRotation.value < 0) {
+          currentRotation.value = 360
+        }
       }
+    } catch (error) {
+      console.error('❌ 旋转动画出错:', error)
+      // 出错时重置状态
+      isPaused.value = false
+      isPausedForViewing.value = false
+      isDragging.value = false
+      isUserDetailOpen.value = false
     }
   }, 50) // 50ms更新一次，约20fps
 }
@@ -655,7 +742,8 @@ function resumeRotation() {
 
 // 改进的手势控制
 function onTouchStart(event) {
-  console.log('🖐️ Touch Start:', event.touches[0])
+  // 阻止事件冒泡，避免重复触发
+  event.stopPropagation()
   const touch = event.touches[0]
   touchStartX.value = touch.clientX
   touchStartY.value = touch.clientY
@@ -663,16 +751,68 @@ function onTouchStart(event) {
   lastTouchY.value = touch.clientY
   touchStartTime.value = Date.now()
   isDragging.value = false
+
+  // 记录触摸开始时间，用于计算触摸持续时间
+  touchHoldDuration.value = 0
+
+
+  // 清除自动恢复定时器
+  if (autoResumeTimer.value) {
+    clearTimeout(autoResumeTimer.value)
+    autoResumeTimer.value = null
+  }
+
+  // 如果当前是暂停状态，检查是否命中用户点
+  if (isPaused.value) {
+    checkUserClick(touch.clientX, touch.clientY).then(clickedUser => {
+      if (clickedUser) {
+        console.log('👆 暂停状态下点击用户点:', clickedUser.nickname)
+        // 缓存当前的公转状态
+        cachedRotationSpeed.value = rotationSpeed.value
+        cachedRotationDirection.value = rotationDirection.value
+        console.log('💾 缓存公转状态:', {
+          speed: cachedRotationSpeed.value,
+          direction: cachedRotationDirection.value
+        })
+        // 保持暂停状态，显示用户详情
+        showUserDetail(clickedUser)
+        isRestoringFromCache.value = true
+        startAutoResumeTimer()
+      } else {
+        // 暂停状态下点击空白区域，立即恢复
+        console.log('👆 暂停状态下点击空白区域，立即恢复公转')
+        resumeFromCache()
+      }
+    }).catch(error => {
+      console.error('❌ 检查用户点击失败:', error)
+      // 出错时也恢复公转
+      resumeFromCache()
+    })
+    return // 暂停状态下不执行后续逻辑
+  }
+
+  // 立即暂停公转
+  console.log('⏸️ 点击画布，立即暂停公转')
   isPaused.value = true
+  isPausedForViewing.value = true
+
+  // 缓存当前的公转状态
+  cachedRotationSpeed.value = rotationSpeed.value
+  cachedRotationDirection.value = rotationDirection.value
 
   // 清除之前的衰减定时器
   if (velocityDecayTimer.value) {
     clearInterval(velocityDecayTimer.value)
     velocityDecayTimer.value = null
   }
+
+
 }
 
 function onTouchMove(event) {
+  // 阻止事件冒泡，避免重复触发
+  event.stopPropagation()
+
   const touch = event.touches[0]
   const currentX = touch.clientX
   const currentY = touch.clientY
@@ -680,36 +820,39 @@ function onTouchMove(event) {
   const deltaY = currentY - lastTouchY.value
   const deltaTime = Date.now() - touchStartTime.value
 
-  // 计算速度
-  velocityX.value = deltaX / Math.max(deltaTime, 1) * 1000 // 像素/秒
-  velocityY.value = deltaY / Math.max(deltaTime, 1) * 1000
+  // 更新触摸持续时间
+  touchHoldDuration.value = deltaTime
 
-  // 判断是否为有效拖拽
+  // 计算总移动距离
   const totalDelta = Math.hypot(deltaX, deltaY)
-  if (totalDelta > 5) { // 降低阈值，提高灵敏度
+
+  // 如果移动距离超过阈值，认为是拖拽操作
+  if (totalDelta > 10) { // 提高阈值，避免误触
     isDragging.value = true
+
+    // 恢复控制，取消暂停
+    console.log('🔄 检测到拖拽，恢复控制')
+    isPaused.value = false
+    isPausedForViewing.value = false
+
+    // 计算速度
+    velocityX.value = deltaX / Math.max(deltaTime, 1) * 1000 // 像素/秒
+    velocityY.value = deltaY / Math.max(deltaTime, 1) * 1000
 
     // 计算滑动方向角度（弧度）
     const angle = Math.atan2(deltaY, deltaX)
 
-    // 将角度转换为旋转方向
-    // 水平向右 = 0度，垂直向下 = 90度
-    const rotationAngle = angle * (180 / Math.PI)
-
     // 根据滑动方向计算旋转方向
-    // 向右滑动 = 顺时针，向左滑动 = 逆时针
-    // 向下滑动 = 顺时针，向上滑动 = 逆时针
-    const speed = Math.min(totalDelta / 30, sphereConfig.value.maxSpeed) // 提高灵敏度
+    const speed = Math.min(totalDelta / 20, sphereConfig.value.maxSpeed)
 
     // 计算旋转速度的X和Y分量
     const speedX = Math.cos(angle) * speed
     const speedY = Math.sin(angle) * speed
 
-    // 综合X和Y方向的速度
+    // 重置公转方向和速度为手指的方向和速度
     rotationSpeed.value = Math.hypot(speedX, speedY)
 
     // 根据滑动方向确定旋转方向
-    // 这里可以根据需要调整方向映射
     if (Math.abs(deltaX) > Math.abs(deltaY)) {
       // 主要是水平滑动
       rotationDirection.value = deltaX > 0 ? 1 : -1
@@ -719,16 +862,8 @@ function onTouchMove(event) {
     }
 
     // 实时更新旋转
-    currentRotation.value += rotationSpeed.value * rotationDirection.value * 0.5
-
-    console.log('🔄 Touch Move:', {
-      deltaX: deltaX.toFixed(2),
-      deltaY: deltaY.toFixed(2),
-      totalDelta: totalDelta.toFixed(2),
-      speed: rotationSpeed.value.toFixed(2),
-      direction: rotationDirection.value,
-      angle: rotationAngle.toFixed(2)
-    })
+    const rotationIncrement = rotationSpeed.value * rotationDirection.value
+    currentRotation.value += rotationIncrement
   }
 
   // 更新上一次触摸位置
@@ -738,12 +873,68 @@ function onTouchMove(event) {
 }
 
 function onTouchEnd(event) {
-  console.log('👋 Touch End:', isDragging.value)
+  // 阻止事件冒泡，避免重复触发
+  event.stopPropagation()
+
+
   if (isDragging.value) {
-    // 保持当前旋转方向，但启动速度衰减
+    // 有拖拽操作
+    console.log('🔄 检测到拖拽操作，保持新的公转状态')
+
+    // 计算最终滑动速度
+    const totalDelta = Math.hypot(
+      lastTouchX.value - touchStartX.value,
+      lastTouchY.value - touchStartY.value
+    )
+    const totalTime = Date.now() - touchStartTime.value
+    const finalSpeed = totalDelta / Math.max(totalTime, 1) * 1000
+
+    // 根据最终速度设置旋转速度
+    if (finalSpeed > 100) {
+      // 快速滑动：设置最大速度
+      rotationSpeed.value = sphereConfig.value.maxSpeed
+    } else if (finalSpeed > 50) {
+      // 中等速度：保持当前速度
+      rotationSpeed.value = Math.min(rotationSpeed.value, sphereConfig.value.maxSpeed)
+    } else {
+      // 慢速滑动：设置基础速度
+      rotationSpeed.value = sphereConfig.value.baseSpeed
+    }
+
+    console.log('🔄 拖拽结束，开始衰减到基本速度')
+
+    // 启动速度衰减
     startVelocityDecay()
+
+  } else {
+    // 没有拖拽，检查是否命中用户点
+    checkUserClick(lastTouchX.value, lastTouchY.value).then(clickedUser => {
+      if (clickedUser) {
+        // 命中了用户点且没有滑动
+        // 缓存当前的公转状态
+        cachedRotationSpeed.value = rotationSpeed.value
+        cachedRotationDirection.value = rotationDirection.value
+
+        showUserDetail(clickedUser)
+        // 保持暂停状态，等待用户关闭弹窗
+        isPaused.value = true
+        isPausedForViewing.value = true
+        isRestoringFromCache.value = true // 标记需要从缓存恢复
+
+        // 启动自动恢复定时器
+        startAutoResumeTimer()
+
+      } else {
+        // 没有命中用户点，立即恢复原始公转状态
+        resumeFromCache()
+      }
+    }).catch(error => {
+      console.error('❌ 检查用户点击失败:', error)
+      // 出错时也恢复公转
+      resumeFromCache()
+    })
   }
-  isPaused.value = false
+
   isDragging.value = false
 }
 
@@ -813,18 +1004,93 @@ function resetFilter() {
 }
 
 function applyFilter() {
-  loadActiveUsers()
-  hideFilterModal()
+  try {
+    // 构建筛选条件
+    const filters = {}
+
+    if (filterGender.value) {
+      filters.gender = filterGender.value
+    }
+
+    if (filterAgeMin.value && filterAgeMax.value) {
+      filters.ageRange = {
+        min: Number.parseInt(filterAgeMin.value),
+        max: Number.parseInt(filterAgeMax.value)
+      }
+    }
+
+    if (filterSkills.value.length > 0) {
+      filters.skills = filterSkills.value
+    }
+
+    if (filterCities.value.length > 0) {
+      filters.city = filterCities.value[0] // 暂时只支持单个城市筛选
+    }
+
+    // 使用筛选函数获取数据
+    const filteredUsers = getFilteredParjobCards(filters)
+
+    // 转换数据格式以适配现有逻辑
+    const formattedUsers = filteredUsers.map(user => ({
+      _id: user._id,
+      nickname: user.nickname,
+      avatar: user.avatar || '/static/images/user-bg.png',
+      gender: user.gender,
+      age: user.age,
+      education: user.education,
+      city: user.city,
+      skills: user.skills || [],
+      tags: user.tags || [],
+      strengths: user.strengths,
+      photos: user.photos || ['/static/images/user-bg.png'],
+      show_fields: user.show_fields,
+      isOnline: true // 默认在线状态
+    }))
+
+    activeUsers.value = formattedUsers
+    hideFilterModal()
+  } catch (error) {
+    console.error('应用筛选失败:', error)
+    uni.showToast({
+      title: '筛选失败',
+      icon: 'error'
+    })
+  }
 }
 
 function showUserDetail(user) {
   selectedUser.value = user
   userDetailPopup.value.open()
+
+  // 标记弹窗已打开
+  isUserDetailOpen.value = true
+
+  // 注意：暂停状态和缓存状态现在由调用此函数的函数处理
+  // 这里不再重复设置，避免覆盖已设置的状态
 }
 
 function hideUserDetail() {
   selectedUser.value = null
   userDetailPopup.value.close()
+
+  // 标记弹窗已关闭
+  isUserDetailOpen.value = false
+
+  // 清除自动恢复定时器
+  if (autoResumeTimer.value) {
+    clearTimeout(autoResumeTimer.value)
+    autoResumeTimer.value = null
+  }
+
+  // 关闭弹窗后从缓存恢复公转状态
+  if (isRestoringFromCache.value) {
+    resumeFromCache()
+  } else {
+    isPaused.value = false
+    isPausedForViewing.value = false
+    rotationSpeed.value = sphereConfig.value.baseSpeed
+    rotationDirection.value = sphereConfig.value.defaultDirection
+  }
 }
 
 function contactUser() {
@@ -833,6 +1099,7 @@ function contactUser() {
     icon: 'none'
   })
 }
+
 
 // 获取屏幕信息
 function getScreenInfo() {
@@ -856,9 +1123,9 @@ function resetConfig() {
     sphereBackgroundColor: 'rgba(0, 0, 0, 0.3)', // 更透明
     sphereBorderColor: 'rgba(255, 255, 255, 0.1)', // 更透明
     sphereBorderWidth: 1, // 更细
-    baseSpeed: 1,
-    maxSpeed: 3,
-    minSpeed: 0.5,
+    baseSpeed: 0.4,
+    maxSpeed: 2,
+    minSpeed: 0.2,
     defaultDirection: 1
   }
   rotationSpeed.value = sphereConfig.value.baseSpeed
@@ -868,251 +1135,27 @@ function resetConfig() {
 // 加载活跃用户数据
 async function loadActiveUsers() {
   try {
-    // 模拟云端数据 - 支持任意ID开始的数据
-    const mockUsers = [
-      {
-        _id: '1', // 从1开始，符合云端数据规律
-        nickname: '小明',
-        avatar: '/static/images/user-bg.png',
-        gender: 'male',
-        age: 25,
-        education: '本科',
-        city: '北京',
-        skills: ['前端开发', 'Vue.js', 'JavaScript', 'React'],
-        tags: ['Web开发', '移动端', 'UI设计'],
-        strengths: '擅长前端开发，有3年工作经验，熟悉Vue.js生态系统，对用户体验有深入研究',
-        photos: ['/static/images/user-bg.png'],
-        show_fields: {
-          age: true,
-          gender: true,
-          education: true,
-          city: true,
-          skills: true,
-          strengths: true,
-          tags: true,
-          photos: true
-        },
-        isOnline: true
-      },
-      {
-        _id: '2',
-        nickname: '小红',
-        avatar: '/static/images/user-bg.png',
-        gender: 'female',
-        age: 28,
-        education: '硕士',
-        city: '上海',
-        skills: ['UI设计', 'Photoshop', 'Figma', 'Sketch'],
-        tags: ['设计', '创意', '品牌设计'],
-        strengths: '专业UI设计师，有5年设计经验，擅长用户界面设计和品牌视觉设计',
-        photos: ['/static/images/user-bg.png'],
-        show_fields: {
-          age: true,
-          gender: true,
-          education: true,
-          city: true,
-          skills: true,
-          strengths: true,
-          tags: true,
-          photos: true
-        },
-        isOnline: false
-      },
-      {
-        _id: '3',
-        nickname: '小李',
-        avatar: '/static/images/user-bg.png',
-        gender: 'male',
-        age: 30,
-        education: '本科',
-        city: '深圳',
-        skills: ['后端开发', 'Java', 'Spring Boot', 'MySQL'],
-        tags: ['后端开发', '数据库', '微服务'],
-        strengths: '资深后端工程师，精通Java技术栈，有丰富的项目经验，擅长系统架构设计',
-        photos: ['/static/images/user-bg.png'],
-        show_fields: {
-          age: true,
-          gender: true,
-          education: true,
-          city: true,
-          skills: true,
-          strengths: true,
-          tags: true,
-          photos: true
-        },
-        isOnline: true
-      },
-      {
-        _id: '4',
-        nickname: '小张',
-        avatar: '/static/images/user-bg.png',
-        gender: 'female',
-        age: 26,
-        education: '本科',
-        city: '广州',
-        skills: ['数据分析', 'Python', 'SQL', '机器学习'],
-        tags: ['数据分析', '机器学习', '商业分析'],
-        strengths: '数据分析师，擅长数据挖掘和可视化，有丰富的业务分析经验',
-        photos: ['/static/images/user-bg.png'],
-        show_fields: {
-          age: true,
-          gender: true,
-          education: true,
-          city: true,
-          skills: true,
-          strengths: true,
-          tags: true,
-          photos: true
-        },
-        isOnline: true
-      },
-      {
-        _id: '5',
-        nickname: '小王',
-        avatar: '/static/images/user-bg.png',
-        gender: 'male',
-        age: 29,
-        education: '硕士',
-        city: '杭州',
-        skills: ['产品经理', 'Axure', '用户研究', '数据分析'],
-        tags: ['产品设计', '用户体验', '市场分析'],
-        strengths: '产品经理，有4年产品设计经验，擅长用户需求分析和产品规划',
-        photos: ['/static/images/user-bg.png'],
-        show_fields: {
-          age: true,
-          gender: true,
-          education: true,
-          city: true,
-          skills: true,
-          strengths: true,
-          tags: true,
-          photos: true
-        },
-        isOnline: false
-      },
-      {
-        _id: '6',
-        nickname: '小陈',
-        avatar: '/static/images/user-bg.png',
-        gender: 'female',
-        age: 27,
-        education: '本科',
-        city: '成都',
-        skills: ['移动端开发', 'iOS', 'Swift', 'Flutter'],
-        tags: ['移动端', '跨平台', '原生开发'],
-        strengths: '移动端开发工程师，精通iOS原生开发和Flutter跨平台开发',
-        photos: ['/static/images/user-bg.png'],
-        show_fields: {
-          age: true,
-          gender: true,
-          education: true,
-          city: true,
-          skills: true,
-          strengths: true,
-          tags: true,
-          photos: true
-        },
-        isOnline: true
-      },
-      {
-        _id: '7',
-        nickname: '小刘',
-        avatar: '/static/images/user-bg.png',
-        gender: 'male',
-        age: 31,
-        education: '本科',
-        city: '武汉',
-        skills: ['运维工程师', 'Linux', 'Docker', 'Kubernetes'],
-        tags: ['运维', '云计算', '自动化'],
-        strengths: '运维工程师，有6年运维经验，擅长容器化和自动化部署',
-        photos: ['/static/images/user-bg.png'],
-        show_fields: {
-          age: true,
-          gender: true,
-          education: true,
-          city: true,
-          skills: true,
-          strengths: true,
-          tags: true,
-          photos: true
-        },
-        isOnline: true
-      },
-      {
-        _id: '8',
-        nickname: '小赵',
-        avatar: '/static/images/user-bg.png',
-        gender: 'female',
-        age: 24,
-        education: '本科',
-        city: '西安',
-        skills: ['测试工程师', '自动化测试', 'Selenium', '性能测试'],
-        tags: ['测试', '质量保证', '自动化'],
-        strengths: '测试工程师，擅长自动化测试和性能测试，对软件质量有严格要求',
-        photos: ['/static/images/user-bg.png'],
-        show_fields: {
-          age: true,
-          gender: true,
-          education: true,
-          city: true,
-          skills: true,
-          strengths: true,
-          tags: true,
-          photos: true
-        },
-        isOnline: false
-      },
-      {
-        _id: '9',
-        nickname: '小孙',
-        avatar: '/static/images/user-bg.png',
-        gender: 'male',
-        age: 33,
-        education: '硕士',
-        city: '南京',
-        skills: ['算法工程师', 'Python', '深度学习', 'TensorFlow'],
-        tags: ['算法', 'AI', '机器学习'],
-        strengths: '算法工程师，专注于深度学习和计算机视觉，有多个AI项目经验',
-        photos: ['/static/images/user-bg.png'],
-        show_fields: {
-          age: true,
-          gender: true,
-          education: true,
-          city: true,
-          skills: true,
-          strengths: true,
-          tags: true,
-          photos: true
-        },
-        isOnline: true
-      },
-      {
-        _id: '10',
-        nickname: '小周',
-        avatar: '/static/images/user-bg.png',
-        gender: 'female',
-        age: 26,
-        education: '本科',
-        city: '重庆',
-        skills: ['运营专员', '内容运营', '用户增长', '数据分析'],
-        tags: ['运营', '增长', '内容'],
-        strengths: '运营专员，擅长用户增长和内容运营，有丰富的社区运营经验',
-        photos: ['/static/images/user-bg.png'],
-        show_fields: {
-          age: true,
-          gender: true,
-          education: true,
-          city: true,
-          skills: true,
-          strengths: true,
-          tags: true,
-          photos: true
-        },
-        isOnline: true
-      }
-    ]
+    // 使用真实数据
+    const users = getActiveParjobCards()
 
-    activeUsers.value = mockUsers
+    // 转换数据格式以适配现有逻辑
+    const formattedUsers = users.map(user => ({
+      _id: user._id,
+      nickname: user.nickname,
+      avatar: user.avatar || '/static/images/user-bg.png',
+      gender: user.gender,
+      age: user.age,
+      education: user.education,
+      city: user.city,
+      skills: user.skills || [],
+      tags: user.tags || [],
+      strengths: user.strengths,
+      photos: user.photos || ['/static/images/user-bg.png'],
+      show_fields: user.show_fields,
+      isOnline: true // 默认在线状态
+    }))
+
+    activeUsers.value = formattedUsers
   } catch (error) {
     console.error('加载用户数据失败:', error)
     uni.showToast({
@@ -1128,6 +1171,10 @@ onMounted(() => {
   loadActiveUsers()
   nextTick(() => {
     startRotation()
+
+    // 初始化缓存状态
+    cachedRotationSpeed.value = rotationSpeed.value
+    cachedRotationDirection.value = rotationDirection.value
   })
 })
 
@@ -1138,7 +1185,184 @@ onUnmounted(() => {
     clearInterval(velocityDecayTimer.value)
     velocityDecayTimer.value = null
   }
+
+  // 清理自动恢复定时器
+  if (autoResumeTimer.value) {
+    clearTimeout(autoResumeTimer.value)
+    autoResumeTimer.value = null
+  }
 })
+
+// 检查点击是否在用户点上 - 优化版本
+function checkUserClick(x, y) {
+  try {
+    console.log('try checkUserClick', x, y)
+    return new Promise((resolve) => {
+      const query = uni.createSelectorQuery()
+      query.select('.sphere-container').boundingClientRect((containerRect) => {
+        if (!containerRect) {
+          resolve(null)
+          return
+        }
+
+        const centerX = containerRect.left + containerRect.width / 2
+        const centerY = containerRect.top + containerRect.height / 2
+
+        // 计算点击位置相对于球体中心的偏移
+        const offsetX = x - centerX
+        const offsetY = y - centerY
+
+        // 检查是否在球体范围内
+        const distance = Math.hypot(offsetX, offsetY)
+        const sphereRadius = actualRadius.value
+        if (distance <= sphereRadius) {
+          // 在球体范围内，查找最近的用户点
+          let closestUser = null
+          let minDistance = Number.POSITIVE_INFINITY
+
+          activeUsers.value.forEach((user, index) => {
+            // 获取用户点的3D位置
+            const userStyle = getSphereItemStyle(index)
+            const transform = userStyle.transform
+            const match = transform.match(/translate3d\(([^,]+),([^,]+),([^)]+)\)/)
+
+            if (match) {
+              // 更精确的像素转换 - 使用系统像素比
+              const pixelRatio = screenInfo.value.pixelRatio || 1
+              const userX = Number.parseFloat(match[1]) / pixelRatio
+              const userY = Number.parseFloat(match[2]) / pixelRatio
+              const userZ = Number.parseFloat(match[3]) / pixelRatio
+
+              // 考虑球体旋转对用户点位置的影响
+              // 当前旋转角度会影响用户点的实际屏幕位置
+              const rotationRad = (currentRotation.value * Math.PI) / 180
+              const rotatedX = userX * Math.cos(rotationRad) - userZ * Math.sin(rotationRad)
+              const rotatedZ = userX * Math.sin(rotationRad) + userZ * Math.cos(rotationRad)
+
+              // 计算3D距离（考虑旋转后的位置）
+              const userDistance = Math.hypot(offsetX - rotatedX, offsetY - userY)
+
+              // 根据Z轴深度调整点击范围 - 越近的点点击范围越小
+              const baseClickRadius = 10 // 基础点击半径（像素）
+              const depthFactor = Math.max(0.4, Math.min(1.2, 1 - Math.abs(rotatedZ) / sphereRadius))
+              const clickRadius = baseClickRadius * depthFactor
+
+              // 添加调试信息
+              if (showClickDebug.value) {
+                console.log(`🔍 用户${index + 1}(${user.nickname}): 距离=${userDistance.toFixed(1)}px, 点击范围=${clickRadius.toFixed(1)}px, 旋转Z=${rotatedZ.toFixed(1)}px`)
+              }
+
+              if (userDistance <= clickRadius && userDistance < minDistance) {
+                minDistance = userDistance
+                closestUser = user
+                if (showClickDebug.value) {
+                  console.log(`✅ 命中用户: ${user.nickname}, 距离: ${userDistance.toFixed(1)}px`)
+                }
+              }
+            }
+          })
+
+          if (closestUser) {
+            if (showClickDebug.value) {
+              console.log(`🎯 最终选中: ${closestUser.nickname}`)
+            }
+          } else {
+            if (showClickDebug.value) {
+              console.log('❌ 未命中任何用户点')
+            }
+          }
+
+          resolve(closestUser)
+        } else {
+          if (showClickDebug.value) {
+            console.log(`❌ 点击位置超出球体范围: 距离=${distance.toFixed(1)}px, 球体半径=${sphereRadius}px`)
+          }
+          resolve(null)
+        }
+      }).exec()
+    })
+  } catch (error) {
+    console.error('❌ 检查用户点击时出错:', error)
+    return Promise.resolve(null)
+  }
+}
+
+// 处理用户点点击
+function handleUserDotClick(user) {
+
+  // 缓存当前的公转状态
+  cachedRotationSpeed.value = rotationSpeed.value
+  cachedRotationDirection.value = rotationDirection.value
+
+  // 暂停公转
+  isPaused.value = true
+  isPausedForViewing.value = true
+  isRestoringFromCache.value = true
+
+  // 显示用户详情
+  showUserDetail(user)
+
+  // 启动自动恢复定时器
+  startAutoResumeTimer()
+}
+
+// 处理用户信息点击
+function handleUserInfoClick(user) {
+
+  // 缓存当前的公转状态
+  cachedRotationSpeed.value = rotationSpeed.value
+  cachedRotationDirection.value = rotationDirection.value
+
+  // 暂停公转
+  isPaused.value = true
+  isPausedForViewing.value = true
+  isRestoringFromCache.value = true
+
+  // 显示用户详情
+  showUserDetail(user)
+
+  // 启动自动恢复定时器
+  startAutoResumeTimer()
+}
+
+// 从缓存恢复公转状态
+function resumeFromCache() {
+  // 清除自动恢复定时器
+  if (autoResumeTimer.value) {
+    clearTimeout(autoResumeTimer.value)
+    autoResumeTimer.value = null
+  }
+
+  // 只有在弹窗关闭时才恢复公转
+  if (isUserDetailOpen.value) {
+    console.log('🔄 弹窗仍打开，不恢复公转')
+  } else {
+    isPaused.value = false
+    isPausedForViewing.value = false
+
+    // 恢复缓存的公转状态
+    rotationSpeed.value = cachedRotationSpeed.value
+    rotationDirection.value = cachedRotationDirection.value
+    isRestoringFromCache.value = false
+  }
+}
+
+// 启动自动恢复定时器
+function startAutoResumeTimer() {
+  if (autoResumeTimer.value) {
+    clearTimeout(autoResumeTimer.value)
+  }
+
+  autoResumeTimer.value = setTimeout(() => {
+    // 只有在弹窗关闭时才自动恢复
+    if (isUserDetailOpen.value) {
+      console.log('⏰ 自动恢复定时器触发，但弹窗仍打开，不恢复公转')
+    } else {
+      console.log('⏰ 自动恢复定时器触发，恢复公转')
+      resumeFromCache()
+    }
+  }, autoResumeDelay)
+}
 </script>
 
 <style scoped>
@@ -1194,6 +1418,12 @@ onUnmounted(() => {
   border-radius: 50%;
   /* overflow: visible !important;   */
   /* 确保用户点不会被裁剪 */
+  /* 确保可以接收触摸事件 */
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* 旋转球体 - 完全由JavaScript控制 */
@@ -1240,10 +1470,6 @@ onUnmounted(() => {
   transform: none;
 }
 
-.sphere.paused .sphere-item:not(:has(div:hover)) {
-  opacity: 0.25;
-}
-
 /* 用户点样式 */
 .item-content {
   display: flex;
@@ -1268,6 +1494,12 @@ onUnmounted(() => {
   transition: all 0.3s ease;
   border: 3rpx solid rgba(255, 255, 255, 0.5);
   /* 添加边框增强可见性 */
+  /* 确保可以接收触摸事件 */
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .item-content:hover .item-dot {
@@ -1294,6 +1526,12 @@ onUnmounted(() => {
   /* 添加边框 */
   z-index: 15;
   /* 确保在最上层 */
+  /* 确保可以接收触摸事件 */
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .item-name {
@@ -1312,66 +1550,6 @@ onUnmounted(() => {
   justify-content: center;
 }
 
-/* Canvas渲染层 */
-.sphere-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 3;
-  pointer-events: auto;
-  /* 确保可以接收触摸事件 */
-  background: transparent;
-  /* 禁用默认触摸行为，避免passive事件监听器警告 */
-  touch-action: none;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-  /* 添加调试边框，方便查看手势区域 */
-  /* border: 1px solid rgba(255, 255, 255, 0.1); */
-}
-
-/* 为每个点生成不同的颜色 */
-.sphere-item:nth-child(1) {
-  --color: hsl(0, 70%, 60%);
-}
-
-.sphere-item:nth-child(2) {
-  --color: hsl(60, 70%, 60%);
-}
-
-.sphere-item:nth-child(3) {
-  --color: hsl(120, 70%, 60%);
-}
-
-.sphere-item:nth-child(4) {
-  --color: hsl(180, 70%, 60%);
-}
-
-.sphere-item:nth-child(5) {
-  --color: hsl(240, 70%, 60%);
-}
-
-.sphere-item:nth-child(6) {
-  --color: hsl(300, 70%, 60%);
-}
-
-.sphere-item:nth-child(7) {
-  --color: hsl(30, 70%, 60%);
-}
-
-.sphere-item:nth-child(8) {
-  --color: hsl(90, 70%, 60%);
-}
-
-.sphere-item:nth-child(9) {
-  --color: hsl(150, 70%, 60%);
-}
-
-.sphere-item:nth-child(10) {
-  --color: hsl(210, 70%, 60%);
-}
 
 .bottom-stats {
   display: flex;
@@ -1802,20 +1980,9 @@ onUnmounted(() => {
   margin-bottom: 5rpx;
 }
 
-/* 测试用户点样式 */
-.test-item {
-  z-index: 20;
-  /* 确保在最上层 */
-}
-
-.test-item .item-dot {
-  background: #ff0000 !important;
-  box-shadow: 0 0 30rpx #ff0000, 0 0 60rpx #ff0000 !important;
-  border: 4rpx solid rgba(255, 255, 255, 0.8) !important;
-}
-
-.test-item .item-info {
-  background: rgba(255, 0, 0, 0.9) !important;
-  border: 2rpx solid rgba(255, 255, 255, 0.8) !important;
+/* 用户点颜色 - 由JavaScript动态生成 */
+.sphere-item {
+  --color: var(--color, hsl(220, 85%, 65%));
+  /* 默认蓝色 */
 }
 </style>

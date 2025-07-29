@@ -201,6 +201,171 @@ export const parjobCards = [
     allow_homepage_view: true,
     created_at: '2024-01-11T08:20:00.000Z',
     updated_at: '2024-01-16T14:10:00.000Z'
+  },
+  {
+    _id: '688a1234a7c43263da471567',
+    user_id: '688a1234a7c43263da471567',
+    nickname: '插画师',
+    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200',
+    gender: 'female',
+    age: 24,
+    education: '本科',
+    city: '武汉',
+    skills: ['插画设计', '手绘', '数字绘画', '角色设计'],
+    strengths: '专业插画师，擅长手绘和数字绘画，有丰富的角色设计和场景插画经验，能够快速完成各种风格的作品。',
+    tags: ['插画设计', '手绘艺术', '数字绘画', '角色设计'],
+    photos: [
+      'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
+      'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400'
+    ],
+    diploma_photos: [],
+    certificate_photos: [],
+    show_fields: {
+      age: true,
+      gender: true,
+      education: true,
+      city: true,
+      skills: true,
+      strengths: true,
+      tags: true,
+      photos: true
+    },
+    is_active: true,
+    allow_homepage_view: false,
+    created_at: '2024-01-13T14:15:00.000Z',
+    updated_at: '2024-01-22T11:30:00.000Z'
+  },
+  {
+    _id: '688b5678a7c43263da471568',
+    user_id: '688b5678a7c43263da471568',
+    nickname: '心理咨询师',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+    gender: 'female',
+    age: 32,
+    education: '硕士',
+    city: '南京',
+    skills: ['心理咨询', '认知行为疗法', '情绪管理', '压力疏导'],
+    strengths: '专业心理咨询师，持有国家心理咨询师证书，擅长认知行为疗法和情绪管理，有丰富的个案咨询经验。',
+    tags: ['心理咨询', '认知行为疗法', '情绪管理', '压力疏导'],
+    photos: [
+      'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400',
+      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400'
+    ],
+    diploma_photos: [],
+    certificate_photos: [],
+    show_fields: {
+      age: false,
+      gender: true,
+      education: true,
+      city: true,
+      skills: true,
+      strengths: true,
+      tags: true,
+      photos: true
+    },
+    is_active: true,
+    allow_homepage_view: true,
+    created_at: '2024-01-09T16:45:00.000Z',
+    updated_at: '2024-01-18T13:20:00.000Z'
+  },
+  {
+    _id: '688c9012a7c43263da471569',
+    user_id: '688c9012a7c43263da471569',
+    nickname: '摄影师',
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200',
+    gender: 'male',
+    age: 27,
+    education: '本科',
+    city: '西安',
+    skills: ['人像摄影', '商业摄影', '后期修图', '视频拍摄'],
+    strengths: '专业摄影师，擅长人像和商业摄影，有丰富的后期修图经验，能够提供从拍摄到后期的完整服务。',
+    tags: ['人像摄影', '商业摄影', '后期修图', '视频拍摄'],
+    photos: [
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
+      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400'
+    ],
+    diploma_photos: [],
+    certificate_photos: [],
+    show_fields: {
+      age: true,
+      gender: true,
+      education: true,
+      city: true,
+      skills: true,
+      strengths: true,
+      tags: true,
+      photos: true
+    },
+    is_active: true,
+    allow_homepage_view: false,
+    created_at: '2024-01-16T09:30:00.000Z',
+    updated_at: '2024-01-23T15:45:00.000Z'
+  },
+  {
+    _id: '688d3456a7c43263da471570',
+    user_id: '688d3456a7c43263da471570',
+    nickname: '程序员',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200',
+    gender: 'male',
+    age: 31,
+    education: '本科',
+    city: '重庆',
+    skills: ['Java开发', 'Spring Boot', '微服务', '数据库设计'],
+    strengths: '资深Java开发工程师，有6年开发经验，精通Spring Boot和微服务架构，擅长数据库设计和性能优化。',
+    tags: ['Java开发', 'Spring Boot', '微服务架构', '数据库设计'],
+    photos: [
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
+      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400'
+    ],
+    diploma_photos: [],
+    certificate_photos: [],
+    show_fields: {
+      age: true,
+      gender: true,
+      education: true,
+      city: true,
+      skills: true,
+      strengths: true,
+      tags: true,
+      photos: false
+    },
+    is_active: true,
+    allow_homepage_view: true,
+    created_at: '2024-01-07T10:20:00.000Z',
+    updated_at: '2024-01-15T12:30:00.000Z'
+  },
+  {
+    _id: '688e7890a7c43263da471571',
+    user_id: '688e7890a7c43263da471571',
+    nickname: '设计师',
+    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200',
+    gender: 'female',
+    age: 26,
+    education: '本科',
+    city: '苏州',
+    skills: ['UI设计', '平面设计', '品牌设计', '动效设计'],
+    strengths: '专业UI设计师，擅长用户界面设计和品牌视觉设计，有丰富的动效设计经验，能够提供完整的设计解决方案。',
+    tags: ['UI设计', '平面设计', '品牌设计', '动效设计'],
+    photos: [
+      'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
+      'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400'
+    ],
+    diploma_photos: [],
+    certificate_photos: [],
+    show_fields: {
+      age: true,
+      gender: true,
+      education: true,
+      city: true,
+      skills: true,
+      strengths: true,
+      tags: true,
+      photos: true
+    },
+    is_active: true,
+    allow_homepage_view: false,
+    created_at: '2024-01-12T13:45:00.000Z',
+    updated_at: '2024-01-20T16:15:00.000Z'
   }
 ]
 
@@ -226,9 +391,7 @@ export function getFilteredParjobCards(filters = {}) {
   }
 
   if (filters.ageRange) {
-    filtered = filtered.filter(
-      card => card.age >= filters.ageRange.min && card.age <= filters.ageRange.max
-    )
+    filtered = filtered.filter(card => card.age >= filters.ageRange.min && card.age <= filters.ageRange.max)
   }
 
   return filtered
@@ -266,8 +429,8 @@ export function getParjobCardByUserId(userId) {
 // 生成随机位置（用于星球分布）
 export function generateRandomPosition() {
   return {
-    x: Math.random() * 100, // 0-100%
-    y: Math.random() * 100, // 0-100%
+    x: Math.random() * 100, // 5-95%
+    y: Math.random() * 100, // 5-95%
     z: Math.random() * 10 // 0-10 (深度)
   }
 }
