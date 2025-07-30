@@ -11,9 +11,6 @@
           <view class="nav-btn" @click="goToEdit">
             <uni-icons type="gear" size="20" color="#333" />
           </view>
-          <view class="nav-btn" @click="showDebugPanel = !showDebugPanel">
-            <uni-icons type="settings" size="20" color="#333" />
-          </view>
         </view>
       </template>
     </uni-nav-bar>
@@ -175,197 +172,6 @@
         </view>
       </view>
     </uni-popup>
-
-    <!-- 调试面板 -->
-    <view class="debug-panel" v-if="showDebugPanel">
-      <view class="debug-header">
-        <text class="debug-title">调试面板</text>
-        <view class="debug-close" @click="showDebugPanel = false">
-          <uni-icons type="close" size="16" color="#fff" />
-        </view>
-      </view>
-
-      <!-- 分布信息 -->
-      <view class="debug-section">
-        <text class="debug-label">分布信息</text>
-        <view class="debug-row">
-          <text class="debug-text">用户数量: {{ activeUsers.length }}</text>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">球体半径: {{ Math.round(actualRadius) }}rpx</text>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">当前速度: {{ rotationSpeed.toFixed(2) }}</text>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">旋转方向: {{ rotationDirection === 1 ? '顺时针' : '逆时针' }}</text>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">是否暂停: {{ isPaused ? '是' : '否' }}</text>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">查看暂停: {{ isPausedForViewing ? '是' : '否' }}</text>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">弹窗状态: {{ isUserDetailOpen ? '打开' : '关闭' }}</text>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">触摸持续时间: {{ touchHoldDuration }}ms</text>
-        </view>
-
-        <view class="debug-row">
-          <text class="debug-text">缓存速度: {{ cachedRotationSpeed.toFixed(2) }}</text>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">缓存方向: {{ cachedRotationDirection === 1 ? '顺时针' : '逆时针' }}</text>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">缓存状态: {{ isRestoringFromCache ? '需要恢复' : '正常' }}</text>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">需要恢复: {{ isRestoringFromCache ? '是' : '否' }}</text>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">自动恢复定时器: {{ autoResumeTimer ? '运行中' : '已停止' }}</text>
-        </view>
-
-        <view class="debug-row">
-          <text class="debug-text">自动恢复延迟: {{ autoResumeDelay }}ms</text>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">点击调试: {{ showClickDebug ? '开启' : '关闭' }}</text>
-          <button class="debug-btn" :class="{ active: showClickDebug }" @click="showClickDebug = !showClickDebug">
-            {{ showClickDebug ? '关闭' : '开启' }}
-          </button>
-        </view>
-      </view>
-
-      <!-- 手势调试信息 -->
-      <view class="debug-section">
-        <text class="debug-label">手势调试</text>
-        <view class="debug-row">
-          <text class="debug-text">是否拖拽: {{ isDragging ? '是' : '否' }}</text>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">速度X: {{ velocityX.toFixed(2) }}</text>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">速度Y: {{ velocityY.toFixed(2) }}</text>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">衰减定时器: {{ velocityDecayTimer ? '运行中' : '已停止' }}</text>
-        </view>
-      </view>
-
-      <!-- 中心点配置 -->
-      <view class="debug-section">
-        <text class="debug-label">中心点配置</text>
-        <view class="debug-row">
-          <text class="debug-text">X: {{ sphereConfig.centerX }}%</text>
-          <slider :value="sphereConfig.centerX" @change="(e) => sphereConfig.centerX = e.detail.value" min="0" max="100"
-            step="1" class="debug-slider" />
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">Y: {{ sphereConfig.centerY }}%</text>
-          <slider :value="sphereConfig.centerY" @change="(e) => sphereConfig.centerY = e.detail.value" min="0" max="100"
-            step="1" class="debug-slider" />
-        </view>
-      </view>
-
-      <!-- 公转半径配置 -->
-      <view class="debug-section">
-        <text class="debug-label">公转半径配置</text>
-        <view class="debug-row">
-          <text class="debug-text">公转半径: {{ sphereConfig.radiusPercent }}% ({{ Math.round(actualRadius) }}rpx)</text>
-          <slider :value="sphereConfig.radiusPercent" @change="(e) => sphereConfig.radiusPercent = e.detail.value"
-            min="10" max="200" step="1" class="debug-slider" />
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">最大半径: {{ sphereConfig.maxRadiusPercent }}%</text>
-          <slider :value="sphereConfig.maxRadiusPercent" @change="(e) => sphereConfig.maxRadiusPercent = e.detail.value"
-            min="20" max="200" step="5" class="debug-slider" />
-        </view>
-      </view>
-
-      <!-- 球体背景和边框配置 -->
-      <view class="debug-section">
-        <text class="debug-label">球体背景和边框</text>
-        <view class="debug-row">
-          <text class="debug-text">显示背景: {{ sphereConfig.showSphereBackground ? '是' : '否' }}</text>
-          <button class="debug-btn" :class="{ active: sphereConfig.showSphereBackground }"
-            @click="sphereConfig.showSphereBackground = true">
-            显示
-          </button>
-          <button class="debug-btn" :class="{ active: !sphereConfig.showSphereBackground }"
-            @click="sphereConfig.showSphereBackground = false">
-            隐藏
-          </button>
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">背景颜色: {{ sphereConfig.sphereBackgroundColor }}</text>
-          <input type="color" v-model="sphereConfig.sphereBackgroundColor" class="debug-color-input" />
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">边框颜色: {{ sphereConfig.sphereBorderColor }}</text>
-          <input type="color" v-model="sphereConfig.sphereBorderColor" class="debug-color-input" />
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">边框宽度: {{ sphereConfig.sphereBorderWidth }}rpx</text>
-          <slider :value="sphereConfig.sphereBorderWidth"
-            @change="(e) => sphereConfig.sphereBorderWidth = e.detail.value" min="0" max="5" step="1"
-            class="debug-slider" />
-        </view>
-        <view class="debug-info">
-          <text class="debug-text">💡 提示: 背景色建议使用rgba格式，如rgba(0,0,0,0.3)</text>
-        </view>
-      </view>
-
-      <!-- 球体大小配置 -->
-      <view class="debug-section">
-        <text class="debug-label">球体大小配置</text>
-        <view class="debug-row">
-          <text class="debug-text">容器大小: {{ sphereConfig.sphereSizePercent }}%</text>
-          <slider :value="sphereConfig.sphereSizePercent"
-            @change="(e) => sphereConfig.sphereSizePercent = e.detail.value" min="1" max="200" step="5"
-            class="debug-slider" />
-        </view>
-      </view>
-
-      <!-- 速度配置 -->
-      <view class="debug-section">
-        <text class="debug-label">速度配置</text>
-        <view class="debug-row">
-          <text class="debug-text">基础速度: {{ sphereConfig.baseSpeed }}</text>
-          <slider :value="sphereConfig.baseSpeed * 10" @change="(e) => sphereConfig.baseSpeed = e.detail.value / 10"
-            min="1" max="50" step="1" class="debug-slider" />
-        </view>
-        <view class="debug-row">
-          <text class="debug-text">最大速度: {{ sphereConfig.maxSpeed }}</text>
-          <slider :value="sphereConfig.maxSpeed * 10" @change="(e) => sphereConfig.maxSpeed = e.detail.value / 10"
-            min="10" max="100" step="1" class="debug-slider" />
-        </view>
-      </view>
-
-      <!-- 方向配置 -->
-      <view class="debug-section">
-        <text class="debug-label">方向配置</text>
-        <view class="debug-row">
-          <button class="debug-btn" :class="{ active: rotationDirection === 1 }" @click="rotationDirection = 1">
-            顺时针
-          </button>
-          <button class="debug-btn" :class="{ active: rotationDirection === -1 }" @click="rotationDirection = -1">
-            逆时针
-          </button>
-        </view>
-      </view>
-
-      <!-- 操作按钮 -->
-      <view class="debug-actions">
-        <button class="debug-action-btn" @click="resetConfig">重置配置</button>
-        <button class="debug-action-btn" @click="pauseRotation">暂停</button>
-        <button class="debug-action-btn" @click="resumeRotation">继续</button>
-      </view>
-    </view>
   </view>
 </template>
 
@@ -390,44 +196,52 @@ const screenInfo = ref({
 
 // 可配置的公转参数
 const sphereConfig = ref({
-  // 公转中心点配置 (相对于屏幕的百分比)
-  centerX: 50, // 水平中心点 (50% = 屏幕中心)
-  centerY: 50, // 垂直中心点 (50% = 屏幕中心)
+  // 公转中心点配置
+  centerX: 50, // 水平中心点
+  centerY: 50, // 垂直中心点
 
-  // 公转半径配置 (相对于屏幕宽度的百分比)
+  // 公转半径配置
   radiusPercent: 100, // 公转半径占屏幕宽度的百分比
-  maxRadiusPercent: 120, // 最大半径占屏幕宽度的百分比（允许超过屏幕宽度）
+  maxRadiusPercent: 120, // 最大半径占屏幕宽度的百分比
 
-  // 球体大小配置 (相对于屏幕宽度的百分比 200% 最大 占整个屏幕)
-  sphereSizePercent: 200, // 球体容器占屏幕宽度的百分比 - 设置合理的默认值
+  // 球体大小配置
+  sphereSizePercent: 200, // 球体容器占屏幕宽度的百分比
 
   // 球体背景和边框配置
   showSphereBackground: true, // 是否显示球体背景
-  sphereBackgroundColor: 'rgba(0, 0, 0, 0.3)', // 球体背景颜色 - 更透明
-  sphereBorderColor: 'rgba(255, 255, 255, 0.1)', // 球体边框颜色 - 更透明
-  sphereBorderWidth: 1, // 球体边框宽度 - 更细
+  sphereBackgroundColor: 'rgba(0, 0, 0, 0.3)', // 球体背景颜色
+  sphereBorderColor: 'rgba(255, 255, 255, 0.1)', // 球体边框颜色
+  sphereBorderWidth: 1, // 球体边框宽度
 
   // 公转速度配置
-  baseSpeed: 0.4, // 基础旋转速度
-  maxSpeed: 2,  // 最大旋转速度
-  minSpeed: 0.2, // 最小旋转速度
+  baseSpeed: 0.2, // 基础旋转速度
+  maxSpeed: 1.2,  // 最大旋转速度
+  minSpeed: 0.1, // 最小旋转速度
 
   // 公转方向配置
   defaultDirection: 1, // 默认旋转方向 (1=顺时针, -1=逆时针)
+
+  // 多方向公转配置
+  enableMultiDirection: true, // 是否启用多方向公转
+  rotationAxis: 'Y', // 当前旋转轴
+  customRotationAngle: 0, // 自定义旋转角度（度）
 })
 
 const rotationSpeed = ref(sphereConfig.value.baseSpeed) // 旋转速度
 const rotationDirection = ref(sphereConfig.value.defaultDirection) // 旋转方向：1为顺时针，-1为逆时针
 
-// 调试面板相关
-const showDebugPanel = ref(false) // 是否显示调试面板
-const showClickDebug = ref(false) // 是否显示点击调试信息
+// 多方向公转相关变量
+const currentRotationAngle = ref(0) // 当前公转角度（度）
+const targetRotationAngle = ref(0) // 目标公转角度（度）
+const rotationAxis = ref('Y') // 当前旋转轴
+const isCustomRotation = ref(false) // 是否使用自定义旋转角度
+
 
 // 手势控制相关
 const touchStartX = ref(0)
 const touchStartY = ref(0)
 const touchStartTime = ref(0)
-const isDragging = ref(false)
+const isSliding = ref(false)
 const lastTouchX = ref(0)
 const lastTouchY = ref(0)
 const velocityX = ref(0)
@@ -441,6 +255,7 @@ const touchHoldDuration = ref(0) // 触摸持续时间
 // 缓存原始公转状态
 const cachedRotationSpeed = ref(0) // 缓存的旋转速度
 const cachedRotationDirection = ref(1) // 缓存的旋转方向
+const cachedRotationAngle = ref(0) // 缓存的旋转角度
 const isRestoringFromCache = ref(false) // 是否正在从缓存恢复
 
 // 自动恢复相关
@@ -495,10 +310,28 @@ const availableCities = computed(() => {
   return getAvailableCities()
 })
 
-// 球体旋转样式 - 使用可配置的中心点
+// 球体旋转样式 - 多方向旋转控制
 const sphereRotationStyle = computed(() => {
-  return {
-    transform: `rotateY(${currentRotation.value}deg)`
+  // 多方向旋转：根据公转角度计算旋转轴
+  if (sphereConfig.value.enableMultiDirection && isCustomRotation.value) {
+    // 计算垂直于滑动方向的旋转轴
+    const rotationRad = currentRotationAngle.value * Math.PI / 180
+    const perpendicularAngle = rotationRad + Math.PI / 2
+    const axisX = Math.cos(perpendicularAngle)
+    const axisY = Math.sin(perpendicularAngle)
+
+    // 根据旋转方向调整旋转角度
+    const rotationAngle = currentRotation.value * rotationDirection.value
+
+    return {
+      transform: `rotate3d(${axisX}, ${axisY}, 0, ${rotationAngle}deg)`
+    }
+  } else {
+    // 传统单轴旋转
+    const axis = rotationAxis.value.toLowerCase()
+    return {
+      transform: `rotate${axis.toUpperCase()}(${currentRotation.value}deg)`
+    }
   }
 })
 
@@ -641,7 +474,30 @@ function getSphereItemStyle(index) {
   const scaledZ = adjustedZ * radius
 
   // 计算自转角度，抵消公转翻转，确保卡片始终面向用户
-  const selfRotation = -currentRotation.value
+  // let selfRotation = 0
+
+  if (sphereConfig.value.enableMultiDirection && isCustomRotation.value) {
+    // 多方向公转时，根据旋转角度计算反向自转
+    // const rotationRad = currentRotationAngle.value * Math.PI / 180
+
+    // 计算垂直于滑动方向的旋转轴（公转轴）
+    // const perpendicularAngle = rotationRad + Math.PI / 2
+    // const axisX = Math.cos(perpendicularAngle)
+    // const axisY = Math.sin(perpendicularAngle)
+
+    // 正确的理解：公转轴和自转轴是同一个轴
+    // 公转：球体绕垂直于滑动方向的轴旋转
+    // 自转：用户点绕相同的轴反向旋转，抵消翻转
+
+    // 使用统一的角速度，方向相反
+    // selfRotation = -currentRotation.value
+
+    // 添加调试信息
+
+  } else {
+    // 单轴旋转时，简单的反向自转
+    // selfRotation = -currentRotation.value
+  }
 
   // 生成现代设计色彩
   const colors = [
@@ -673,6 +529,17 @@ function getSphereItemStyle(index) {
     ? `hsl(${(index * 18) % 360}, 75%, 60%)`
     : colors[colorIndex]
 
+  // 检查用户点是否在可视范围内
+  const screenWidth = screenInfo.value.width || 750
+  const sphereSize = Math.min(screenWidth * sphereConfig.value.sphereSizePercent / 100, screenWidth * 2)
+
+  // 计算用户点在屏幕上的实际位置（考虑球体旋转）
+  const rotationRad = (currentRotation.value * Math.PI) / 180
+  const rotatedX = scaledX * Math.cos(rotationRad) - scaledZ * Math.sin(rotationRad)
+
+  // 检查是否超出边界
+  const isOutOfBounds = Math.abs(rotatedX) > sphereSize / 2 || Math.abs(scaledY) > sphereSize / 2
+
   return {
     '--index': index,
     '--num-elements': count,
@@ -686,31 +553,66 @@ function getSphereItemStyle(index) {
     '--scaled-y': scaledY,
     '--scaled-z': scaledZ,
     '--color': dynamicColor, // 动态设置颜色
-    // 使用translate3d定位，添加自转抵消翻转，强制覆盖CSS
-    transform: `translate3d(${scaledX}rpx, ${scaledY}rpx, ${scaledZ}rpx) rotateY(${selfRotation}deg) !important`,
+    // 使用translate3d定位，添加自转抵消翻转
+    transform: (() => {
+      let transform = `translate3d(${scaledX}rpx, ${scaledY}rpx, ${scaledZ}rpx)`
+
+      if (sphereConfig.value.enableMultiDirection && isCustomRotation.value) {
+        // 多方向旋转：使用与公转相同的轴进行自转
+        const rotationRad = currentRotationAngle.value * Math.PI / 180
+        const perpendicularAngle = rotationRad + Math.PI / 2
+        const axisX = Math.cos(perpendicularAngle)
+        const axisY = Math.sin(perpendicularAngle)
+        // 自转方向与公转方向相反，抵消翻转效果
+        const selfRotation = -currentRotation.value * rotationDirection.value
+        transform += ` rotate3d(${axisX}, ${axisY}, 0, ${selfRotation}deg)`
+      } else {
+        // 单轴旋转
+        const selfRotation = -currentRotation.value
+        transform += ` rotateY(${selfRotation}deg)`
+      }
+
+      return `${transform} !important`
+    })(),
     position: 'absolute !important',
     left: '50% !important',
     top: '50% !important',
-    transformOrigin: 'center center !important'
+    transformOrigin: 'center center !important',
+    // 超出边界的用户点隐藏
+    opacity: isOutOfBounds ? '0' : '1',
+    pointerEvents: isOutOfBounds ? 'none' : 'auto'
   }
 }
 
-// 启动旋转动画 - 使用可配置的速度参数
+// 启动旋转动画 - 支持多方向公转
 function startRotation() {
   if (rotationTimer.value) {
     clearInterval(rotationTimer.value)
   }
 
-  console.log('🔄 启动旋转动画')
+
   rotationTimer.value = setInterval(() => {
     try {
       // 只在没有手动操作、不在查看暂停状态、且用户详情弹窗未打开时才自动旋转
-      if (!isDragging.value && !isPaused.value && !isPausedForViewing.value && !isUserDetailOpen.value) {
+      if (!isSliding.value && !isPaused.value && !isPausedForViewing.value && !isUserDetailOpen.value) {
         currentRotation.value += rotationSpeed.value * rotationDirection.value
-        if (currentRotation.value >= 360) {
-          currentRotation.value = 0
-        } else if (currentRotation.value < 0) {
-          currentRotation.value = 360
+
+        // 只在非多方向模式下重置角度
+        if (!sphereConfig.value.enableMultiDirection) {
+          if (currentRotation.value >= 360) {
+            currentRotation.value = 0
+          } else if (currentRotation.value < 0) {
+            currentRotation.value = 360
+          }
+        }
+
+
+        // 多方向公转时，平滑过渡到目标角度
+        if (sphereConfig.value.enableMultiDirection && isCustomRotation.value) {
+          const angleDiff = targetRotationAngle.value - currentRotationAngle.value
+          if (Math.abs(angleDiff) > 1) {
+            currentRotationAngle.value += angleDiff * 0.1 // 平滑过渡
+          }
         }
       }
     } catch (error) {
@@ -718,7 +620,7 @@ function startRotation() {
       // 出错时重置状态
       isPaused.value = false
       isPausedForViewing.value = false
-      isDragging.value = false
+      isSliding.value = false
       isUserDetailOpen.value = false
     }
   }, 50) // 50ms更新一次，约20fps
@@ -732,25 +634,32 @@ function stopRotation() {
   }
 }
 
-function pauseRotation() {
-  isPaused.value = true
-}
-
-function resumeRotation() {
-  isPaused.value = false
-}
-
 // 改进的手势控制
 function onTouchStart(event) {
   // 阻止事件冒泡，避免重复触发
   event.stopPropagation()
   const touch = event.touches[0]
+
+  // 检查触摸位置是否在可控制区域内
+  const screenWidth = screenInfo.value.width || 750
+  const sphereSize = Math.min(screenWidth * sphereConfig.value.sphereSizePercent / 100, screenWidth * 2)
+  const centerX = screenWidth / 2
+  const centerY = (screenInfo.value.height || 1334) / 2
+
+  const touchDistance = Math.hypot(touch.clientX - centerX, touch.clientY - centerY)
+  const maxDistance = sphereSize / 2
+
+  // 如果触摸位置超出可控制区域，不处理滑动
+  if (touchDistance > maxDistance) {
+    return
+  }
+
   touchStartX.value = touch.clientX
   touchStartY.value = touch.clientY
   lastTouchX.value = touch.clientX
   lastTouchY.value = touch.clientY
   touchStartTime.value = Date.now()
-  isDragging.value = false
+  isSliding.value = false
 
   // 记录触摸开始时间，用于计算触摸持续时间
   touchHoldDuration.value = 0
@@ -766,21 +675,16 @@ function onTouchStart(event) {
   if (isPaused.value) {
     checkUserClick(touch.clientX, touch.clientY).then(clickedUser => {
       if (clickedUser) {
-        console.log('👆 暂停状态下点击用户点:', clickedUser.nickname)
         // 缓存当前的公转状态
         cachedRotationSpeed.value = rotationSpeed.value
         cachedRotationDirection.value = rotationDirection.value
-        console.log('💾 缓存公转状态:', {
-          speed: cachedRotationSpeed.value,
-          direction: cachedRotationDirection.value
-        })
+        cachedRotationAngle.value = currentRotation.value
         // 保持暂停状态，显示用户详情
         showUserDetail(clickedUser)
         isRestoringFromCache.value = true
         startAutoResumeTimer()
       } else {
         // 暂停状态下点击空白区域，立即恢复
-        console.log('👆 暂停状态下点击空白区域，立即恢复公转')
         resumeFromCache()
       }
     }).catch(error => {
@@ -792,13 +696,13 @@ function onTouchStart(event) {
   }
 
   // 立即暂停公转
-  console.log('⏸️ 点击画布，立即暂停公转')
   isPaused.value = true
   isPausedForViewing.value = true
 
   // 缓存当前的公转状态
   cachedRotationSpeed.value = rotationSpeed.value
   cachedRotationDirection.value = rotationDirection.value
+  cachedRotationAngle.value = currentRotation.value
 
   // 清除之前的衰减定时器
   if (velocityDecayTimer.value) {
@@ -816,6 +720,21 @@ function onTouchMove(event) {
   const touch = event.touches[0]
   const currentX = touch.clientX
   const currentY = touch.clientY
+
+  // 检查触摸位置是否在可控制区域内
+  const screenWidth = screenInfo.value.width || 750
+  const sphereSize = Math.min(screenWidth * sphereConfig.value.sphereSizePercent / 100, screenWidth * 2)
+  const centerX = screenWidth / 2
+  const centerY = (screenInfo.value.height || 1334) / 2
+
+  const touchDistance = Math.hypot(currentX - centerX, currentY - centerY)
+  const maxDistance = sphereSize / 2
+
+  // 如果触摸位置超出可控制区域，不处理滑动
+  if (touchDistance > maxDistance) {
+    return
+  }
+
   const deltaX = currentX - lastTouchX.value
   const deltaY = currentY - lastTouchY.value
   const deltaTime = Date.now() - touchStartTime.value
@@ -826,44 +745,71 @@ function onTouchMove(event) {
   // 计算总移动距离
   const totalDelta = Math.hypot(deltaX, deltaY)
 
-  // 如果移动距离超过阈值，认为是拖拽操作
-  if (totalDelta > 10) { // 提高阈值，避免误触
-    isDragging.value = true
+  // 如果移动距离超过阈值，认为是滑动操作
+  if (totalDelta > 5) {
+    isSliding.value = true
 
     // 恢复控制，取消暂停
-    console.log('🔄 检测到拖拽，恢复控制')
     isPaused.value = false
     isPausedForViewing.value = false
 
-    // 计算速度
-    velocityX.value = deltaX / Math.max(deltaTime, 1) * 1000 // 像素/秒
+    // 计算滑动速度（像素/秒）
+    const velocity = totalDelta / Math.max(deltaTime, 1) * 1000
+    velocityX.value = deltaX / Math.max(deltaTime, 1) * 1000
     velocityY.value = deltaY / Math.max(deltaTime, 1) * 1000
 
-    // 计算滑动方向角度（弧度）
-    const angle = Math.atan2(deltaY, deltaX)
+    // 多方向滑动逻辑
+    if (sphereConfig.value.enableMultiDirection) {
+      // 计算滑动角度（手指滑动方向）
+      const slideAngle = Math.atan2(deltaY, deltaX)
+      const angleDegrees = slideAngle * 180 / Math.PI
 
-    // 根据滑动方向计算旋转方向
-    const speed = Math.min(totalDelta / 20, sphereConfig.value.maxSpeed)
+      // 根据滑动方向确定旋转方向
+      let rotationDir = 1
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        rotationDir = deltaX > 0 ? 1 : -1
+      } else {
+        rotationDir = deltaY > 0 ? 1 : -1
+      }
 
-    // 计算旋转速度的X和Y分量
-    const speedX = Math.cos(angle) * speed
-    const speedY = Math.sin(angle) * speed
+      // 设置公转角度（考虑旋转方向）
+      isCustomRotation.value = true
+      currentRotationAngle.value = angleDegrees
+      targetRotationAngle.value = angleDegrees
 
-    // 重置公转方向和速度为手指的方向和速度
-    rotationSpeed.value = Math.hypot(speedX, speedY)
+      // 计算滑动速度
+      const speed = Math.min(velocity / 100, sphereConfig.value.maxSpeed)
+      rotationSpeed.value = Math.max(speed, sphereConfig.value.minSpeed)
 
-    // 根据滑动方向确定旋转方向
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
-      // 主要是水平滑动
-      rotationDirection.value = deltaX > 0 ? 1 : -1
+      // 设置旋转方向
+      rotationDirection.value = rotationDir
+
+      // 更新公转角度
+      const targetRotation = currentRotation.value + (rotationSpeed.value * rotationDirection.value)
+      const rotationDiff = targetRotation - currentRotation.value
+      currentRotation.value += rotationDiff * 0.3
     } else {
-      // 主要是垂直滑动
-      rotationDirection.value = deltaY > 0 ? 1 : -1
-    }
+      // 传统单轴旋转逻辑保持不变
+      const angle = Math.atan2(deltaY, deltaX)
+      const angleDegrees = angle * 180 / Math.PI
 
-    // 实时更新旋转
-    const rotationIncrement = rotationSpeed.value * rotationDirection.value
-    currentRotation.value += rotationIncrement
+      isCustomRotation.value = true
+      currentRotationAngle.value = angleDegrees
+      targetRotationAngle.value = angleDegrees
+
+      const speed = Math.min(velocity / 100, sphereConfig.value.maxSpeed)
+      rotationSpeed.value = Math.max(speed, sphereConfig.value.minSpeed)
+
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        rotationDirection.value = deltaX > 0 ? 1 : -1
+      } else {
+        rotationDirection.value = deltaY > 0 ? 1 : -1
+      }
+
+      const targetRotation = currentRotation.value + (rotationSpeed.value * rotationDirection.value)
+      const rotationDiff = targetRotation - currentRotation.value
+      currentRotation.value += rotationDiff * 0.3
+    }
   }
 
   // 更新上一次触摸位置
@@ -876,12 +822,25 @@ function onTouchEnd(event) {
   // 阻止事件冒泡，避免重复触发
   event.stopPropagation()
 
+  // 检查触摸位置是否在可控制区域内
+  const screenWidth = screenInfo.value.width || 750
+  const sphereSize = Math.min(screenWidth * sphereConfig.value.sphereSizePercent / 100, screenWidth * 2)
+  const centerX = screenWidth / 2
+  const centerY = (screenInfo.value.height || 1334) / 2
 
-  if (isDragging.value) {
-    // 有拖拽操作
-    console.log('🔄 检测到拖拽操作，保持新的公转状态')
+  const touchDistance = Math.hypot(lastTouchX.value - centerX, lastTouchY.value - centerY)
+  const maxDistance = sphereSize / 2
 
-    // 计算最终滑动速度
+  // 如果触摸位置超出可控制区域，不处理滑动
+  if (touchDistance > maxDistance) {
+    return
+  }
+
+  if (isSliding.value) {
+    // 有滑动操作
+
+
+    // 计算最终滑动速度和方向
     const totalDelta = Math.hypot(
       lastTouchX.value - touchStartX.value,
       lastTouchY.value - touchStartY.value
@@ -889,37 +848,66 @@ function onTouchEnd(event) {
     const totalTime = Date.now() - touchStartTime.value
     const finalSpeed = totalDelta / Math.max(totalTime, 1) * 1000
 
-    // 根据最终速度设置旋转速度
-    if (finalSpeed > 100) {
-      // 快速滑动：设置最大速度
-      rotationSpeed.value = sphereConfig.value.maxSpeed
-    } else if (finalSpeed > 50) {
-      // 中等速度：保持当前速度
-      rotationSpeed.value = Math.min(rotationSpeed.value, sphereConfig.value.maxSpeed)
+    if (sphereConfig.value.enableMultiDirection) {
+      // 多方向滑动结束逻辑
+      if (finalSpeed > 50) {
+        // 快速滑动：启动衰减
+        startVelocityDecay()
+      } else {
+        // 慢速滑动：直接停止
+        isPaused.value = true
+        isPausedForViewing.value = true
+        isRestoringFromCache.value = true
+        startAutoResumeTimer()
+      }
     } else {
-      // 慢速滑动：设置基础速度
-      rotationSpeed.value = sphereConfig.value.baseSpeed
+      // 传统模式：判断滑动结束时的状态
+      if (finalSpeed > 50) {
+        // 快速滑动结束：保持运动状态
+
+        if (finalSpeed > 200) {
+          rotationSpeed.value = sphereConfig.value.maxSpeed
+        } else if (finalSpeed > 100) {
+          rotationSpeed.value = Math.min(finalSpeed / 100, sphereConfig.value.maxSpeed)
+        } else {
+          rotationSpeed.value = Math.max(finalSpeed / 50, sphereConfig.value.minSpeed)
+        }
+
+        cachedRotationSpeed.value = rotationSpeed.value
+        cachedRotationDirection.value = rotationDirection.value
+        cachedRotationAngle.value = currentRotation.value
+        isRestoringFromCache.value = false
+        startVelocityDecay()
+
+      } else {
+        // 慢速滑动结束：暂停状态
+
+        cachedRotationSpeed.value = rotationSpeed.value
+        cachedRotationDirection.value = rotationDirection.value
+        cachedRotationAngle.value = currentRotation.value
+        isPaused.value = true
+        isPausedForViewing.value = true
+        isRestoringFromCache.value = true
+        startAutoResumeTimer()
+      }
     }
 
-    console.log('🔄 拖拽结束，开始衰减到基本速度')
-
-    // 启动速度衰减
-    startVelocityDecay()
-
   } else {
-    // 没有拖拽，检查是否命中用户点
+    // 没有滑动，检查是否命中用户点
     checkUserClick(lastTouchX.value, lastTouchY.value).then(clickedUser => {
       if (clickedUser) {
         // 命中了用户点且没有滑动
+
         // 缓存当前的公转状态
         cachedRotationSpeed.value = rotationSpeed.value
         cachedRotationDirection.value = rotationDirection.value
+        cachedRotationAngle.value = currentRotation.value
 
         showUserDetail(clickedUser)
         // 保持暂停状态，等待用户关闭弹窗
         isPaused.value = true
         isPausedForViewing.value = true
-        isRestoringFromCache.value = true // 标记需要从缓存恢复
+        isRestoringFromCache.value = true
 
         // 启动自动恢复定时器
         startAutoResumeTimer()
@@ -935,7 +923,7 @@ function onTouchEnd(event) {
     })
   }
 
-  isDragging.value = false
+  isSliding.value = false
 }
 
 // 速度衰减机制
@@ -944,20 +932,25 @@ function startVelocityDecay() {
     clearInterval(velocityDecayTimer.value)
   }
 
+
   velocityDecayTimer.value = setInterval(() => {
     // 逐渐降低速度到基础速度
     if (rotationSpeed.value > sphereConfig.value.baseSpeed) {
+      const decayRate = 0.98 // 每次衰减2%，更平滑
       rotationSpeed.value = Math.max(
-        rotationSpeed.value * 0.95, // 每次衰减5%
+        rotationSpeed.value * decayRate,
         sphereConfig.value.baseSpeed
       )
+
+
     } else {
       // 达到基础速度后停止衰减
       clearInterval(velocityDecayTimer.value)
       velocityDecayTimer.value = null
     }
-  }, 100) // 每100ms衰减一次
+  }, 50) // 每50ms衰减一次，更频繁
 }
+
 
 function showFilterModal() {
   filterPopup.value.open()
@@ -1111,26 +1104,6 @@ function getScreenInfo() {
   }
 }
 
-// 重置配置到默认值
-function resetConfig() {
-  sphereConfig.value = {
-    centerX: 50,
-    centerY: 50,
-    radiusPercent: 100,
-    maxRadiusPercent: 120,
-    sphereSizePercent: 80, // 设置合理的默认值
-    showSphereBackground: true,
-    sphereBackgroundColor: 'rgba(0, 0, 0, 0.3)', // 更透明
-    sphereBorderColor: 'rgba(255, 255, 255, 0.1)', // 更透明
-    sphereBorderWidth: 1, // 更细
-    baseSpeed: 0.4,
-    maxSpeed: 2,
-    minSpeed: 0.2,
-    defaultDirection: 1
-  }
-  rotationSpeed.value = sphereConfig.value.baseSpeed
-  rotationDirection.value = sphereConfig.value.defaultDirection
-}
 
 // 加载活跃用户数据
 async function loadActiveUsers() {
@@ -1175,6 +1148,7 @@ onMounted(() => {
     // 初始化缓存状态
     cachedRotationSpeed.value = rotationSpeed.value
     cachedRotationDirection.value = rotationDirection.value
+    cachedRotationAngle.value = currentRotation.value
   })
 })
 
@@ -1186,6 +1160,7 @@ onUnmounted(() => {
     velocityDecayTimer.value = null
   }
 
+
   // 清理自动恢复定时器
   if (autoResumeTimer.value) {
     clearTimeout(autoResumeTimer.value)
@@ -1196,7 +1171,6 @@ onUnmounted(() => {
 // 检查点击是否在用户点上 - 优化版本
 function checkUserClick(x, y) {
   try {
-    console.log('try checkUserClick', x, y)
     return new Promise((resolve) => {
       const query = uni.createSelectorQuery()
       query.select('.sphere-container').boundingClientRect((containerRect) => {
@@ -1247,36 +1221,17 @@ function checkUserClick(x, y) {
               const depthFactor = Math.max(0.4, Math.min(1.2, 1 - Math.abs(rotatedZ) / sphereRadius))
               const clickRadius = baseClickRadius * depthFactor
 
-              // 添加调试信息
-              if (showClickDebug.value) {
-                console.log(`🔍 用户${index + 1}(${user.nickname}): 距离=${userDistance.toFixed(1)}px, 点击范围=${clickRadius.toFixed(1)}px, 旋转Z=${rotatedZ.toFixed(1)}px`)
-              }
 
               if (userDistance <= clickRadius && userDistance < minDistance) {
                 minDistance = userDistance
                 closestUser = user
-                if (showClickDebug.value) {
-                  console.log(`✅ 命中用户: ${user.nickname}, 距离: ${userDistance.toFixed(1)}px`)
-                }
               }
             }
           })
 
-          if (closestUser) {
-            if (showClickDebug.value) {
-              console.log(`🎯 最终选中: ${closestUser.nickname}`)
-            }
-          } else {
-            if (showClickDebug.value) {
-              console.log('❌ 未命中任何用户点')
-            }
-          }
 
           resolve(closestUser)
         } else {
-          if (showClickDebug.value) {
-            console.log(`❌ 点击位置超出球体范围: 距离=${distance.toFixed(1)}px, 球体半径=${sphereRadius}px`)
-          }
           resolve(null)
         }
       }).exec()
@@ -1293,6 +1248,7 @@ function handleUserDotClick(user) {
   // 缓存当前的公转状态
   cachedRotationSpeed.value = rotationSpeed.value
   cachedRotationDirection.value = rotationDirection.value
+  cachedRotationAngle.value = currentRotation.value
 
   // 暂停公转
   isPaused.value = true
@@ -1312,6 +1268,7 @@ function handleUserInfoClick(user) {
   // 缓存当前的公转状态
   cachedRotationSpeed.value = rotationSpeed.value
   cachedRotationDirection.value = rotationDirection.value
+  cachedRotationAngle.value = currentRotation.value
 
   // 暂停公转
   isPaused.value = true
@@ -1334,15 +1291,17 @@ function resumeFromCache() {
   }
 
   // 只有在弹窗关闭时才恢复公转
-  if (isUserDetailOpen.value) {
-    console.log('🔄 弹窗仍打开，不恢复公转')
-  } else {
+  if (!isUserDetailOpen.value) {
     isPaused.value = false
     isPausedForViewing.value = false
 
     // 恢复缓存的公转状态
     rotationSpeed.value = cachedRotationSpeed.value
     rotationDirection.value = cachedRotationDirection.value
+
+    // 恢复缓存的角度
+    currentRotation.value = cachedRotationAngle.value
+
     isRestoringFromCache.value = false
   }
 }
@@ -1355,14 +1314,13 @@ function startAutoResumeTimer() {
 
   autoResumeTimer.value = setTimeout(() => {
     // 只有在弹窗关闭时才自动恢复
-    if (isUserDetailOpen.value) {
-      console.log('⏰ 自动恢复定时器触发，但弹窗仍打开，不恢复公转')
-    } else {
-      console.log('⏰ 自动恢复定时器触发，恢复公转')
+    if (!isUserDetailOpen.value) {
       resumeFromCache()
     }
   }, autoResumeDelay)
 }
+
+
 </script>
 
 <style scoped>
@@ -1414,7 +1372,9 @@ function startAutoResumeTimer() {
   left: 0;
   right: 0;
   bottom: 0;
-  /* background: radial-gradient(rgba(0, 0, 0, 0.75) 15%, rgba(0, 0, 0, 0) calc(75% - 60rpx)); */
+  /* 添加可控制区域的背景和边框 */
+  background: radial-gradient(rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.02) 100%);
+  border: 2rpx solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   /* overflow: visible !important;   */
   /* 确保用户点不会被裁剪 */
@@ -1480,6 +1440,8 @@ function startAutoResumeTimer() {
   transform-style: preserve-3d;
   /* 确保内容不会被父元素的旋转影响 */
   transform: none;
+  /* 确保文本始终在点的下方 */
+  position: relative;
 }
 
 .item-dot {
@@ -1532,6 +1494,12 @@ function startAutoResumeTimer() {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+  /* 确保文本始终在点的下方 */
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8rpx;
 }
 
 .item-name {
@@ -1848,137 +1816,6 @@ function startAutoResumeTimer() {
   color: #666;
 }
 
-/* 调试面板样式 */
-.debug-panel {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 600rpx;
-  max-height: 80vh;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 20rpx;
-  padding: 30rpx;
-  z-index: 1000;
-  overflow-y: auto;
-  border: 2rpx solid rgba(255, 255, 255, 0.2);
-  /* 彻底禁用所有模糊效果 */
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  filter: none !important;
-  -webkit-filter: none !important;
-
-}
-
-.debug-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 30rpx;
-  padding-bottom: 20rpx;
-  border-bottom: 1rpx solid rgba(255, 255, 255, 0.2);
-}
-
-.debug-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #fff;
-}
-
-.debug-close {
-  width: 40rpx;
-  height: 40rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-}
-
-.debug-section {
-  margin-bottom: 30rpx;
-}
-
-.debug-label {
-  display: block;
-  font-size: 28rpx;
-  color: #fff;
-  margin-bottom: 15rpx;
-  font-weight: bold;
-}
-
-.debug-row {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  margin-bottom: 15rpx;
-}
-
-.debug-text {
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.8);
-  min-width: 120rpx;
-}
-
-.debug-slider {
-  flex: 1;
-}
-
-.debug-btn {
-  flex: 1;
-  height: 60rpx;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border: 1rpx solid rgba(255, 255, 255, 0.3);
-  border-radius: 8rpx;
-  font-size: 24rpx;
-  margin: 0 10rpx;
-}
-
-.debug-btn.active {
-  background: #667eea;
-  border-color: #667eea;
-}
-
-.debug-color-input {
-  width: 60rpx;
-  height: 40rpx;
-  border: none;
-  border-radius: 4rpx;
-  background: transparent;
-}
-
-.debug-actions {
-  display: flex;
-  gap: 15rpx;
-  margin-top: 30rpx;
-  padding-top: 20rpx;
-  border-top: 1rpx solid rgba(255, 255, 255, 0.2);
-}
-
-.debug-action-btn {
-  flex: 1;
-  height: 60rpx;
-  background: #667eea;
-  color: #fff;
-  border: none;
-  border-radius: 8rpx;
-  font-size: 24rpx;
-}
-
-.debug-info {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8rpx;
-  padding: 15rpx;
-  margin-top: 10rpx;
-}
-
-.debug-info .debug-text {
-  display: block;
-  font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 5rpx;
-}
 
 /* 用户点颜色 - 由JavaScript动态生成 */
 .sphere-item {
