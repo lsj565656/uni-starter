@@ -214,9 +214,9 @@ const sphereConfig = ref({
   sphereBorderWidth: 1, // 球体边框宽度
 
   // 公转速度配置
-  baseSpeed: 0.15, // 基础旋转速度 - 更温和
-  maxSpeed: 0.8,  // 最大旋转速度 - 更温和
-  minSpeed: 0.08, // 最小旋转速度 - 更温和
+  baseSpeed: 0.15, // 基础旋转速度
+  maxSpeed: 0.8,  // 最大旋转速度
+  minSpeed: 0.08, // 最小旋转速度
 
   // 公转方向配置
   defaultDirection: 1, // 默认旋转方向 (1=顺时针, -1=逆时针)
@@ -244,9 +244,15 @@ const touchStartTime = ref(0)
 const isSliding = ref(false)
 const lastTouchX = ref(0)
 const lastTouchY = ref(0)
-const velocityX = ref(0)
-const velocityY = ref(0)
 const velocityDecayTimer = ref(null)
+
+// 拖拽相关变量
+const isDragging = ref(false)
+const dragStartTime = ref(0)
+const dragVelocity = ref(0)
+const dragDirection = ref(1)
+const dragAngle = ref(0)
+const dragDecayTimer = ref(null)
 
 // 防抖相关变量
 const moveThreshold = 8 // 移动阈值，避免微小抖动
@@ -579,7 +585,7 @@ function startRotation() {
   rotationTimer.value = setInterval(() => {
     try {
       // 只在没有手动操作、不在查看暂停状态、且用户详情弹窗未打开时才自动旋转
-      if (!isSliding.value && !isPaused.value && !isPausedForViewing.value && !isUserDetailOpen.value) {
+      if (!isSliding.value && !isDragging.value && !isPaused.value && !isPausedForViewing.value && !isUserDetailOpen.value) {
         currentRotation.value += rotationSpeed.value * rotationDirection.value
 
         // 只在非多方向模式下重置角度
@@ -606,6 +612,7 @@ function startRotation() {
       isPaused.value = false
       isPausedForViewing.value = false
       isSliding.value = false
+      isDragging.value = false
       isUserDetailOpen.value = false
     }
   }, 16) // 16ms更新一次，约60fps，提高流畅性
@@ -645,6 +652,13 @@ function onTouchStart(event) {
   lastTouchY.value = touch.clientY
   touchStartTime.value = Date.now()
   isSliding.value = false
+
+  // 初始化拖拽状态
+  isDragging.value = false
+  dragStartTime.value = Date.now()
+  dragVelocity.value = 0
+  dragDirection.value = 1
+  dragAngle.value = 0
 
   // 记录触摸开始时间，用于计算触摸持续时间
   touchHoldDuration.value = 0
@@ -744,9 +758,11 @@ function onTouchMove(event) {
   const totalDelta = Math.hypot(deltaX, deltaY)
 
 
-  // 如果移动距离超过阈值，认为是滑动操作
+  // 如果移动距离超过阈值，认为是拖拽操作
   if (totalDelta > moveThreshold) {
-    isSliding.value = true
+    // 开始拖拽
+    isDragging.value = true
+    isSliding.value = false
 
     // 只有在之前是暂停状态时才恢复控制
     if (isPaused.value || isPausedForViewing.value) {
@@ -754,68 +770,39 @@ function onTouchMove(event) {
       isPausedForViewing.value = false
     }
 
-    // 计算滑动速度（像素/秒）
-    const velocity = totalDelta / Math.max(deltaTime, 1) * 1000
-    velocityX.value = deltaX / Math.max(deltaTime, 1) * 1000
-    velocityY.value = deltaY / Math.max(deltaTime, 1) * 1000
+    // 计算拖拽角度（手指滑动方向）
+    const slideAngle = Math.atan2(deltaY, deltaX)
+    const angleDegrees = slideAngle * 180 / Math.PI
 
-    // 多方向滑动逻辑
-    if (sphereConfig.value.enableMultiDirection) {
-      // 计算滑动角度（手指滑动方向）
-      const slideAngle = Math.atan2(deltaY, deltaX)
-      const angleDegrees = slideAngle * 180 / Math.PI
-
-      // 根据滑动方向确定旋转方向
-      let rotationDir = 1
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        rotationDir = deltaX > 0 ? 1 : -1
-      } else {
-        rotationDir = deltaY > 0 ? 1 : -1
-      }
-
-      // 设置公转角度（考虑旋转方向）
-      isCustomRotation.value = true
-      currentRotationAngle.value = angleDegrees
-      targetRotationAngle.value = angleDegrees
-
-      // 计算滑动速度 - 使用更温和的速度计算
-      const speed = Math.min(velocity / 200, sphereConfig.value.maxSpeed) // 降低敏感度
-      rotationSpeed.value = Math.max(speed, sphereConfig.value.minSpeed)
-
-      // 设置旋转方向
-      rotationDirection.value = rotationDir
-
-      // 稳定跟随：使用基础速度，避免疯狂旋转
-      const followSpeed = sphereConfig.value.baseSpeed
-      currentRotation.value += followSpeed * rotationDirection.value
+    // 根据拖拽方向确定旋转方向
+    let rotationDir = 1
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      rotationDir = deltaX > 0 ? 1 : -1
     } else {
-      // 传统单轴旋转逻辑保持不变
-      const angle = Math.atan2(deltaY, deltaX)
-      const angleDegrees = angle * 180 / Math.PI
-
-      isCustomRotation.value = true
-      currentRotationAngle.value = angleDegrees
-      targetRotationAngle.value = angleDegrees
-
-      const speed = Math.min(velocity / 200, sphereConfig.value.maxSpeed) // 降低敏感度
-      rotationSpeed.value = Math.max(speed, sphereConfig.value.minSpeed)
-
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        rotationDirection.value = deltaX > 0 ? 1 : -1
-      } else {
-        rotationDirection.value = deltaY > 0 ? 1 : -1
-      }
-
-      // 稳定跟随：使用基础速度
-      const followSpeed = sphereConfig.value.baseSpeed
-      currentRotation.value += followSpeed * rotationDirection.value
+      rotationDir = deltaY > 0 ? 1 : -1
     }
+
+    // 设置拖拽角度和方向
+    dragAngle.value = angleDegrees
+    dragDirection.value = rotationDir
+
+    // 设置公转角度（考虑旋转方向）
+    isCustomRotation.value = true
+    currentRotationAngle.value = angleDegrees
+    targetRotationAngle.value = angleDegrees
+
+    // 设置旋转方向
+    rotationDirection.value = rotationDir
+
+    // 拖拽跟随：直接跟随手指移动，使用适中的增量
+    const rotationIncrement = Math.min(totalDelta / 1000, 2) // 适中的增量
+    currentRotation.value += rotationIncrement * rotationDirection.value
   }
 
   // 更新上一次触摸位置
   lastTouchX.value = currentX
   lastTouchY.value = currentY
-  touchStartTime.value = Date.now()
+  // 不要重置touchStartTime，保持正确的时间计算
 }
 
 function onTouchEnd(event) {
@@ -836,11 +823,10 @@ function onTouchEnd(event) {
     return
   }
 
-  if (isSliding.value) {
-    // 有滑动操作
+  if (isDragging.value) {
+    // 有拖拽操作 - 无缝衔接滑动效果
 
-
-    // 计算最终滑动速度和方向
+    // 计算最终拖拽速度和方向
     const totalDelta = Math.hypot(
       lastTouchX.value - touchStartX.value,
       lastTouchY.value - touchStartY.value
@@ -848,49 +834,27 @@ function onTouchEnd(event) {
     const totalTime = Date.now() - touchStartTime.value
     const finalSpeed = totalDelta / Math.max(totalTime, 1) * 1000
 
-    if (sphereConfig.value.enableMultiDirection) {
-      // 多方向滑动结束逻辑
-      if (finalSpeed > 30) { // 降低阈值，更敏感
-        // 快速滑动：启动衰减
-        startVelocityDecay()
-      } else {
-        // 慢速滑动：直接停止
-        isPaused.value = true
-        isPausedForViewing.value = true
-        isRestoringFromCache.value = true
-        startAutoResumeTimer()
-      }
-    } else {
-      // 传统模式：判断滑动结束时的状态
-      if (finalSpeed > 30) { // 降低阈值，更敏感
-        // 快速滑动结束：保持运动状态
+    // 无缝衔接：立即转换为滑动状态
+    isSliding.value = true
+    isDragging.value = false
 
-        if (finalSpeed > 150) { // 降低阈值
-          rotationSpeed.value = sphereConfig.value.maxSpeed
-        } else if (finalSpeed > 80) { // 降低阈值
-          rotationSpeed.value = Math.min(finalSpeed / 150, sphereConfig.value.maxSpeed) // 更温和的速度计算
-        } else {
-          rotationSpeed.value = Math.max(finalSpeed / 80, sphereConfig.value.minSpeed) // 更温和的速度计算
-        }
+    // 拖拽完成后，直接使用baseSpeed，不使用拖拽获得的速度
+    rotationSpeed.value = sphereConfig.value.baseSpeed
+    rotationDirection.value = dragDirection.value
+    currentRotationAngle.value = dragAngle.value
+    targetRotationAngle.value = dragAngle.value
 
-        cachedRotationSpeed.value = rotationSpeed.value
-        cachedRotationDirection.value = rotationDirection.value
-        cachedRotationAngle.value = currentRotation.value
-        isRestoringFromCache.value = false
-        startVelocityDecay()
+    // 拖拽结束：设置最大速度然后衰减到基本速度
+    rotationSpeed.value = sphereConfig.value.maxSpeed
 
-      } else {
-        // 慢速滑动结束：暂停状态
+    // 缓存当前状态
+    cachedRotationSpeed.value = rotationSpeed.value
+    cachedRotationDirection.value = rotationDirection.value
+    cachedRotationAngle.value = currentRotation.value
+    isRestoringFromCache.value = false
 
-        cachedRotationSpeed.value = rotationSpeed.value
-        cachedRotationDirection.value = rotationDirection.value
-        cachedRotationAngle.value = currentRotation.value
-        isPaused.value = true
-        isPausedForViewing.value = true
-        isRestoringFromCache.value = true
-        startAutoResumeTimer()
-      }
-    }
+    // 使用startVelocityDecay衰减到基本速度
+    startVelocityDecay()
 
   } else {
     // 没有滑动，检查是否命中用户点
@@ -934,7 +898,6 @@ function startVelocityDecay() {
     clearInterval(velocityDecayTimer.value)
   }
 
-
   velocityDecayTimer.value = setInterval(() => {
     // 逐渐降低速度到基础速度
     if (rotationSpeed.value > sphereConfig.value.baseSpeed) {
@@ -943,13 +906,46 @@ function startVelocityDecay() {
         rotationSpeed.value * decayRate,
         sphereConfig.value.baseSpeed
       )
-
     } else {
       // 达到基础速度后停止衰减
       clearInterval(velocityDecayTimer.value)
       velocityDecayTimer.value = null
+
+      // 确保状态正确，恢复正常的自动旋转
+      isSliding.value = false
+      isDragging.value = false
+      isPaused.value = false
+      isPausedForViewing.value = false
     }
   }, 100) // 每100ms衰减一次，更平滑
+}
+
+// 拖拽衰减机制 - 无缝衔接
+function startDragDecay() {
+  if (dragDecayTimer.value) {
+    clearInterval(dragDecayTimer.value)
+  }
+
+  dragDecayTimer.value = setInterval(() => {
+    // 直接衰减到基础速度
+    if (rotationSpeed.value > sphereConfig.value.baseSpeed) {
+      const decayRate = 0.95 // 快速衰减到基础速度
+      rotationSpeed.value = Math.max(
+        rotationSpeed.value * decayRate,
+        sphereConfig.value.baseSpeed
+      )
+    } else {
+      // 达到基础速度后停止衰减，开始匀速公转
+      clearInterval(dragDecayTimer.value)
+      dragDecayTimer.value = null
+
+      // 确保状态正确，恢复正常的自动旋转
+      isSliding.value = false
+      isDragging.value = false
+      isPaused.value = false
+      isPausedForViewing.value = false
+    }
+  }, 100) // 每100ms衰减一次
 }
 
 
@@ -1076,14 +1072,26 @@ function hideUserDetail() {
     autoResumeTimer.value = null
   }
 
-  // 关闭弹窗后从缓存恢复公转状态
+  // 关闭弹窗后从缓存恢复公转状态，并使用衰减方法
   if (isRestoringFromCache.value) {
-    resumeFromCache()
-  } else {
+    // 从缓存恢复，但使用衰减方法
     isPaused.value = false
     isPausedForViewing.value = false
-    rotationSpeed.value = sphereConfig.value.baseSpeed
+    rotationSpeed.value = sphereConfig.value.maxSpeed // 先设置最大速度
+    rotationDirection.value = cachedRotationDirection.value
+    currentRotation.value = cachedRotationAngle.value
+
+    // 使用衰减方法降到基本速度
+    startVelocityDecay()
+  } else {
+    // 直接恢复，使用衰减方法
+    isPaused.value = false
+    isPausedForViewing.value = false
+    rotationSpeed.value = sphereConfig.value.maxSpeed // 先设置最大速度
     rotationDirection.value = sphereConfig.value.defaultDirection
+
+    // 使用衰减方法降到基本速度
+    startVelocityDecay()
   }
 }
 
@@ -1161,6 +1169,11 @@ onUnmounted(() => {
     velocityDecayTimer.value = null
   }
 
+  // 清理拖拽衰减定时器
+  if (dragDecayTimer.value) {
+    clearInterval(dragDecayTimer.value)
+    dragDecayTimer.value = null
+  }
 
   // 清理自动恢复定时器
   if (autoResumeTimer.value) {
@@ -1296,14 +1309,15 @@ function resumeFromCache() {
     isPaused.value = false
     isPausedForViewing.value = false
 
-    // 恢复缓存的公转状态
-    rotationSpeed.value = cachedRotationSpeed.value
+    // 先设置最大速度，然后使用衰减方法
+    rotationSpeed.value = sphereConfig.value.maxSpeed
     rotationDirection.value = cachedRotationDirection.value
-
-    // 恢复缓存的角度
     currentRotation.value = cachedRotationAngle.value
 
     isRestoringFromCache.value = false
+
+    // 使用衰减方法降到基本速度
+    startVelocityDecay()
   }
 }
 
@@ -1448,16 +1462,16 @@ function startAutoResumeTimer() {
 }
 
 .item-dot {
-  width: 32rpx;
+  width: 16rpx;
   /* 进一步增加点的大小 */
-  height: 32rpx;
+  height: 16rpx;
   /* 进一步增加点的大小 */
   border-radius: 50%;
   background: var(--color);
   box-shadow: 0 0 20rpx var(--color), 0 0 40rpx var(--color);
   /* 增强发光效果 */
   transition: all 0.3s ease;
-  border: 3rpx solid rgba(255, 255, 255, 0.5);
+  border: 2rpx solid rgba(255, 255, 255, 0.5);
   /* 添加边框增强可见性 */
   /* 确保可以接收触摸事件 */
   pointer-events: auto;
@@ -1477,14 +1491,14 @@ function startAutoResumeTimer() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4rpx;
+  gap: 2rpx;
   background: rgba(0, 0, 0, 0.9);
   /* 增强背景透明度 */
-  padding: 10rpx 15rpx;
+  padding: 2rpx 3rpx;
   /* 增加内边距 */
-  border-radius: 12rpx;
+  border-radius: 8rpx;
   /* 彻底移除模糊效果 */
-  min-width: 100rpx;
+  min-width: 50rpx;
   /* 增加最小宽度 */
   /* 确保信息卡片始终面向用户，不受父元素旋转影响 */
   transform: none;
@@ -1503,12 +1517,12 @@ function startAutoResumeTimer() {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-top: 8rpx;
+  margin-top: 4rpx;
   /* 移除深度感知，保持原始透明度 */
 }
 
 .item-name {
-  font-size: 20rpx;
+  font-size: 16rpx;
   color: #fff;
   font-weight: bold;
   white-space: nowrap;
