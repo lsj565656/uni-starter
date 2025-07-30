@@ -824,16 +824,6 @@ function onTouchEnd(event) {
   }
 
   if (isDragging.value) {
-    // 有拖拽操作 - 无缝衔接滑动效果
-
-    // 计算最终拖拽速度和方向
-    const totalDelta = Math.hypot(
-      lastTouchX.value - touchStartX.value,
-      lastTouchY.value - touchStartY.value
-    )
-    const totalTime = Date.now() - touchStartTime.value
-    const finalSpeed = totalDelta / Math.max(totalTime, 1) * 1000
-
     // 无缝衔接：立即转换为滑动状态
     isSliding.value = true
     isDragging.value = false
@@ -919,35 +909,6 @@ function startVelocityDecay() {
     }
   }, 100) // 每100ms衰减一次，更平滑
 }
-
-// 拖拽衰减机制 - 无缝衔接
-function startDragDecay() {
-  if (dragDecayTimer.value) {
-    clearInterval(dragDecayTimer.value)
-  }
-
-  dragDecayTimer.value = setInterval(() => {
-    // 直接衰减到基础速度
-    if (rotationSpeed.value > sphereConfig.value.baseSpeed) {
-      const decayRate = 0.95 // 快速衰减到基础速度
-      rotationSpeed.value = Math.max(
-        rotationSpeed.value * decayRate,
-        sphereConfig.value.baseSpeed
-      )
-    } else {
-      // 达到基础速度后停止衰减，开始匀速公转
-      clearInterval(dragDecayTimer.value)
-      dragDecayTimer.value = null
-
-      // 确保状态正确，恢复正常的自动旋转
-      isSliding.value = false
-      isDragging.value = false
-      isPaused.value = false
-      isPausedForViewing.value = false
-    }
-  }, 100) // 每100ms衰减一次
-}
-
 
 function showFilterModal() {
   filterPopup.value.open()
