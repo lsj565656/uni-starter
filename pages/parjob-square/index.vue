@@ -201,7 +201,7 @@ const sphereConfig = ref({
   centerY: 50, // 垂直中心点
 
   // 公转半径配置
-  radiusPercent: 100, // 公转半径占屏幕宽度的百分比
+  radiusPercent: 80, // 公转半径占屏幕宽度的百分比
   maxRadiusPercent: 120, // 最大半径占屏幕宽度的百分比
 
   // 球体大小配置
@@ -214,16 +214,16 @@ const sphereConfig = ref({
   sphereBorderWidth: 1, // 球体边框宽度
 
   // 公转速度配置
-  baseSpeed: 0.2, // 基础旋转速度
-  maxSpeed: 1.2,  // 最大旋转速度
-  minSpeed: 0.1, // 最小旋转速度
+  baseSpeed: 0.15, // 基础旋转速度 - 更温和
+  maxSpeed: 0.8,  // 最大旋转速度 - 更温和
+  minSpeed: 0.08, // 最小旋转速度 - 更温和
 
   // 公转方向配置
   defaultDirection: 1, // 默认旋转方向 (1=顺时针, -1=逆时针)
 
   // 多方向公转配置
   enableMultiDirection: true, // 是否启用多方向公转
-  rotationAxis: 'Y', // 当前旋转轴
+  rotationAxis: 'Y', // 当前旋转轴（限制在XY平面）
   customRotationAngle: 0, // 自定义旋转角度（度）
 })
 
@@ -233,7 +233,7 @@ const rotationDirection = ref(sphereConfig.value.defaultDirection) // 旋转方�
 // 多方向公转相关变量
 const currentRotationAngle = ref(0) // 当前公转角度（度）
 const targetRotationAngle = ref(0) // 目标公转角度（度）
-const rotationAxis = ref('Y') // 当前旋转轴
+const rotationAxis = ref('Y') // 当前旋转轴（限制在XY平面）
 const isCustomRotation = ref(false) // 是否使用自定义旋转角度
 
 
@@ -247,6 +247,9 @@ const lastTouchY = ref(0)
 const velocityX = ref(0)
 const velocityY = ref(0)
 const velocityDecayTimer = ref(null)
+
+// 防抖相关变量
+const moveThreshold = 8 // 移动阈值，避免微小抖动
 
 // 智能暂停和恢复机制相关变量
 const isPausedForViewing = ref(false) // 是否因查看而暂停
@@ -310,27 +313,37 @@ const availableCities = computed(() => {
   return getAvailableCities()
 })
 
-// 球体旋转样式 - 多方向旋转控制
+// 球体旋转样式 - 严格限制在XY平面
 const sphereRotationStyle = computed(() => {
-  // 多方向旋转：根据公转角度计算旋转轴
+  // 多方向旋转：严格限制在XY平面
   if (sphereConfig.value.enableMultiDirection && isCustomRotation.value) {
-    // 计算垂直于滑动方向的旋转轴
+    // 计算垂直于滑动方向的旋转轴，严格限制在XY平面
     const rotationRad = currentRotationAngle.value * Math.PI / 180
     const perpendicularAngle = rotationRad + Math.PI / 2
     const axisX = Math.cos(perpendicularAngle)
     const axisY = Math.sin(perpendicularAngle)
 
+    // 确保Z轴分量为0，严格限制在XY平面
+    const axisZ = 0
+
     // 根据旋转方向调整旋转角度
     const rotationAngle = currentRotation.value * rotationDirection.value
 
     return {
-      transform: `rotate3d(${axisX}, ${axisY}, 0, ${rotationAngle}deg)`
+      transform: `translate(-50%, -50%) rotate3d(${axisX}, ${axisY}, ${axisZ}, ${rotationAngle}deg)`
     }
   } else {
-    // 传统单轴旋转
+    // 传统单轴旋转 - 也限制在XY平面
     const axis = rotationAxis.value.toLowerCase()
-    return {
-      transform: `rotate${axis.toUpperCase()}(${currentRotation.value}deg)`
+    if (axis === 'z') {
+      // 如果默认轴是Z轴，改为Y轴旋转
+      return {
+        transform: `translate(-50%, -50%) rotateY(${currentRotation.value}deg)`
+      }
+    } else {
+      return {
+        transform: `translate(-50%, -50%) rotate${axis.toUpperCase()}(${currentRotation.value}deg)`
+      }
     }
   }
 })
@@ -418,7 +431,7 @@ function getGenderColor(gender) {
   return colorMap[gender] || '#999'
 }
 
-// 优化的3D位置计算 - 所有点都在球体表面，避免极点和中心点
+// 优化的3D位置计算 - 实现真实球面分布和深度感知
 function getSphereItemStyle(index) {
   const count = activeUsers.value.length
   const radius = actualRadius.value // 使用基于屏幕宽度的实际半径
@@ -435,7 +448,7 @@ function getSphereItemStyle(index) {
     }
   }
 
-  // 使用改进的球面分布算法，完全避开极点和中心点
+  // 使用改进的球面分布算法，实现更真实的球面分布
   // 1. 使用斐波那契球面分布，确保均匀分布
   // 2. 添加偏移量，避免极点和中心点
   // 3. 使用安全的纬度范围，避开极点
@@ -464,40 +477,10 @@ function getSphereItemStyle(index) {
   const y = Math.sin(adjustedTheta) * Math.sin(adjustedPhi)
   const z = Math.cos(adjustedPhi)
 
-  // 让卡片往横轴线靠拢 - 压缩Y轴坐标
-  const compressedY = y * 0.9 // 压缩Y轴到50%
-  const adjustedZ = z * 0.9 // 稍微压缩Z轴到80%
-
   // 缩放到球体半径
   const scaledX = x * radius
-  const scaledY = compressedY * radius
-  const scaledZ = adjustedZ * radius
-
-  // 计算自转角度，抵消公转翻转，确保卡片始终面向用户
-  // let selfRotation = 0
-
-  if (sphereConfig.value.enableMultiDirection && isCustomRotation.value) {
-    // 多方向公转时，根据旋转角度计算反向自转
-    // const rotationRad = currentRotationAngle.value * Math.PI / 180
-
-    // 计算垂直于滑动方向的旋转轴（公转轴）
-    // const perpendicularAngle = rotationRad + Math.PI / 2
-    // const axisX = Math.cos(perpendicularAngle)
-    // const axisY = Math.sin(perpendicularAngle)
-
-    // 正确的理解：公转轴和自转轴是同一个轴
-    // 公转：球体绕垂直于滑动方向的轴旋转
-    // 自转：用户点绕相同的轴反向旋转，抵消翻转
-
-    // 使用统一的角速度，方向相反
-    // selfRotation = -currentRotation.value
-
-    // 添加调试信息
-
-  } else {
-    // 单轴旋转时，简单的反向自转
-    // selfRotation = -currentRotation.value
-  }
+  const scaledY = y * radius
+  const scaledZ = z * radius
 
   // 生成现代设计色彩
   const colors = [
@@ -533,12 +516,12 @@ function getSphereItemStyle(index) {
   const screenWidth = screenInfo.value.width || 750
   const sphereSize = Math.min(screenWidth * sphereConfig.value.sphereSizePercent / 100, screenWidth * 2)
 
-  // 计算用户点在屏幕上的实际位置（考虑球体旋转）
-  const rotationRad = (currentRotation.value * Math.PI) / 180
-  const rotatedX = scaledX * Math.cos(rotationRad) - scaledZ * Math.sin(rotationRad)
+  // 计算用户点在屏幕上的实际位置（考虑球体旋转，限制在XY平面）
+  const rotationRadForBounds = (currentRotation.value * Math.PI) / 180
+  const rotatedXForBounds = scaledX * Math.cos(rotationRadForBounds) - scaledZ * Math.sin(rotationRadForBounds)
 
-  // 检查是否超出边界
-  const isOutOfBounds = Math.abs(rotatedX) > sphereSize / 2 || Math.abs(scaledY) > sphereSize / 2
+  // 检查是否超出边界（只考虑XY平面的位置）
+  const isOutOfBounds = Math.abs(rotatedXForBounds) > sphereSize / 2 || Math.abs(scaledY) > sphereSize / 2
 
   return {
     '--index': index,
@@ -547,27 +530,29 @@ function getSphereItemStyle(index) {
     '--phi': adjustedPhi,
     '--theta': adjustedTheta,
     '--x': x,
-    '--y': compressedY,
-    '--z': adjustedZ,
+    '--y': y,
+    '--z': z,
     '--scaled-x': scaledX,
     '--scaled-y': scaledY,
     '--scaled-z': scaledZ,
     '--color': dynamicColor, // 动态设置颜色
+
     // 使用translate3d定位，添加自转抵消翻转
     transform: (() => {
       let transform = `translate3d(${scaledX}rpx, ${scaledY}rpx, ${scaledZ}rpx)`
 
       if (sphereConfig.value.enableMultiDirection && isCustomRotation.value) {
-        // 多方向旋转：使用与公转相同的轴进行自转
+        // 多方向旋转：使用与公转相同的轴进行自转，严格限制在XY平面
         const rotationRad = currentRotationAngle.value * Math.PI / 180
         const perpendicularAngle = rotationRad + Math.PI / 2
         const axisX = Math.cos(perpendicularAngle)
         const axisY = Math.sin(perpendicularAngle)
+        const axisZ = 0 // 确保Z轴分量为0
         // 自转方向与公转方向相反，抵消翻转效果
         const selfRotation = -currentRotation.value * rotationDirection.value
-        transform += ` rotate3d(${axisX}, ${axisY}, 0, ${selfRotation}deg)`
+        transform += ` rotate3d(${axisX}, ${axisY}, ${axisZ}, ${selfRotation}deg)`
       } else {
-        // 单轴旋转
+        // 单轴旋转 - 限制在XY平面
         const selfRotation = -currentRotation.value
         transform += ` rotateY(${selfRotation}deg)`
       }
@@ -623,7 +608,7 @@ function startRotation() {
       isSliding.value = false
       isUserDetailOpen.value = false
     }
-  }, 50) // 50ms更新一次，约20fps
+  }, 16) // 16ms更新一次，约60fps，提高流畅性
 }
 
 // 停止旋转
@@ -664,6 +649,9 @@ function onTouchStart(event) {
   // 记录触摸开始时间，用于计算触摸持续时间
   touchHoldDuration.value = 0
 
+  // 设置触摸标志，防止自动旋转
+  isPausedForViewing.value = true
+
 
   // 清除自动恢复定时器
   if (autoResumeTimer.value) {
@@ -695,9 +683,10 @@ function onTouchStart(event) {
     return // 暂停状态下不执行后续逻辑
   }
 
-  // 立即暂停公转
-  isPaused.value = true
-  isPausedForViewing.value = true
+  // 手指刚进入时，不要立即暂停，避免抖动
+  // 只有在真正开始滑动时才暂停
+  // isPaused.value = true
+  // isPausedForViewing.value = true
 
   // 缓存当前的公转状态
   cachedRotationSpeed.value = rotationSpeed.value
@@ -709,6 +698,15 @@ function onTouchStart(event) {
     clearInterval(velocityDecayTimer.value)
     velocityDecayTimer.value = null
   }
+
+  // 添加延迟，避免手指刚进入时的抖动
+  setTimeout(() => {
+    // 延迟后检查是否还在触摸
+    if (isSliding.value) {
+      // 如果已经开始滑动，不执行任何操作
+      return
+    }
+  }, 100) // 100ms延迟
 
 
 }
@@ -745,13 +743,16 @@ function onTouchMove(event) {
   // 计算总移动距离
   const totalDelta = Math.hypot(deltaX, deltaY)
 
+
   // 如果移动距离超过阈值，认为是滑动操作
-  if (totalDelta > 5) {
+  if (totalDelta > moveThreshold) {
     isSliding.value = true
 
-    // 恢复控制，取消暂停
-    isPaused.value = false
-    isPausedForViewing.value = false
+    // 只有在之前是暂停状态时才恢复控制
+    if (isPaused.value || isPausedForViewing.value) {
+      isPaused.value = false
+      isPausedForViewing.value = false
+    }
 
     // 计算滑动速度（像素/秒）
     const velocity = totalDelta / Math.max(deltaTime, 1) * 1000
@@ -777,17 +778,16 @@ function onTouchMove(event) {
       currentRotationAngle.value = angleDegrees
       targetRotationAngle.value = angleDegrees
 
-      // 计算滑动速度
-      const speed = Math.min(velocity / 100, sphereConfig.value.maxSpeed)
+      // 计算滑动速度 - 使用更温和的速度计算
+      const speed = Math.min(velocity / 200, sphereConfig.value.maxSpeed) // 降低敏感度
       rotationSpeed.value = Math.max(speed, sphereConfig.value.minSpeed)
 
       // 设置旋转方向
       rotationDirection.value = rotationDir
 
-      // 更新公转角度
-      const targetRotation = currentRotation.value + (rotationSpeed.value * rotationDirection.value)
-      const rotationDiff = targetRotation - currentRotation.value
-      currentRotation.value += rotationDiff * 0.3
+      // 稳定跟随：使用基础速度，避免疯狂旋转
+      const followSpeed = sphereConfig.value.baseSpeed
+      currentRotation.value += followSpeed * rotationDirection.value
     } else {
       // 传统单轴旋转逻辑保持不变
       const angle = Math.atan2(deltaY, deltaX)
@@ -797,7 +797,7 @@ function onTouchMove(event) {
       currentRotationAngle.value = angleDegrees
       targetRotationAngle.value = angleDegrees
 
-      const speed = Math.min(velocity / 100, sphereConfig.value.maxSpeed)
+      const speed = Math.min(velocity / 200, sphereConfig.value.maxSpeed) // 降低敏感度
       rotationSpeed.value = Math.max(speed, sphereConfig.value.minSpeed)
 
       if (Math.abs(deltaX) > Math.abs(deltaY)) {
@@ -806,9 +806,9 @@ function onTouchMove(event) {
         rotationDirection.value = deltaY > 0 ? 1 : -1
       }
 
-      const targetRotation = currentRotation.value + (rotationSpeed.value * rotationDirection.value)
-      const rotationDiff = targetRotation - currentRotation.value
-      currentRotation.value += rotationDiff * 0.3
+      // 稳定跟随：使用基础速度
+      const followSpeed = sphereConfig.value.baseSpeed
+      currentRotation.value += followSpeed * rotationDirection.value
     }
   }
 
@@ -850,7 +850,7 @@ function onTouchEnd(event) {
 
     if (sphereConfig.value.enableMultiDirection) {
       // 多方向滑动结束逻辑
-      if (finalSpeed > 50) {
+      if (finalSpeed > 30) { // 降低阈值，更敏感
         // 快速滑动：启动衰减
         startVelocityDecay()
       } else {
@@ -862,15 +862,15 @@ function onTouchEnd(event) {
       }
     } else {
       // 传统模式：判断滑动结束时的状态
-      if (finalSpeed > 50) {
+      if (finalSpeed > 30) { // 降低阈值，更敏感
         // 快速滑动结束：保持运动状态
 
-        if (finalSpeed > 200) {
+        if (finalSpeed > 150) { // 降低阈值
           rotationSpeed.value = sphereConfig.value.maxSpeed
-        } else if (finalSpeed > 100) {
-          rotationSpeed.value = Math.min(finalSpeed / 100, sphereConfig.value.maxSpeed)
+        } else if (finalSpeed > 80) { // 降低阈值
+          rotationSpeed.value = Math.min(finalSpeed / 150, sphereConfig.value.maxSpeed) // 更温和的速度计算
         } else {
-          rotationSpeed.value = Math.max(finalSpeed / 50, sphereConfig.value.minSpeed)
+          rotationSpeed.value = Math.max(finalSpeed / 80, sphereConfig.value.minSpeed) // 更温和的速度计算
         }
 
         cachedRotationSpeed.value = rotationSpeed.value
@@ -913,7 +913,8 @@ function onTouchEnd(event) {
         startAutoResumeTimer()
 
       } else {
-        // 没有命中用户点，立即恢复原始公转状态
+        // 没有命中用户点，恢复原始公转状态
+        isPausedForViewing.value = false // 重置触摸标志
         resumeFromCache()
       }
     }).catch(error => {
@@ -924,6 +925,7 @@ function onTouchEnd(event) {
   }
 
   isSliding.value = false
+  isPausedForViewing.value = false // 重置触摸标志
 }
 
 // 速度衰减机制
@@ -936,19 +938,18 @@ function startVelocityDecay() {
   velocityDecayTimer.value = setInterval(() => {
     // 逐渐降低速度到基础速度
     if (rotationSpeed.value > sphereConfig.value.baseSpeed) {
-      const decayRate = 0.98 // 每次衰减2%，更平滑
+      const decayRate = 0.95 // 每次衰减5%，更平滑
       rotationSpeed.value = Math.max(
         rotationSpeed.value * decayRate,
         sphereConfig.value.baseSpeed
       )
-
 
     } else {
       // 达到基础速度后停止衰减
       clearInterval(velocityDecayTimer.value)
       velocityDecayTimer.value = null
     }
-  }, 50) // 每50ms衰减一次，更频繁
+  }, 100) // 每100ms衰减一次，更平滑
 }
 
 
@@ -1207,13 +1208,13 @@ function checkUserClick(x, y) {
               const userY = Number.parseFloat(match[2]) / pixelRatio
               const userZ = Number.parseFloat(match[3]) / pixelRatio
 
-              // 考虑球体旋转对用户点位置的影响
+              // 考虑球体旋转对用户点位置的影响（限制在XY平面）
               // 当前旋转角度会影响用户点的实际屏幕位置
               const rotationRad = (currentRotation.value * Math.PI) / 180
               const rotatedX = userX * Math.cos(rotationRad) - userZ * Math.sin(rotationRad)
               const rotatedZ = userX * Math.sin(rotationRad) + userZ * Math.cos(rotationRad)
 
-              // 计算3D距离（考虑旋转后的位置）
+              // 计算2D距离（只考虑XY平面）
               const userDistance = Math.hypot(offsetX - rotatedX, offsetY - userY)
 
               // 根据Z轴深度调整点击范围 - 越近的点点击范围越小
@@ -1362,9 +1363,10 @@ function startAutoResumeTimer() {
   background: rgba(0, 0, 0, 0.1);
 }
 
-/* 3D球体容器 - 完全由JavaScript控制 */
+/* 3D球体容器 - 限制在XY平面 */
 .sphere-container {
-  perspective: 1600rpx;
+  perspective: none;
+  /* 移除透视，避免Z轴旋转 */
   transform-style: preserve-3d;
   position: absolute;
   top: 0;
@@ -1386,13 +1388,13 @@ function startAutoResumeTimer() {
   user-select: none;
 }
 
-/* 旋转球体 - 完全由JavaScript控制 */
+/* 旋转球体 - 限制在XY平面 */
 .sphere {
   position: absolute;
   top: 50%;
   left: 50%;
   transform-style: preserve-3d;
-  transform: translate(-50%, -50%);
+  /* 移除固定的transform，由JavaScript动态控制 */
   z-index: 2;
   overflow: visible !important;
   /* 确保用户点不会被裁剪 */
@@ -1416,6 +1418,7 @@ function startAutoResumeTimer() {
   transform-origin: center center;
   z-index: 10;
   /* 确保在最上层 */
+  /* 移除过渡效果，提高性能 */
 }
 
 .sphere-item>div {
@@ -1462,6 +1465,7 @@ function startAutoResumeTimer() {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+  /* 移除深度感知，保持原始亮度 */
 }
 
 .item-content:hover .item-dot {
@@ -1500,6 +1504,7 @@ function startAutoResumeTimer() {
   left: 50%;
   transform: translateX(-50%);
   margin-top: 8rpx;
+  /* 移除深度感知，保持原始透明度 */
 }
 
 .item-name {
