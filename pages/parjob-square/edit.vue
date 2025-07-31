@@ -42,30 +42,23 @@
         <!-- 年龄 -->
         <view class="form-item">
           <text class="form-label">年龄</text>
-          <picker :value="ageIndex" :range="ageOptions" range-key="label" @change="onAgeChange">
-            <view class="picker-item">
-              <text class="picker-text">{{ formData.age ? `${formData.age}岁` : '请选择年龄' }}</text>
-              <uni-icons type="right" size="16" color="#999" />
-            </view>
-          </picker>
+          <uni-data-select v-model="formData.age" :localdata="ageSelectData" placeholder="请选择年龄"
+            @popupopened="onAgeSelectOpened" @popupclosed="onAgeSelectClosed" />
         </view>
 
         <!-- 学历 -->
         <view class="form-item">
           <text class="form-label">学历</text>
-          <picker :value="educationIndex" :range="educationOptions" @change="onEducationChange">
-            <view class="picker-item">
-              <text class="picker-text">{{ formData.education || '请选择学历' }}</text>
-              <uni-icons type="right" size="16" color="#999" />
-            </view>
-          </picker>
+          <uni-data-select v-model="formData.education" :localdata="educationSelectData" placeholder="请选择学历"
+            @popupopened="onEducationSelectOpened" @popupclosed="onEducationSelectClosed" />
         </view>
 
         <!-- 城市 -->
         <view class="form-item">
           <text class="form-label">常驻城市</text>
-          <uni-data-picker :localdata="areaPickerData" popup-title="请选择地区" placeholder="请选择省市"
-            v-model="formData.location" @change="onAreaChange" />
+          <uni-data-picker ref="areaPickerRef" :localdata="areaPickerData" popup-title="请选择地区" placeholder="请选择省市"
+            v-model="formData.location" @change="onAreaChange" @popupopened="onDataPickerOpened"
+            @popupclosed="onDataPickerClosed" @popupshow="onDataPickerOpened" @popuphide="onDataPickerClosed" />
           <view v-if="formData.location_text && formData.location_text.length > 0" class="picker-value">
             {{ formData.location_text.join(' ') }}
           </view>
@@ -218,6 +211,7 @@
 <script setup>
 import { areaList } from '@/common/areaList.js'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+import { onBackPress } from '@dcloudio/uni-app'
 import { computed, onMounted, ref } from 'vue'
 
 // 响应式数据
@@ -252,6 +246,8 @@ const userInfo = computed(() => store.userInfo)
 
 const newSkill = ref('')
 const newTag = ref('')
+const areaPickerRef = ref(null)
+const isDataPickerOpen = ref(false)
 
 // 选项数据
 const educationOptions = ['高中', '大专', '本科', '硕士', '博士']
@@ -260,6 +256,17 @@ const educationOptions = ['高中', '大专', '本科', '硕士', '博士']
 const ageOptions = Array.from({ length: 43 }, (_, i) => ({
   value: i + 18,
   label: `${i + 18}岁`
+}))
+
+// uni-data-select 数据格式
+const ageSelectData = ageOptions.map(option => ({
+  value: option.value,
+  text: option.label
+}))
+
+const educationSelectData = educationOptions.map(option => ({
+  value: option,
+  text: option
 }))
 
 // 地区数据
@@ -296,14 +303,6 @@ const showFields = [
   { key: 'photos', label: '个人照片' }
 ]
 
-// 计算属性
-const educationIndex = computed(() => {
-  return educationOptions.findIndex(edu => edu === formData.value.education)
-})
-
-const ageIndex = computed(() => {
-  return ageOptions.findIndex(age => age.value === formData.value.age)
-})
 
 // 方法
 function goBack() {
@@ -320,13 +319,6 @@ function getGenderText(gender) {
   return genderMap[gender] || '未设置'
 }
 
-function onEducationChange(e) {
-  formData.value.education = educationOptions[e.detail.value]
-}
-
-function onAgeChange(e) {
-  formData.value.age = ageOptions[e.detail.value].value
-}
 
 function onAreaChange(e) {
   // 清空
@@ -341,6 +333,17 @@ function onAreaChange(e) {
   formData.value.location_text = e.detail.value.map(item => item.text)
   // 设置城市文本（省市组合）
   formData.value.city = formData.value.location_text.join(' ')
+}
+
+// uni-data-picker 弹层事件处理
+function onDataPickerOpened() {
+  console.log('onDataPickerOpened triggered')
+  isDataPickerOpen.value = true
+}
+
+function onDataPickerClosed() {
+  console.log('onDataPickerClosed triggered')
+  isDataPickerOpen.value = false
 }
 
 function addSkill() {
@@ -453,6 +456,18 @@ onMounted(() => {
   // 这里应该从数据库加载用户现有的趴活信息
   // loadUserParjobCard()
 })
+
+// 页面返回拦截
+onBackPress(() => {
+  // 检查 uni-data-picker 是否处于打开状态
+  if (isDataPickerOpen.value && areaPickerRef.value) {
+    console.log('closing uni-data-picker via back press')
+    areaPickerRef.value.hide()
+    return true // 阻止页面返回
+  }
+  return false // 允许页面正常返回
+})
+
 </script>
 
 <style scoped>

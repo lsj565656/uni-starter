@@ -5,7 +5,7 @@ module.exports = {
     browser: true,
     node: true,
     es2021: true,
-    'vue/setup-compiler-macros': true,
+    'vue/setup-compiler-macros': true
   },
   extends: [
     'eslint:recommended',
@@ -13,21 +13,21 @@ module.exports = {
     'plugin:vue/vue3-essential',
     'plugin:import/recommended',
     'plugin:promise/recommended',
-    'plugin:unicorn/recommended',
+    'plugin:unicorn/recommended'
   ],
   parser: 'vue-eslint-parser',
   parserOptions: {
     ecmaVersion: 2021,
     sourceType: 'module',
-    parser: '@typescript-eslint/parser',
+    parser: '@typescript-eslint/parser'
   },
   settings: {
     'import/resolver': {
       node: {
-        extensions: ['.js', '.vue', '.json'],
-      },
+        extensions: ['.js', '.vue', '.json']
+      }
     },
-    'import/core-modules': ['vue', 'uni-app', '@dcloudio/uni-app'],
+    'import/core-modules': ['vue', 'uni-app', '@dcloudio/uni-app']
   },
   plugins: ['vue', 'import', 'promise', 'unicorn'],
   rules: {
@@ -104,6 +104,7 @@ module.exports = {
     'unicorn/prefer-json-parse-buffer': 'off',
     'unicorn/prefer-array-find': 'warn',
     'unicorn/prefer-array-index-of': 'off', // 关闭数组索引查找方法检查
+    'unicorn/prefer-at': 'off', // 关闭 .at() 方法检查，允许使用数组索引访问
     'unicorn/prefer-array-some': 'warn',
     'unicorn/prefer-includes': 'warn',
     'unicorn/prefer-string-starts-ends-with': 'warn',
@@ -141,7 +142,7 @@ module.exports = {
     'unicorn/no-null': 'off', // 关闭 null 使用检查，允许使用 null
     'unicorn/number-literal-case': 'warn',
     'unicorn/throw-new-error': 'warn',
-    'unicorn/escape-case': 'off', // 关闭转义字符大小写检查
+    'unicorn/escape-case': 'off' // 关闭转义字符大小写检查
   },
   globals: {
     // uni-app 全局变量
@@ -152,14 +153,14 @@ module.exports = {
     getApp: 'readonly',
     plus: 'readonly',
     weex: 'readonly',
-    process: 'readonly',
+    process: 'readonly'
   },
   overrides: [
     {
       files: ['*.vue'],
       rules: {
-        indent: 'off',
-      },
-    },
-  ],
+        indent: 'off'
+      }
+    }
+  ]
 }
