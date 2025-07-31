@@ -1,8 +1,8 @@
 <template>
   <view class="parjob-square-container">
     <!-- 使用官方uni-nav-bar组件 -->
-    <uni-nav-bar :fixed="true" :shadow="true" :statusBar="true" background-color="#fff" color="#333" left-icon="left"
-      left-text="" title="趴活广场" @clickLeft="goBack">
+    <uni-nav-bar :fixed="true" :border="false" :shadow="true" :statusBar="true" background-color="#fff" color="#333"
+      left-icon="left" left-text="" title="趴活广场" @clickLeft="goBack">
     </uni-nav-bar>
 
     <!-- 3D球体组件 - 只在4个以上用户时显示 -->
