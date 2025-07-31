@@ -708,12 +708,17 @@ export function getActiveParjobCards() {
 export function getFilteredParjobCards(filters = {}) {
   let filtered = getActiveParjobCards()
 
-  if (filters.city) {
-    filtered = filtered.filter(card => card.city === filters.city)
+  if (filters.city && filters.city.length > 0) {
+    filtered = filtered.filter(card => filters.city.includes(card.city))
   }
 
   if (filters.gender) {
-    filtered = filtered.filter(card => card.gender === filters.gender)
+    if (filters.gender === 'unknown') {
+      // 未知性别：除了male和female之外的所有情况
+      filtered = filtered.filter(card => !card.gender || (card.gender !== 'male' && card.gender !== 'female'))
+    } else {
+      filtered = filtered.filter(card => card.gender === filters.gender)
+    }
   }
 
   if (filters.skills && filters.skills.length > 0) {
@@ -730,7 +735,9 @@ export function getFilteredParjobCards(filters = {}) {
 // 获取所有可用的城市列表
 export function getAvailableCities() {
   const cities = [...new Set(parjobCards.map(card => card.city))]
-  return cities.sort()
+  const fixedCities = ['郑州', '开封', '洛阳']
+  const allCities = [...new Set([...cities, ...fixedCities])]
+  return allCities.sort()
 }
 
 // 获取所有可用的技能标签
