@@ -427,29 +427,6 @@ function onAreaChange(e) {
   form.location = e.detail.value.map(item => item.value)
   form.location_text = e.detail.value.map(item => item.text)
 }
-// 获取省市区文本
-function getAreaTextByIndex(index, code) {
-  if (index === 0) return areaList.provinces[code] || ''
-  if (index === 1) return areaList.cities[code] || ''
-  if (index === 2 && areaList.counties) return areaList.counties[code] || ''
-  return ''
-}
-// 分位与输入框第一位对齐
-const amountInput = ref(null)
-const scoreInput = ref(null)
-const amountMaxUnitLeft = ref(16)
-const scoreMaxUnitLeft = ref(16)
-function updateMaxUnitPosition(type) {
-  nextTick(() => {
-    const inputReference = type === 'score' ? scoreInput.value : amountInput.value
-    if (inputReference) {
-      // 计算第一个数字的偏移
-      const rect = inputReference.getBoundingClientRect()
-      amountMaxUnitLeft.value = rect.left + 8 // 8为padding，视实际调整
-      scoreMaxUnitLeft.value = rect.left + 8
-    }
-  })
-}
 // 修改 amountMaxUnit/scoreMaxUnit 计算逻辑，确保 .split 前类型安全
 const amountMaxUnit = computed(() => {
   let intPart = 0

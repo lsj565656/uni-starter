@@ -13,6 +13,7 @@ export const parjobCards = [
     education: '本科',
     city: '北京',
     skills: ['摄影', '设计', '文案', '翻译'],
+    categories: ['entertainment', 'neighborhood'],
     strengths: '擅长创意设计和文案策划，有丰富的摄影经验，能够快速理解客户需求并提供专业解决方案。',
     tags: ['创意设计', '摄影摄像', '文案策划', '外语翻译'],
     photos: [
@@ -47,6 +48,7 @@ export const parjobCards = [
     education: '硕士',
     city: '上海',
     skills: ['前端开发', 'UI设计', '产品经理', '数据分析'],
+    categories: ['neighborhood', 'maintenance'],
     strengths: '5年前端开发经验，熟悉Vue、React、uni-app等技术栈，具备产品思维和数据分析能力。',
     tags: ['前端开发', 'UI设计', '产品设计', '数据分析'],
     photos: [

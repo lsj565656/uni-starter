@@ -2,7 +2,7 @@
   <view class="edit-profile-container">
     <!-- 使用官方uni-nav-bar组件 -->
     <uni-nav-bar :fixed="true" :border="false" :shadow="false" :statusBar="true" background-color="#fff" color="#333"
-      left-icon="left" left-text="" title="编辑趴活信息" @clickLeft="goBack">
+      left-icon="left" left-text="" title="编辑我的信息卡" @clickLeft="goBack">
       <template #right>
         <view class="nav-right-btn" @click="saveProfile">
           <text class="save-text">保存</text>
@@ -17,36 +17,37 @@
 
         <!-- 头像 -->
         <view class="avatar-section">
-          <view class="avatar-wrapper" @click="chooseAvatar">
-            <image :src="formData.avatar" class="avatar-image" mode="aspectFill" />
-            <view class="avatar-edit">
-              <uni-icons type="camera" size="20" color="#fff" />
-            </view>
+          <view class="avatar-wrapper">
+            <image :src="userInfo.avatar_file.url || '/static/default-avatar.png'" class="avatar-image"
+              mode="aspectFill" />
           </view>
-          <text class="avatar-tip">点击更换头像</text>
         </view>
 
         <!-- 昵称 -->
         <view class="form-item">
           <text class="form-label">昵称</text>
-          <input v-model="formData.nickname" class="form-input" placeholder="请输入昵称" maxlength="20" />
+          <view class="readonly-input">
+            <text class="readonly-text">{{ userInfo.nickname || '未设置' }}</text>
+          </view>
         </view>
 
         <!-- 性别 -->
         <view class="form-item">
           <text class="form-label">性别</text>
-          <view class="radio-group">
-            <view v-for="option in genderOptions" :key="option.value" class="radio-item"
-              :class="{ active: formData.gender === option.value }" @click="formData.gender = option.value">
-              <text class="radio-text">{{ option.label }}</text>
-            </view>
+          <view class="readonly-input">
+            <text class="readonly-text">{{ getGenderText(userInfo.gender) }}</text>
           </view>
         </view>
 
         <!-- 年龄 -->
         <view class="form-item">
           <text class="form-label">年龄</text>
-          <input v-model="formData.age" class="form-input" type="number" placeholder="请输入年龄" maxlength="2" />
+          <picker :value="ageIndex" :range="ageOptions" range-key="label" @change="onAgeChange">
+            <view class="picker-item">
+              <text class="picker-text">{{ formData.age ? `${formData.age}岁` : '请选择年龄' }}</text>
+              <uni-icons type="right" size="16" color="#999" />
+            </view>
+          </picker>
         </view>
 
         <!-- 学历 -->
@@ -63,7 +64,11 @@
         <!-- 城市 -->
         <view class="form-item">
           <text class="form-label">常驻城市</text>
-          <input v-model="formData.city" class="form-input" placeholder="请输入常驻城市" />
+          <uni-data-picker :localdata="areaPickerData" popup-title="请选择地区" placeholder="请选择省市"
+            v-model="formData.location" @change="onAreaChange" />
+          <view v-if="formData.location_text && formData.location_text.length > 0" class="picker-value">
+            {{ formData.location_text.join(' ') }}
+          </view>
         </view>
       </view>
 
@@ -211,17 +216,17 @@
 </template>
 
 <script setup>
+import { areaList } from '@/common/areaList.js'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { computed, onMounted, ref } from 'vue'
 
 // 响应式数据
 const formData = ref({
-  nickname: '',
-  avatar: '',
-  gender: '',
   age: '',
   education: '',
   city: '',
+  location: [], // 省市value数组
+  location_text: [], // 省市文本数组
   skills: [],
   tags: [],
   strengths: '',
@@ -242,17 +247,43 @@ const formData = ref({
   allow_homepage_view: false
 })
 
+// 获取用户信息
+const userInfo = computed(() => store.userInfo)
+
 const newSkill = ref('')
 const newTag = ref('')
 
 // 选项数据
-const genderOptions = [
-  { label: '男', value: 1 },
-  { label: '女', value: 2 },
-  { label: '未知', value: 0 }
-]
-
 const educationOptions = ['高中', '大专', '本科', '硕士', '博士']
+
+// 年龄选项 (18-60岁)
+const ageOptions = Array.from({ length: 43 }, (_, i) => ({
+  value: i + 18,
+  label: `${i + 18}岁`
+}))
+
+// 地区数据
+function parseAreaList(areaList) {
+  // 省
+  const provinces = Object.entries(areaList.provinces).map(([code, name]) => ({
+    text: name,
+    value: code,
+    children: []
+  }))
+  // 市
+  const cities = Object.entries(areaList.cities).map(([code, name]) => ({
+    text: name,
+    value: code,
+    provinceCode: code.slice(0, 2) + '0000', // 前2位+0000
+    children: []
+  }))
+  // 组装
+  for (const province of provinces) {
+    province.children = cities.filter(city => city.provinceCode === province.value)
+  }
+  return provinces
+}
+const areaPickerData = parseAreaList(areaList)
 
 const showFields = [
   { key: 'age', label: '年龄' },
@@ -270,13 +301,46 @@ const educationIndex = computed(() => {
   return educationOptions.findIndex(edu => edu === formData.value.education)
 })
 
+const ageIndex = computed(() => {
+  return ageOptions.findIndex(age => age.value === formData.value.age)
+})
+
 // 方法
 function goBack() {
   uni.navigateBack()
 }
 
+// 获取性别文本
+function getGenderText(gender) {
+  const genderMap = {
+    0: '未知',
+    1: '男',
+    2: '女'
+  }
+  return genderMap[gender] || '未设置'
+}
+
 function onEducationChange(e) {
   formData.value.education = educationOptions[e.detail.value]
+}
+
+function onAgeChange(e) {
+  formData.value.age = ageOptions[e.detail.value].value
+}
+
+function onAreaChange(e) {
+  // 清空
+  if (!e.detail.value || e.detail.value.length === 0) {
+    formData.value.location = []
+    formData.value.location_text = []
+    formData.value.city = ''
+    return
+  }
+  // 省市两级，存储 value 数组和文本数组
+  formData.value.location = e.detail.value.map(item => item.value)
+  formData.value.location_text = e.detail.value.map(item => item.text)
+  // 设置城市文本（省市组合）
+  formData.value.city = formData.value.location_text.join(' ')
 }
 
 function addSkill() {
@@ -305,18 +369,6 @@ function toggleShowField(key, value) {
   formData.value.show_fields[key] = value
 }
 
-// 图片上传相关
-function chooseAvatar() {
-  uni.chooseImage({
-    count: 1,
-    sizeType: ['compressed'],
-    sourceType: ['album', 'camera'],
-    success: (res) => {
-      // 这里应该先上传到云存储，然后获取URL
-      formData.value.avatar = res.tempFilePaths[0]
-    }
-  })
-}
 
 function choosePhotos() {
   uni.chooseImage({
@@ -398,14 +450,6 @@ async function saveProfile() {
 
 // 初始化数据
 onMounted(() => {
-  const userInfo = store.userInfo
-  if (userInfo) {
-    formData.value.nickname = userInfo.nickname || ''
-    formData.value.avatar = userInfo.avatar || '/static/default-avatar.png'
-    // 从用户信息中读取性别，如果没有设置则默认为0（未知）
-    formData.value.gender = userInfo.gender === undefined ? 0 : userInfo.gender
-  }
-
   // 这里应该从数据库加载用户现有的趴活信息
   // loadUserParjobCard()
 })
@@ -485,7 +529,13 @@ onMounted(() => {
   height: 100%;
 }
 
-.avatar-edit {
+
+.avatar-tip {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.avatar-info {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -497,9 +547,36 @@ onMounted(() => {
   justify-content: center;
 }
 
-.avatar-tip {
-  font-size: 24rpx;
+.readonly-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 80rpx;
+  border: 1rpx solid #e5e5e5;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  background: #f8f9fa;
+  color: #666;
+}
+
+.readonly-text {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.field-tip {
+  display: block;
+  font-size: 22rpx;
   color: #999;
+  margin-top: 8rpx;
+}
+
+.picker-value {
+  color: #666;
+  padding: 8rpx 0;
+  display: flex;
+  align-items: center;
+  font-size: 28rpx;
 }
 
 .form-item {
@@ -555,33 +632,6 @@ onMounted(() => {
   margin-top: 10rpx;
 }
 
-.radio-group {
-  display: flex;
-  gap: 20rpx;
-}
-
-.radio-item {
-  flex: 1;
-  height: 80rpx;
-  border: 1rpx solid #e5e5e5;
-  border-radius: 12rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
-  transition: all 0.3s ease;
-}
-
-.radio-item.active {
-  border-color: #007aff;
-  background: rgba(0, 122, 255, 0.1);
-  color: #007aff;
-}
-
-.radio-text {
-  font-size: 28rpx;
-  color: #333;
-}
 
 .picker-item {
   display: flex;
