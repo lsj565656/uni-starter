@@ -126,6 +126,9 @@
     "lint": "eslint . --ext .vue,.js,.ts --fix",
     "lint:check": "eslint . --ext .vue,.js,.ts",
     "format": "prettier --write \"**/*.{vue,js,ts,json,css,scss,md}\"",
-    "format:check": "prettier --check \"**/*.{vue,js,ts,json,css,scss,md}\""
+    "format:check": "prettier --check \"**/*.{vue,js,ts,json,css,scss,md}\"",
+    "format:ai": "node scripts/toggle-formatting.js ai",
+    "format:realtime": "node scripts/toggle-formatting.js realtime",
+    "format:disabled": "node scripts/toggle-formatting.js disabled"
   }
 }

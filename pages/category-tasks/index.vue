@@ -125,12 +125,13 @@ const containerStyle = computed(() => {
   return 'background:#f8f9fa;min-height:100vh;'
 })
 const listMasonryStyle = computed(() => {
-  // #ifdef APP
+  /* #ifdef APP */
   return `margin-top: ${statusBarHeight.value + CUSTOM_NAVBAR_HEIGHT + 48}px; top: ${statusBarHeight.value + CUSTOM_NAVBAR_HEIGHT}px;`
-  // #endif
-  // #ifndef APP
+  /* #endif */
+  /* #ifndef APP */
+  // eslint-disable-next-line no-unreachable
   return `margin-top: ${CUSTOM_NAVBAR_HEIGHT + 48}px; top: ${CUSTOM_NAVBAR_HEIGHT}px;`
-  // #endif
+  /* #endif */
 })
 
 function getOrderByArray() {

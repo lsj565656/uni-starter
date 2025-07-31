@@ -141,6 +141,7 @@ module.exports = {
     'unicorn/no-null': 'off', // 关闭 null 使用检查，允许使用 null
     'unicorn/number-literal-case': 'warn',
     'unicorn/throw-new-error': 'warn',
+    'unicorn/escape-case': 'off', // 关闭转义字符大小写检查
   },
   globals: {
     // uni-app 全局变量
