@@ -247,9 +247,9 @@ const newTag = ref('')
 
 // 选项数据
 const genderOptions = [
-  { label: '男', value: 'male' },
-  { label: '女', value: 'female' },
-  { label: '未知', value: 'unknown' }
+  { label: '男', value: 1 },
+  { label: '女', value: 2 },
+  { label: '未知', value: 0 }
 ]
 
 const educationOptions = ['高中', '大专', '本科', '硕士', '博士']
@@ -402,6 +402,8 @@ onMounted(() => {
   if (userInfo) {
     formData.value.nickname = userInfo.nickname || ''
     formData.value.avatar = userInfo.avatar || '/static/default-avatar.png'
+    // 从用户信息中读取性别，如果没有设置则默认为0（未知）
+    formData.value.gender = userInfo.gender === undefined ? 0 : userInfo.gender
   }
 
   // 这里应该从数据库加载用户现有的趴活信息
