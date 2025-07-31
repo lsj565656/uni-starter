@@ -7,7 +7,7 @@
 
     <!-- 3D球体组件 - 只在4个以上用户时显示 -->
     <planet-sphere v-if="activeUsers.length >= 4" :items="activeUsers" :config="sphereConfig" :screen-info="screenInfo"
-      :show-gender="true" :is-paused="isUserDetailOpen" @item-click="handleUserDotClick"
+      :show-gender="false" :is-paused="isUserDetailOpen" @item-click="handleUserDotClick"
       @item-info-click="handleUserInfoClick" @sphere-pause="onSpherePause" @sphere-resume="onSphereResume" />
 
     <!-- 1-3个用户时的固定展示 -->
@@ -180,7 +180,7 @@
     </uni-popup>
 
     <!-- 用户详情弹窗 -->
-    <uni-popup ref="userDetailPopup" type="center" class="user-detail-popup">
+    <uni-popup ref="userDetailPopup" type="center" class="user-detail-popup" @maskClick="hideUserDetail">
       <view class="user-detail-modal" v-if="selectedUser">
         <view class="detail-header">
           <image :src="selectedUser.avatar" class="detail-avatar" mode="aspectFill" />
@@ -188,7 +188,8 @@
             <text class="detail-name">{{ selectedUser.nickname }}</text>
             <view class="detail-basic">
               <text v-if="selectedUser.show_fields?.age">{{ selectedUser.age }}岁</text>
-              <text v-if="selectedUser.show_fields?.gender">{{ getGenderText(selectedUser.gender) }}</text>
+              <uni-icons custom-prefix="iconfont" :type="getGenderIcon(selectedUser.gender)" size="12"
+                :color="getGenderColor(selectedUser.gender)" />
               <text v-if="selectedUser.show_fields?.education">{{ selectedUser.education }}</text>
             </view>
             <text v-if="selectedUser.show_fields?.city" class="detail-city">{{ selectedUser.city }}</text>
@@ -297,9 +298,9 @@ const filterCities = ref([])
 // 性别选项
 const genderOptions = [
   { value: '', label: '全部' },
-  { value: 'male', label: '男' },
-  { value: 'female', label: '女' },
-  { value: 'unknown', label: '未知' }
+  { value: 1, label: '男' },
+  { value: 2, label: '女' },
+  { value: 0, label: '未知' }
 ]
 
 // 年龄选项
@@ -442,29 +443,21 @@ const fixedDisplayStyle = computed(() => {
 })
 
 // 方法
-function getGenderText(gender) {
-  const genderMap = {
-    male: '男',
-    female: '女',
-    unknown: '未知'
-  }
-  return genderMap[gender] || ''
-}
 
 function getGenderIcon(gender) {
   const iconMap = {
-    male: 'icon-sex_man',
-    female: 'icon-sex_woman',
-    unknown: 'icon-gender_unknown'
+    1: 'icon-sex_man',
+    2: 'icon-sex_woman',
+    0: 'icon-gender_unknown'
   }
   return iconMap[gender] || 'icon-gender_unknown'
 }
 
 function getGenderColor(gender) {
   const colorMap = {
-    male: '#007AFF',
-    female: '#FF2D92',
-    unknown: '#FF9500'
+    1: '#007AFF',
+    2: '#FF2D92',
+    0: '#FF9500'
   }
   return colorMap[gender] || '#999'
 }

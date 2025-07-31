@@ -12,7 +12,8 @@
           <view class="item-info" @click="handleItemInfoClick(item, $event)">
             <text class="item-name">{{ item.nickname }}</text>
             <view class="item-gender" v-if="showGender">
-              <uni-icons :type="getGenderIcon(item.gender)" size="16" :color="getGenderColor(item.gender)" />
+              <uni-icons custom-prefix="iconfont" :type="getGenderIcon(item.gender)" size="6"
+                :color="getGenderColor(item.gender)" />
             </view>
           </view>
         </view>
@@ -232,29 +233,20 @@ const sphereContainerStyle = computed(() => {
 })
 
 // 方法
-function getGenderText(gender) {
-  const genderMap = {
-    male: '男',
-    female: '女',
-    other: '其他'
-  }
-  return genderMap[gender] || ''
-}
-
 function getGenderIcon(gender) {
   const iconMap = {
-    male: 'male',
-    female: 'female',
-    other: 'help'
+    1: 'icon-sex_man',
+    2: 'icon-sex_woman',
+    0: 'icon-gender_unknown'
   }
-  return iconMap[gender] || 'help'
+  return iconMap[gender] || 'icon-gender_unknown'
 }
 
 function getGenderColor(gender) {
   const colorMap = {
-    male: '#007AFF',
-    female: '#FF2D92',
-    other: '#FF9500'
+    1: '#007AFF',
+    2: '#FF2D92',
+    0: '#FF9500'
   }
   return colorMap[gender] || '#999'
 }

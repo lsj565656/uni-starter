@@ -713,9 +713,9 @@ export function getFilteredParjobCards(filters = {}) {
   }
 
   if (filters.gender) {
-    if (filters.gender === 'unknown') {
-      // 未知性别：除了male和female之外的所有情况
-      filtered = filtered.filter(card => !card.gender || (card.gender !== 'male' && card.gender !== 'female'))
+    if (filters.gender === 0) {
+      // 未知性别：除了1和2之外的所有情况
+      filtered = filtered.filter(card => !card.gender || (card.gender !== 1 && card.gender !== 2))
     } else {
       filtered = filtered.filter(card => card.gender === filters.gender)
     }
