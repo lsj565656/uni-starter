@@ -158,6 +158,14 @@ const actualRadius = computed(() => {
 
 // 球体旋转样式
 const sphereRotationStyle = computed(() => {
+  // 1-3个用户时球体不公转，保持固定
+  if (props.items.length < 4) {
+    return {
+      transform: 'translate(-50%, -50%)'
+    }
+  }
+
+  // 4个以上用户时正常公转
   if (props.config.enableMultiDirection && isCustomRotation.value) {
     const rotationRad = currentRotationAngle.value * Math.PI / 180
     const perpendicularAngle = rotationRad + Math.PI / 2
@@ -267,24 +275,44 @@ function getSphereItemStyle(index) {
     }
   }
 
-  const goldenRatio = (1 + Math.sqrt(5)) / 2
-  const goldenAngle = 2 * Math.PI / goldenRatio
+  // 用户分布逻辑
+  let phi, theta
 
-  const minLat = 0.1
-  const maxLat = Math.PI - 0.1
-  const latRange = maxLat - minLat
+  if (count < 4) {
+    // 1-3个用户时，使用固定位置，完全脱离公转和自转
+    if (count === 1) {
+      phi = Math.PI / 2 // 赤道位置，完全正面
+      theta = 0 // 正前方
+    } else if (count === 2) {
+      // 2个用户时，分别放在球体的正面和侧面
+      phi = Math.PI / 2
+      theta = index * Math.PI / 2 // 90度间隔，一个正面一个侧面
+    } else {
+      // 3个用户时，使用三角形分布
+      phi = Math.PI / 2
+      theta = index * (2 * Math.PI / 3) // 120度间隔
+    }
+  } else {
+    // 4个以上用户使用黄金螺旋分布，正常转动
+    const goldenRatio = (1 + Math.sqrt(5)) / 2
+    const goldenAngle = 2 * Math.PI / goldenRatio
 
-  const phi = minLat + (latRange * (index + 0.5)) / count
-  const theta = goldenAngle * index + (index * 0.1)
+    const minLat = 0.1
+    const maxLat = Math.PI - 0.1
+    const latRange = maxLat - minLat
 
-  const randomOffsetX = Math.sin(index * 1.5) * 0.05
-  const randomOffsetY = Math.cos(index * 2.3) * 0.05
-  const adjustedPhi = phi + randomOffsetX
-  const adjustedTheta = theta + randomOffsetY
+    phi = minLat + (latRange * (index + 0.5)) / count
+    theta = goldenAngle * index + (index * 0.1)
 
-  const x = Math.cos(adjustedTheta) * Math.sin(adjustedPhi)
-  const y = Math.sin(adjustedTheta) * Math.sin(adjustedPhi)
-  const z = Math.cos(adjustedPhi)
+    const randomOffsetX = Math.sin(index * 1.5) * 0.05
+    const randomOffsetY = Math.cos(index * 2.3) * 0.05
+    phi += randomOffsetX
+    theta += randomOffsetY
+  }
+
+  const x = Math.cos(theta) * Math.sin(phi)
+  const y = Math.sin(theta) * Math.sin(phi)
+  const z = Math.cos(phi)
 
   const scaledX = x * radius
   const scaledY = y * radius
@@ -309,14 +337,15 @@ function getSphereItemStyle(index) {
   const rotationRadForBounds = (currentRotation.value * Math.PI) / 180
   const rotatedXForBounds = scaledX * Math.cos(rotationRadForBounds) - scaledZ * Math.sin(rotationRadForBounds)
 
-  const isOutOfBounds = Math.abs(rotatedXForBounds) > sphereSize / 2 || Math.abs(scaledY) > sphereSize / 2
+  // 1-3个用户时始终可见，4个以上用户遵循边界隐藏逻辑
+  const isOutOfBounds = count >= 4 && (Math.abs(rotatedXForBounds) > sphereSize / 2 || Math.abs(scaledY) > sphereSize / 2)
 
   return {
     '--index': index,
     '--num-elements': count,
     '--radius': radius,
-    '--phi': adjustedPhi,
-    '--theta': adjustedTheta,
+    '--phi': phi,
+    '--theta': theta,
     '--x': x,
     '--y': y,
     '--z': z,
@@ -328,17 +357,25 @@ function getSphereItemStyle(index) {
     transform: (() => {
       let transform = `translate3d(${scaledX}rpx, ${scaledY}rpx, ${scaledZ}rpx)`
 
-      if (props.config.enableMultiDirection && isCustomRotation.value) {
-        const rotationRad = currentRotationAngle.value * Math.PI / 180
-        const perpendicularAngle = rotationRad + Math.PI / 2
-        const axisX = Math.cos(perpendicularAngle)
-        const axisY = Math.sin(perpendicularAngle)
-        const axisZ = 0
-        const selfRotation = -currentRotation.value * rotationDirection.value
-        transform += ` rotate3d(${axisX}, ${axisY}, ${axisZ}, ${selfRotation}deg)`
+      // 1-3个用户时完全固定，不进行任何旋转
+      if (count < 4) {
+        // 1-3个用户时，用户点完全固定，脱离公转和自转
+        // 保证正向面对用户，不进行任何旋转抵消
+        transform += '' // 不添加任何旋转
       } else {
-        const selfRotation = -currentRotation.value
-        transform += ` rotateY(${selfRotation}deg)`
+        // 3个以上用户使用正常的自转抵消逻辑
+        if (props.config.enableMultiDirection && isCustomRotation.value) {
+          const rotationRad = currentRotationAngle.value * Math.PI / 180
+          const perpendicularAngle = rotationRad + Math.PI / 2
+          const axisX = Math.cos(perpendicularAngle)
+          const axisY = Math.sin(perpendicularAngle)
+          const axisZ = 0
+          const selfRotation = -currentRotation.value * rotationDirection.value
+          transform += ` rotate3d(${axisX}, ${axisY}, ${axisZ}, ${selfRotation}deg)`
+        } else {
+          const selfRotation = -currentRotation.value
+          transform += ` rotateY(${selfRotation}deg)`
+        }
       }
 
       return `${transform} !important`
@@ -361,7 +398,17 @@ function startRotation() {
   rotationTimer.value = setInterval(() => {
     try {
       if (!isSliding.value && !isDragging.value && !props.isPaused && !isPausedForViewing.value && !isUserDetailOpen.value) {
-        currentRotation.value += rotationSpeed.value * rotationDirection.value
+        // 确保旋转速度不为0
+        if (rotationSpeed.value === 0) {
+          rotationSpeed.value = props.config.baseSpeed
+        }
+
+        // 1-2个用户时不更新公转角度，保持固定
+        if (props.items.length >= 3) {
+          // 3个以上用户时正常公转
+          currentRotation.value += rotationSpeed.value * rotationDirection.value
+        }
+        // 1-2个用户时保持当前角度不变，实现固定效果
 
         if (!props.config.enableMultiDirection) {
           if (currentRotation.value >= 360) {
@@ -609,6 +656,11 @@ function startVelocityDecay() {
       isSliding.value = false
       isDragging.value = false
       isPausedForViewing.value = false
+
+      // 所有用户数量都确保旋转速度不为0
+      if (rotationSpeed.value === 0) {
+        rotationSpeed.value = props.config.baseSpeed
+      }
     }
   }, 100)
 }

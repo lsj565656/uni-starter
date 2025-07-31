@@ -36,7 +36,7 @@ module.exports = {
     'vue/no-v-html': 'warn',
     'vue/require-default-prop': 'off',
     'vue/require-explicit-emits': 'warn',
-    'vue/no-unused-vars': 'warn', // 改为warn
+    'vue/no-unused-vars': 'off', // 关闭 Vue 未使用变量检查
     'vue/no-unused-components': 'warn', // 改为warn
     'vue/valid-v-for': 'off', // 关闭 v-for key 检查
 

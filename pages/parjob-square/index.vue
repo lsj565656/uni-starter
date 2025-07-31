@@ -2,23 +2,93 @@
   <view class="parjob-square-container">
     <!-- 使用官方uni-nav-bar组件 -->
     <uni-nav-bar :fixed="true" :shadow="true" :statusBar="true" background-color="#fff" color="#333" left-icon="left"
-      left-text="返回" title="趴活广场" @clickLeft="goBack" rightWidth="280rpx" leftWidth="280rpx">
-      <template #right>
-        <view class="nav-right-buttons">
-          <view class="nav-btn" @click="showFilterModal">
-            <uni-icons type="list" size="20" color="#333" />
-          </view>
-          <view class="nav-btn" @click="goToEdit">
-            <uni-icons type="gear" size="20" color="#333" />
-          </view>
-        </view>
-      </template>
+      left-text="" title="趴活广场" @clickLeft="goBack">
     </uni-nav-bar>
 
-    <!-- 3D球体组件 -->
-    <planet-sphere :items="activeUsers" :config="sphereConfig" :screen-info="screenInfo" :show-gender="true"
-      :is-paused="isUserDetailOpen" @item-click="handleUserDotClick" @item-info-click="handleUserInfoClick"
-      @sphere-pause="onSpherePause" @sphere-resume="onSphereResume" />
+    <!-- 3D球体组件 - 只在4个以上用户时显示 -->
+    <planet-sphere v-if="activeUsers.length >= 4" :items="activeUsers" :config="sphereConfig" :screen-info="screenInfo"
+      :show-gender="true" :is-paused="isUserDetailOpen" @item-click="handleUserDotClick"
+      @item-info-click="handleUserInfoClick" @sphere-pause="onSpherePause" @sphere-resume="onSphereResume" />
+
+    <!-- 1-3个用户时的固定展示 -->
+    <view v-if="activeUsers.length < 4 && activeUsers.length > 0" class="fixed-users-display"
+      :style="fixedDisplayStyle">
+      <view class="fixed-users-container" :class="`users-count-${activeUsers.length}`">
+        <view v-for="(user, index) in activeUsers" :key="user._id" class="fixed-user-item"
+          @click="handleUserDotClick(user)">
+          <view class="fixed-user-avatar">
+            <image :src="user.avatar" class="user-avatar" mode="aspectFill" />
+            <view class="user-gender-icon">
+              <uni-icons custom-prefix="iconfont" :type="getGenderIcon(user.gender)" size="12"
+                :color="getGenderColor(user.gender)" />
+            </view>
+          </view>
+          <view class="fixed-user-info">
+            <text class="fixed-user-name">{{ user.nickname }}</text>
+            <text v-if="user.city" class="fixed-user-city">{{ user.city }}</text>
+            <view v-if="user.skills && user.skills.length > 0" class="fixed-user-skills">
+              <text class="fixed-user-skills-text">
+                {{ user.skills.slice(0, 2).join(' · ') }}{{ user.skills.length > 2 ? '...' : '' }}
+              </text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 没有匹配用户时的提示 -->
+    <view v-if="activeUsers.length === 0" class="no-users-display">
+      <view class="no-users-content">
+        <uni-icons type="search" size="60" color="rgba(255, 255, 255, 0.5)" />
+        <text class="no-users-title">暂无匹配用户</text>
+        <text class="no-users-desc">请尝试调整筛选条件</text>
+      </view>
+    </view>
+
+    <!-- 功能区块 -->
+    <view class="function-blocks">
+      <!-- 编辑信息卡按钮 -->
+      <view class="function-block edit-profile-block" @click="goToEdit">
+        <view class="block-icon">
+          <uni-icons custom-prefix="iconfont" type="icon-xiugai" size="24" color="#fff" />
+        </view>
+        <view class="block-content">
+          <text class="block-title">编辑我的信息卡</text>
+          <text class="block-desc">完善个人信息，提高匹配率</text>
+        </view>
+        <uni-icons type="right" size="16" color="#fff" />
+      </view>
+
+      <!-- 筛选条件块 -->
+      <view class="function-block filter-block" @click="showFilterModal">
+        <view class="block-icon">
+          <uni-icons type="list" size="24" color="#fff" />
+        </view>
+        <view class="block-content">
+          <text class="block-title">筛选条件</text>
+          <view class="filter-tags" v-if="hasActiveFilters">
+            <view v-for="(tag, index) in activeFilterTags" :key="index" class="filter-tag">
+              {{ tag }}
+            </view>
+            <text class="filter-count">({{ activeFilterCount }})</text>
+          </view>
+          <text v-else class="block-desc">设置筛选条件，精准匹配</text>
+        </view>
+        <uni-icons type="right" size="16" color="#fff" />
+      </view>
+
+      <!-- 智能推荐按钮 -->
+      <view class="function-block smart-recommend-block" @click="startSmartRecommend">
+        <view class="block-icon">
+          <uni-icons custom-prefix="iconfont" type="icon-zhinengtuijian" size="24" color="#fff" />
+        </view>
+        <view class="block-content">
+          <text class="block-title">智能推荐</text>
+          <text class="block-desc">根据发布任务智能匹配</text>
+        </view>
+        <uni-icons type="right" size="16" color="#fff" />
+      </view>
+    </view>
 
     <!-- 底部统计 -->
     <view class="bottom-stats">
@@ -80,7 +150,7 @@
 
           <!-- 技能筛选 -->
           <view class="filter-section">
-            <text class="filter-label">技能标签</text>
+            <text class="filter-label">技能标签 (最多4个)</text>
             <view class="skill-filter">
               <view v-for="skill in displaySkills" :key="skill" class="skill-filter-item"
                 :class="{ active: filterSkills.includes(skill) }" @click="toggleSkillFilter(skill)">
@@ -91,7 +161,7 @@
 
           <!-- 城市筛选 -->
           <view class="filter-section">
-            <text class="filter-label">城市</text>
+            <text class="filter-label">城市 (最多4个)</text>
             <view class="city-filter">
               <view v-for="city in allCities" :key="city" class="city-filter-item"
                 :class="{ active: filterCities.includes(city) }" @click="toggleCityFilter(city)">
@@ -186,32 +256,32 @@ const screenInfo = ref({
 
 // 球体配置
 const sphereConfig = ref({
-  // 公转中心点配置
+  // 中心点配置
   centerX: 50, // 水平中心点
   centerY: 30, // 垂直中心点
 
-  // 公转半径配置
+  // 半径配置
   radiusPercent: 80, // 公转半径占屏幕宽度的百分比
   maxRadiusPercent: 120, // 最大半径占屏幕宽度的百分比
 
-  // 球体大小配置
+  // 大小配置
   sphereSizePercent: 200, // 球体容器占屏幕宽度的百分比
 
-  // 球体背景和边框配置
+  // 背景和边框配置
   showSphereBackground: true, // 是否显示球体背景
   sphereBackgroundColor: 'rgba(0, 0, 0, 0.3)', // 球体背景颜色
   sphereBorderColor: 'rgba(255, 255, 255, 0.1)', // 球体边框颜色
   sphereBorderWidth: 1, // 球体边框宽度
 
-  // 公转速度配置
+  // 速度配置
   baseSpeed: 0.15, // 基础旋转速度
   maxSpeed: 0.8,  // 最大旋转速度
   minSpeed: 0.08, // 最小旋转速度
 
-  // 公转方向配置
+  // 方向配置
   defaultDirection: 1, // 默认旋转方向 (1=顺时针, -1=逆时针)
 
-  // 多方向公转配置
+  // 多方向配置
   enableMultiDirection: true, // 是否启用多方向公转
   rotationAxis: 'Y', // 当前旋转轴（限制在XY平面）
   customRotationAngle: 0, // 自定义旋转角度（度）
@@ -266,7 +336,8 @@ const totalCities = computed(() => {
 // 显示技能（限制20个）
 const displaySkills = computed(() => {
   const skills = getAvailableSkills()
-  return skills.slice(0, 20)
+  // return skills.slice(0, 20)
+  return skills
 })
 
 // 所有城市
@@ -274,15 +345,128 @@ const allCities = computed(() => {
   return getAvailableCities()
 })
 
+// 筛选相关计算属性
+const hasActiveFilters = computed(() => {
+  return filterGender.value ||
+    (filterAgeMin.value !== null && filterAgeMax.value !== null) ||
+    filterSkills.value.length > 0 ||
+    filterCities.value.length > 0
+})
+
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (filterGender.value) count++
+  if (filterAgeMin.value !== null && filterAgeMax.value !== null) count++
+  if (filterSkills.value.length > 0) count++
+  if (filterCities.value.length > 0) count++
+  return count
+})
+
+const activeFilterTags = computed(() => {
+  const tags = []
+
+  if (filterGender.value) {
+    const genderText = genderOptions.find(opt => opt.value === filterGender.value)?.label
+    if (genderText) tags.push(genderText)
+  }
+
+  if (filterAgeMin.value !== null && filterAgeMax.value !== null) {
+    const minAge = ageOptions[filterAgeMin.value]?.value
+    const maxAge = ageOptions[filterAgeMax.value]?.value
+    if (minAge && maxAge) tags.push(`${minAge}-${maxAge}岁`)
+  }
+
+  if (filterSkills.value.length > 0) {
+    tags.push(`技能:${filterSkills.value.length}个`)
+  }
+
+  if (filterCities.value.length > 0) {
+    tags.push(`城市:${filterCities.value.length}个`)
+  }
+
+  return tags
+})
+
+// 计算固定展示区域的样式，与3D球体位置完全一致
+const fixedDisplayStyle = computed(() => {
+  const screenWidth = screenInfo.value.width || 750
+
+  // 计算球体中心位置（与3D球体组件完全一致）
+  const centerX = sphereConfig.value.centerX
+  const centerY = sphereConfig.value.centerY
+
+  // 计算球体大小（与3D球体容器大小完全一致）
+  const sphereSize = Math.min(
+    screenWidth * sphereConfig.value.sphereSizePercent / 100,
+    screenWidth * 2
+  )
+
+  // 使用球体大小作为固定展示区域的尺寸
+  const displaySize = sphereSize
+
+  // 构建样式对象（与3D球体容器样式保持一致）
+  const style = {
+    position: 'absolute',
+    width: `${displaySize}rpx`,
+    height: `${displaySize}rpx`,
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+    backdropFilter: 'blur(10rpx)',
+    boxShadow: '0 8rpx 32rpx rgba(0, 0, 0, 0.3)'
+  }
+
+  // 设置背景和边框（与3D球体配置一致）
+  if (sphereConfig.value.showSphereBackground) {
+    style.background = `radial-gradient(${sphereConfig.value.sphereBackgroundColor} 20%, rgba(0, 0, 0, 0.1) 60%, rgba(0, 0, 0, 0.05) 100%)`
+    style.border = `${sphereConfig.value.sphereBorderWidth}rpx solid ${sphereConfig.value.sphereBorderColor}`
+  } else {
+    style.background = 'radial-gradient(rgba(0, 0, 0, 0.4) 20%, rgba(0, 0, 0, 0.15) 60%, rgba(0, 0, 0, 0.08) 100%)'
+    style.border = '2rpx solid rgba(255, 255, 255, 0.15)'
+  }
+
+  // 设置位置（与3D球体容器位置完全一致）
+  if (centerX === 50 && centerY === 50) {
+    style.top = '50%'
+    style.left = '50%'
+    style.transform = 'translate(-50%, -50%)'
+  } else {
+    style.top = `${centerY}%`
+    style.left = `${centerX}%`
+    style.transform = 'translate(-50%, -50%)'
+  }
+
+  return style
+})
+
 // 方法
 function getGenderText(gender) {
   const genderMap = {
     male: '男',
     female: '女',
-    unknown: '未知',
-    other: '其他'
+    unknown: '未知'
   }
   return genderMap[gender] || ''
+}
+
+function getGenderIcon(gender) {
+  const iconMap = {
+    male: 'icon-sex_man',
+    female: 'icon-sex_woman',
+    unknown: 'icon-gender_unknown'
+  }
+  return iconMap[gender] || 'icon-gender_unknown'
+}
+
+function getGenderColor(gender) {
+  const colorMap = {
+    male: '#007AFF',
+    female: '#FF2D92',
+    unknown: '#FF9500'
+  }
+  return colorMap[gender] || '#999'
 }
 
 // 年龄相关方法
@@ -338,7 +522,15 @@ function toggleSkillFilter(skill) {
   if (index > -1) {
     filterSkills.value.splice(index, 1)
   } else {
-    filterSkills.value.push(skill)
+    // 限制最多选3个技能
+    if (filterSkills.value.length < 4) {
+      filterSkills.value.push(skill)
+    } else {
+      uni.showToast({
+        title: '最多只能选择4个技能',
+        icon: 'none'
+      })
+    }
   }
 }
 
@@ -347,7 +539,15 @@ function toggleCityFilter(city) {
   if (index > -1) {
     filterCities.value.splice(index, 1)
   } else {
-    filterCities.value.push(city)
+    // 限制最多选4个城市
+    if (filterCities.value.length < 4) {
+      filterCities.value.push(city)
+    } else {
+      uni.showToast({
+        title: '最多只能选择4个城市',
+        icon: 'none'
+      })
+    }
   }
 }
 
@@ -357,6 +557,9 @@ function resetFilter() {
   filterAgeMax.value = null
   filterSkills.value = []
   filterCities.value = []
+
+  // 重置后直接应用筛选
+  applyFilter()
 }
 
 function applyFilter() {
@@ -401,7 +604,7 @@ function applyFilter() {
       strengths: user.strengths,
       photos: user.photos || ['/static/images/user-bg.png'],
       show_fields: user.show_fields,
-      isOnline: true // 默认在线状态
+      isOnline: true
     }))
 
     activeUsers.value = formattedUsers
@@ -434,6 +637,13 @@ function contactUser() {
   })
 }
 
+function startSmartRecommend() {
+  uni.showToast({
+    title: '智能推荐功能开发中',
+    icon: 'none'
+  })
+}
+
 // 获取屏幕信息
 function getScreenInfo() {
   const systemInfo = uni.getSystemInfoSync()
@@ -447,7 +657,6 @@ function getScreenInfo() {
 // 加载活跃用户数据
 async function loadActiveUsers() {
   try {
-    // 使用真实数据
     const users = getActiveParjobCards()
 
     // 转换数据格式以适配现有逻辑
@@ -464,7 +673,7 @@ async function loadActiveUsers() {
       strengths: user.strengths,
       photos: user.photos || ['/static/images/user-bg.png'],
       show_fields: user.show_fields,
-      isOnline: true // 默认在线状态
+      isOnline: true
     }))
 
     activeUsers.value = formattedUsers
@@ -487,11 +696,11 @@ function handleUserInfoClick(user) {
 }
 
 function onSpherePause() {
-  // 球体暂停时的处理
+  // 球体暂停时的处理逻辑
 }
 
 function onSphereResume() {
-  // 球体恢复时的处理
+  // 球体恢复时的处理逻辑
 }
 
 // 生命周期
@@ -517,28 +726,6 @@ onMounted(() => {
   -webkit-overflow-scrolling: auto;
 }
 
-/* 导航栏右侧按钮样式 */
-.nav-right-buttons {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.nav-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.05);
-  transition: background-color 0.3s;
-  cursor: pointer;
-}
-
-.nav-btn:active {
-  background: rgba(0, 0, 0, 0.1);
-}
 
 .bottom-stats {
   display: flex;
@@ -556,6 +743,93 @@ onMounted(() => {
   -webkit-filter: none !important;
   /* 确保在导航栏下方，但低于弹窗 */
   z-index: 50;
+}
+
+/* 功能区块样式 */
+.function-blocks {
+  position: absolute;
+  bottom: 120rpx;
+  left: 30rpx;
+  right: 30rpx;
+  z-index: 80;
+}
+
+.function-block {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 30rpx;
+  margin-bottom: 20rpx;
+  border-radius: 16rpx;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  backdrop-filter: blur(10rpx);
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.function-block:active {
+  transform: scale(0.98);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+}
+
+.block-icon {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+
+.edit-profile-block .block-icon {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.filter-block .block-icon {
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+}
+
+.smart-recommend-block .block-icon {
+  background: linear-gradient(135deg, #4facfe, #00f2fe);
+}
+
+.block-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.block-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 5rpx;
+}
+
+.block-desc {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  align-items: center;
+}
+
+.filter-tag {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  font-size: 22rpx;
+}
+
+.filter-count {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 22rpx;
 }
 
 .stat-item {
@@ -605,17 +879,11 @@ onMounted(() => {
 }
 
 .filter-actions {
-  padding: 20rpx 30rpx 30rpx 30rpx;
+  display: flex;
+  justify-content: space-between;
   border-top: 1rpx solid #eee;
   background: #fff;
   flex-shrink: 0;
-}
-
-.filter-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 30rpx;
 }
 
 .filter-title {
@@ -719,11 +987,6 @@ onMounted(() => {
   border-color: #667eea;
 }
 
-.filter-actions {
-  display: flex;
-  gap: 20rpx;
-  margin-top: 30rpx;
-}
 
 .filter-reset,
 .filter-apply {
@@ -873,5 +1136,191 @@ onMounted(() => {
 .detail-action-btn.secondary {
   background: #f5f5f5;
   color: #666;
+}
+
+.fixed-users-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 40rpx;
+  position: relative;
+}
+
+/* 1个用户时的布局 */
+.users-count-1 .fixed-user-item {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* 2个用户时的布局 - 并排展示 */
+.users-count-2 {
+  flex-direction: row;
+  gap: 100rpx;
+  align-items: center;
+  justify-content: center;
+}
+
+.users-count-2 .fixed-user-item {
+  flex: 0 0 auto;
+  width: 200rpx;
+}
+
+/* 3个用户时的布局 - 三角形分布 */
+.users-count-3 {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 60rpx;
+  align-items: center;
+  justify-content: center;
+}
+
+.users-count-3 .fixed-user-item:nth-child(1) {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.users-count-3 .fixed-user-item:nth-child(2) {
+  position: absolute;
+  top: 75%;
+  left: 35%;
+  transform: translate(-50%, -50%);
+}
+
+.users-count-3 .fixed-user-item:nth-child(3) {
+  position: absolute;
+  top: 75%;
+  left: 65%;
+  transform: translate(-50%, -50%);
+}
+
+.fixed-user-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15rpx;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 200rpx;
+  height: 280rpx;
+}
+
+.fixed-user-item:active {
+  transform: scale(0.95);
+}
+
+.fixed-user-avatar {
+  position: relative;
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4rpx solid rgba(255, 255, 255, 0.25);
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.3);
+}
+
+.user-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.user-gender-icon {
+  position: absolute;
+  bottom: 15rpx;
+  right: 15rpx;
+  width: 30rpx;
+  height: 30rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(255, 255, 255, 0.3);
+}
+
+.fixed-user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+  margin-top: 2rpx;
+  min-height: 60rpx;
+  justify-content: flex-start;
+}
+
+.fixed-user-name {
+  font-size: 28rpx;
+  color: #fff;
+  font-weight: 500;
+  text-align: center;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.5);
+  max-width: 200rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fixed-user-city {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+  text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.5);
+}
+
+.fixed-user-skills {
+  display: flex;
+  justify-content: center;
+  width: 200rpx;
+  margin-top: 8rpx;
+}
+
+.fixed-user-skills-text {
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.3);
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+/* 没有用户时的提示样式 */
+.no-users-display {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.no-users-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30rpx;
+  text-align: center;
+}
+
+.no-users-title {
+  font-size: 32rpx;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.no-users-desc {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.6);
 }
 </style>
