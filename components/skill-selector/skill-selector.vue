@@ -3,8 +3,8 @@
     <!-- 技能标签输入区域 -->
     <view class="skill-input-section">
       <view class="input-container">
-        <input v-model="inputValue" class="skill-input" :placeholder="placeholder" @input="onInputChange"
-          @focus="onInputFocus" @blur="onInputBlur" />
+        <input v-model="inputValue" class="skill-input" :placeholder="placeholder" maxlength="5" @input="onInputChange"
+          @focus="onInputFocus" @blur="onInputBlur" :disabled="customSkills.length >= props.maxCustomSkills" />
         <view class="input-actions">
           <!-- 添加按钮 -->
           <view v-if="inputValue.trim()" class="add-custom-btn" @click="addCustomSkill">
@@ -15,24 +15,38 @@
             <uni-icons type="search" size="16" color="#999" />
           </view>
         </view>
+        <!-- 字符计数提示 -->
+        <view v-if="inputValue.length > 0" class="char-count-tip">
+          <text class="char-count-text" :class="{ 'warning': inputValue.length < 2, 'error': inputValue.length > 5 }">
+            {{ inputValue.length }}/5
+          </text>
+        </view>
+      </view>
+      <!-- 自定义技能数量提示 -->
+      <view v-if="customSkills.length > 0" class="custom-skills-tip">
+        <text class="tip-text">自定义技能: {{ customSkills.length }}/{{ props.maxCustomSkills }}</text>
       </view>
 
       <!-- 已选择的技能标签 -->
       <view v-if="selectedSkills.length > 0" class="selected-skills">
         <view v-for="(skill, index) in selectedSkills" :key="index" class="skill-tag" @click="removeSkill(index)">
-          <text class="skill-text">{{ skill }}</text>
+          <text class="skill-text">{{ isCustomSkill(skill) ? '自定义: ' : '' }}{{ skill }}</text>
           <uni-icons type="close" size="12" color="#fff" />
         </view>
       </view>
     </view>
 
-    <!-- 擅长领域输入 -->
+    <!-- 擅长领域显示 -->
     <view v-if="showStrengths" class="strengths-section">
       <text class="section-title">擅长领域</text>
-      <view class="strengths-input-container">
-        <input v-model="strengthsValue" class="strengths-input" placeholder="请输入擅长领域" @input="onStrengthsInput" />
-        <view class="clear-btn" @click="clearStrengths" v-if="strengthsValue">
-          <uni-icons type="close" size="14" color="#999" />
+      <view class="strengths-tags">
+        <view v-if="autoStrengths.length === 0" class="strength-tag-empty">
+          <text class="strength-text-empty">无</text>
+        </view>
+        <view v-for="(strength, index) in autoStrengths" :key="index" class="strength-tag"
+          @click="removeStrength(index)">
+          <text class="strength-text">{{ strength }}</text>
+          <uni-icons type="close" size="12" color="#fff" />
         </view>
       </view>
     </view>
@@ -98,6 +112,7 @@
 import {
   categorySkillsMapping,
   getAllCategories,
+  getAllSkills,
   getSkillsByCategory,
   searchSkills
 } from '@/utils/category-skills-mapping.js'
@@ -144,7 +159,12 @@ const props = defineProps({
   // 最多选择领域数
   maxCategories: {
     type: Number,
-    default: 3
+    default: 2
+  },
+  // 最多自定义技能数
+  maxCustomSkills: {
+    type: Number,
+    default: 2
   },
   // 个人长处最大长度
   maxPersonalStrengthsLength: {
@@ -164,7 +184,8 @@ const emit = defineEmits(['update:skills', 'update:strengths', 'update:personalS
 // 响应式数据
 const inputValue = ref('')
 const selectedSkills = ref([])
-const strengthsValue = ref('')
+const customSkills = ref([]) // 自定义技能缓存
+const autoStrengths = ref([]) // 自动填充的擅长领域
 const personalStrengthsValue = ref('')
 const searchKeyword = ref('')
 const skillDrawer = ref(null)
@@ -179,17 +200,29 @@ const isPopupOpen = ref(false)
 // 初始化数据
 onMounted(() => {
   categories.value = getAllCategories()
-  selectedSkills.value = [...props.skills]
-  strengthsValue.value = props.strengths
-  personalStrengthsValue.value = props.personalStrengths
 
-  // 初始化已选择的分类
-  selectedSkills.value.forEach(skill => {
+  // 分离自定义技能和预设技能
+  const allSkills = [...props.skills]
+  const presetSkills = []
+  const customSkillsList = []
+
+  allSkills.forEach(skill => {
     const category = getCategoryBySkill(skill)
     if (category) {
+      // 预设技能
+      presetSkills.push(skill)
       selectedCategories.value.add(category.key)
+    } else {
+      // 自定义技能
+      customSkillsList.push(skill)
     }
   })
+
+  selectedSkills.value = [...presetSkills, ...customSkillsList]
+  customSkills.value = customSkillsList
+  // 初始化自动擅长领域
+  updateAutoStrengths()
+  personalStrengthsValue.value = props.personalStrengths
 })
 
 // 页面返回拦截
@@ -238,15 +271,53 @@ function addCustomSkill() {
     return
   }
 
-  if (selectedSkills.value.includes(skill)) {
+  // 检查字数限制
+  if (skill.length < 2) {
     uni.showToast({
-      title: '该技能已存在',
+      title: '技能名称至少需要2个字符',
       icon: 'none'
     })
     return
   }
 
-  // 自定义技能不限制分类数量
+  if (skill.length > 5) {
+    uni.showToast({
+      title: '技能名称最多只能5个字符',
+      icon: 'none'
+    })
+    return
+  }
+
+  // 检查是否与预设技能重复
+  const allPresetSkills = getAllSkills()
+  if (allPresetSkills.includes(skill)) {
+    uni.showToast({
+      title: '该技能已存在于预设技能中，请从预设技能中选择',
+      icon: 'none'
+    })
+    return
+  }
+
+  // 检查是否与已选择的自定义技能重复
+  if (customSkills.value.includes(skill)) {
+    uni.showToast({
+      title: '该自定义技能已存在',
+      icon: 'none'
+    })
+    return
+  }
+
+  // 检查自定义技能数量限制
+  if (customSkills.value.length >= props.maxCustomSkills) {
+    uni.showToast({
+      title: `最多只能添加${props.maxCustomSkills}个自定义技能`,
+      icon: 'none'
+    })
+    return
+  }
+
+  // 添加到自定义技能缓存和选择列表
+  customSkills.value.push(skill)
   selectedSkills.value.push(skill)
   inputValue.value = ''
   updateValues()
@@ -297,30 +368,37 @@ function toggleSkill(skill, categoryKey) {
     if (canAddSkill(skill, categoryKey)) {
       selectedSkills.value.push(skill)
       selectedCategories.value.add(categoryKey)
-    } else {
-      uni.showToast({
-        title: `每个领域最多选择${props.maxSkillsPerCategory}个技能`,
-        icon: 'none'
-      })
     }
+    // 注意：canAddSkill 函数内部已经处理了提示，这里不需要重复提示
   }
+
+  // 更新自动擅长领域
+  updateAutoStrengths()
 }
 
 function canAddSkill(skill, categoryKey) {
   const categorySkills = getSkillsByCategory(categoryKey)
   const selectedCategorySkills = selectedSkills.value.filter(s => categorySkills.includes(s))
 
-  // 检查领域数量限制
-  if (!selectedCategories.value.has(categoryKey) && selectedCategories.value.size >= props.maxCategories) {
+  console.log('canAddSkill - skill:', skill, 'categoryKey:', categoryKey)
+  console.log('canAddSkill - selectedCategorySkills:', selectedCategorySkills)
+  console.log('canAddSkill - selectedCategories:', [...selectedCategories.value])
+
+  // 检查每个领域的技能数量限制（包含当前要添加的技能）
+  if (selectedCategorySkills.length >= props.maxSkillsPerCategory) {
     uni.showToast({
-      title: `最多只能选择${props.maxCategories}个领域`,
+      title: `每个领域最多选择${props.maxSkillsPerCategory}个技能`,
       icon: 'none'
     })
     return false
   }
 
-  // 检查每个领域的技能数量限制
-  if (selectedCategorySkills.length >= props.maxSkillsPerCategory) {
+  // 检查领域数量限制（如果这是一个新领域）
+  if (!selectedCategories.value.has(categoryKey) && selectedCategories.value.size >= props.maxCategories) {
+    uni.showToast({
+      title: `您最多只能选择${props.maxCategories}个不同领域`,
+      icon: 'none'
+    })
     return false
   }
 
@@ -353,13 +431,20 @@ function removeSkill(index) {
   const skill = selectedSkills.value[index]
   selectedSkills.value.splice(index, 1)
 
-  // 检查是否需要移除分类（只对分类技能进行）
+  // 检查是否是自定义技能
   const category = getCategoryBySkill(skill)
   if (category) {
+    // 预设技能：检查是否需要移除分类
     const categorySkills = getSkillsByCategory(category.key)
     const hasOtherSkills = selectedSkills.value.some(s => categorySkills.includes(s))
     if (!hasOtherSkills) {
       selectedCategories.value.delete(category.key)
+    }
+  } else {
+    // 自定义技能：从缓存中移除
+    const customIndex = customSkills.value.indexOf(skill)
+    if (customIndex > -1) {
+      customSkills.value.splice(customIndex, 1)
     }
   }
 
@@ -367,9 +452,28 @@ function removeSkill(index) {
 }
 
 function resetSkills() {
-  selectedSkills.value = []
+  // 只重置预设技能，保留自定义技能
+  const presetSkills = selectedSkills.value.filter(skill => {
+    const category = getCategoryBySkill(skill)
+    return category !== null
+  })
+
+  // 移除预设技能
+  presetSkills.forEach(skill => {
+    const index = selectedSkills.value.indexOf(skill)
+    if (index > -1) {
+      selectedSkills.value.splice(index, 1)
+    }
+  })
+
+  // 清空选择的分类
   selectedCategories.value.clear()
   searchKeyword.value = ''
+
+  uni.showToast({
+    title: '已重置预设技能',
+    icon: 'success'
+  })
 }
 
 function confirmSkills() {
@@ -379,31 +483,41 @@ function confirmSkills() {
 
 function updateValues() {
   emit('update:skills', selectedSkills.value)
+  emit('update:strengths', autoStrengths.value.join(', '))
   emit('change', {
     skills: selectedSkills.value,
-    strengths: strengthsValue.value,
+    strengths: autoStrengths.value.join(', '),
     personalStrengths: personalStrengthsValue.value
   })
 }
 
-function onStrengthsInput(e) {
-  strengthsValue.value = e.detail.value
-  emit('update:strengths', strengthsValue.value)
-  emit('change', {
-    skills: selectedSkills.value,
-    strengths: strengthsValue.value,
-    personalStrengths: personalStrengthsValue.value
-  })
-}
+// 移除擅长领域
+function removeStrength(index) {
+  const strength = autoStrengths.value[index]
+  autoStrengths.value.splice(index, 1)
 
-function clearStrengths() {
-  strengthsValue.value = ''
-  emit('update:strengths', '')
-  emit('change', {
-    skills: selectedSkills.value,
-    strengths: '',
-    personalStrengths: personalStrengthsValue.value
+  // 找到对应的分类并移除该分类下的所有技能
+  const categoryToRemove = Object.keys(categorySkillsMapping).find(key => {
+    const categoryData = categorySkillsMapping[key]
+    return categoryData.name === strength
   })
+
+  if (categoryToRemove) {
+    // 移除该分类下的所有技能
+    const categorySkills = getSkillsByCategory(categoryToRemove)
+    selectedSkills.value = selectedSkills.value.filter(skill => !categorySkills.includes(skill))
+
+    // 更新分类状态
+    const hasOtherSkills = selectedSkills.value.some(skill => {
+      const category = getCategoryBySkill(skill)
+      return category && category.key === categoryToRemove
+    })
+    if (!hasOtherSkills) {
+      selectedCategories.value.delete(categoryToRemove)
+    }
+  }
+
+  updateValues()
 }
 
 function onPersonalStrengthsInput(e) {
@@ -415,7 +529,7 @@ function onPersonalStrengthsInput(e) {
   emit('update:personalStrengths', personalStrengthsValue.value)
   emit('change', {
     skills: selectedSkills.value,
-    strengths: strengthsValue.value,
+    strengths: autoStrengths.value.join(', '),
     personalStrengths: personalStrengthsValue.value
   })
 }
@@ -425,7 +539,7 @@ function clearPersonalStrengths() {
   emit('update:personalStrengths', '')
   emit('change', {
     skills: selectedSkills.value,
-    strengths: strengthsValue.value,
+    strengths: autoStrengths.value.join(', '),
     personalStrengths: ''
   })
 }
@@ -444,17 +558,37 @@ function getCategoryBySkill(skill) {
   return null
 }
 
+// 判断是否为自定义技能
+function isCustomSkill(skill) {
+  return getCategoryBySkill(skill) === null
+}
+
+// 更新自动擅长领域
+function updateAutoStrengths() {
+  const strengths = new Set()
+
+  selectedSkills.value.forEach(skill => {
+    const category = getCategoryBySkill(skill)
+    if (category) {
+      // 添加分类名称作为擅长领域
+      strengths.add(category.name)
+    }
+  })
+
+  autoStrengths.value = [...strengths]
+  updateValues()
+}
+
 // 暴露方法给父组件
 defineExpose({
   showSkillSelector,
   hideSkillSelector,
   resetSkills,
-  clearStrengths,
   clearPersonalStrengths,
   isPopupOpen: computed(() => isPopupOpen.value),
   getValues: () => ({
     skills: selectedSkills.value,
-    strengths: strengthsValue.value,
+    strengths: autoStrengths.value.join(', '),
     personalStrengths: personalStrengthsValue.value
   }),
   validate: () => {
@@ -466,7 +600,9 @@ defineExpose({
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '/uni.scss';
+
 .skill-selector {
   width: 100%;
 }
@@ -544,6 +680,38 @@ defineExpose({
   transform: scale(0.95);
 }
 
+.custom-skills-tip {
+  margin-top: 10rpx;
+  padding: 8rpx 12rpx;
+  background: #f0f8ff;
+  border-radius: 8rpx;
+  border: 1rpx solid #e6f3ff;
+}
+
+.tip-text {
+  font-size: 22rpx;
+  color: #007aff;
+}
+
+.char-count-tip {
+  margin-top: 8rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.char-count-text {
+  font-size: 20rpx;
+  color: #999;
+}
+
+.char-count-text.warning {
+  color: #ff9500;
+}
+
+.char-count-text.error {
+  color: #ff3b30;
+}
+
 .selected-skills {
   display: flex;
   flex-wrap: wrap;
@@ -584,6 +752,51 @@ defineExpose({
   color: #333;
   margin-bottom: 15rpx;
   font-weight: 500;
+}
+
+.strengths-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15rpx;
+}
+
+.strength-tag {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 16rpx;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: #fff;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  transition: all 0.3s ease;
+}
+
+.strength-tag:active {
+  transform: scale(0.95);
+  background: linear-gradient(135deg, #20c997, #17a2b8);
+}
+
+.strength-text {
+  font-size: 24rpx;
+  color: #fff;
+}
+
+.strength-tag-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8rpx 16rpx;
+  background: $uni-bg-color-empty;
+  border: 1rpx solid #e5e5e5;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  min-width: 80rpx;
+}
+
+.strength-text-empty {
+  font-size: 24rpx;
+  color: $uni-text-color-inverse;
 }
 
 .strengths-input-container,

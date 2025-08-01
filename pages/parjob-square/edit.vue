@@ -57,9 +57,6 @@
           <uni-data-picker ref="areaPickerRef" :localdata="areaPickerData" popup-title="请选择地区" placeholder="请选择省市"
             v-model="formData.location" @change="onAreaChange" @popupopened="onDataPickerOpened"
             @popupclosed="onDataPickerClosed" @popupshow="onDataPickerOpened" @popuphide="onDataPickerClosed" />
-          <view v-if="formData.location_text && formData.location_text.length > 0" class="picker-value">
-            {{ formData.location_text.join(' ') }}
-          </view>
         </view>
       </view>
 
@@ -73,32 +70,9 @@
           <!-- 技能选择器组件 -->
           <skill-selector ref="skillSelectorRef" v-model:skills="formData.skills" v-model:strengths="formData.strengths"
             v-model:personalStrengths="formData.personalStrengths" placeholder="添加技能标签" :show-strengths="true"
-            :show-personal-strengths="true" />
+            :show-personal-strengths="true" :max-custom-skills="2" :max-categories="2" :max-skills-per-category="3"
+            :max-personal-strengths-length="200" :required="true" />
         </view>
-
-        <!-- 擅长领域 -->
-        <!-- <view class="form-item">
-          <text class="form-label">擅长领域</text>
-          <view class="tag-input-wrapper">
-            <view class="tag-list">
-              <view v-for="(tag, index) in formData.tags" :key="index" class="tag-item">
-                <text class="tag-text">{{ tag }}</text>
-                <uni-icons type="close" size="14" color="#999" @click="removeTag(index)" />
-              </view>
-            </view>
-            <view class="tag-input-row">
-              <input v-model="newTag" class="tag-input" placeholder="添加擅长领域" @confirm="addTag" />
-              <button class="add-btn" @click="addTag">添加</button>
-            </view>
-          </view>
-        </view> -->
-
-        <!-- 个人长处 -->
-        <!-- <view class="form-item">
-          <text class="form-label">个人长处</text>
-          <textarea v-model="formData.strengths" class="form-textarea" placeholder="请描述你的个人长处和优势..." maxlength="200" />
-          <text class="char-count">{{ formData.strengths.length }}/200</text>
-        </view> -->
       </view>
 
       <!-- 照片管理 -->
@@ -115,12 +89,12 @@
                 <uni-icons type="close" size="16" color="#fff" />
               </view>
             </view>
-            <view v-if="formData.photos.length < 6" class="photo-add" @click="choosePhotos">
+            <view v-if="formData.photos.length < 3" class="photo-add" @click="choosePhotos">
               <uni-icons type="plus" size="30" color="#999" />
               <text class="add-text">添加照片</text>
             </view>
           </view>
-          <text class="photo-tip">最多可上传6张个人照片</text>
+          <text class="photo-tip">最多可上传3张个人照片</text>
         </view>
 
         <!-- 毕业证书 -->
@@ -233,8 +207,6 @@ const formData = ref({
 
 // 获取用户信息
 const userInfo = computed(() => store.userInfo)
-
-const newTag = ref('')
 const areaPickerRef = ref(null)
 const skillSelectorRef = ref(null)
 const isDataPickerOpen = ref(false)
@@ -334,17 +306,6 @@ function onDataPickerOpened() {
 function onDataPickerClosed() {
   console.log('onDataPickerClosed triggered')
   isDataPickerOpen.value = false
-}
-
-function addTag() {
-  if (newTag.value.trim() && !formData.value.tags.includes(newTag.value.trim())) {
-    formData.value.tags.push(newTag.value.trim())
-    newTag.value = ''
-  }
-}
-
-function removeTag(index) {
-  formData.value.tags.splice(index, 1)
 }
 
 function toggleShowField(key, value) {
