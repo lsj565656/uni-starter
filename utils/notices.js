@@ -23,7 +23,7 @@ export const notices = [
   },
   {
     id: 4,
-    text: '用户 小王 发布了趴活：周末有空，可提供跑腿服务',
+    text: '用户 小王 开始趴活：周末有空，可提供跑腿服务',
     type: 'seek',
     time: '8分钟前',
     timestamp: Date.now() - 1000 * 60 * 8 // 8分钟前
@@ -51,7 +51,7 @@ export const notices = [
   },
   {
     id: 8,
-    text: '用户 小孙 发布了趴活：晚上有空，可提供家教服务',
+    text: '用户 小孙 开始趴活：晚上有空，可提供家教服务',
     type: 'seek',
     time: '20分钟前',
     timestamp: Date.now() - 1000 * 60 * 20 // 20分钟前
@@ -86,7 +86,7 @@ export const notices = [
   },
   {
     id: 13,
-    text: '用户 小陈 发布了趴活：下午有空，可提供临时工服务',
+    text: '用户 小陈 开始趴活：下午有空，可提供临时工服务',
     type: 'seek',
     time: '45分钟前',
     timestamp: Date.now() - 1000 * 60 * 45 // 45分钟前
@@ -110,48 +110,48 @@ export const notices = [
 // 根据类型获取不同的图标
 export const getNoticeIcon = type => {
   switch (type) {
-  case 'browse': {
-    return 'eye'
-  }
-  case 'publish': {
-    return 'plus'
-  }
-  case 'join': {
-    return 'personadd'
-  }
-  case 'seek': {
-    return 'search'
-  }
-  case 'complete': {
-    return 'checkmarkempty'
-  }
-  default: {
-    return 'info'
-  }
+    case 'browse': {
+      return 'eye'
+    }
+    case 'publish': {
+      return 'plus'
+    }
+    case 'join': {
+      return 'personadd'
+    }
+    case 'seek': {
+      return 'search'
+    }
+    case 'complete': {
+      return 'checkmarkempty'
+    }
+    default: {
+      return 'info'
+    }
   }
 }
 
 // 根据类型获取不同的颜色
 export const getNoticeColor = type => {
   switch (type) {
-  case 'browse': {
-    return '#2979ff'
-  }
-  case 'publish': {
-    return '#19be6b'
-  }
-  case 'join': {
-    return '#ff9900'
-  }
-  case 'seek': {
-    return '#9c26b0'
-  }
-  case 'complete': {
-    return '#f56c6c'
-  }
-  default: {
-    return '#909399'
-  }
+    case 'browse': {
+      return '#2979ff'
+    }
+    case 'publish': {
+      return '#19be6b'
+    }
+    case 'join': {
+      return '#ff9900'
+    }
+    case 'seek': {
+      return '#9c26b0'
+    }
+    case 'complete': {
+      return '#f56c6c'
+    }
+    default: {
+      return '#909399'
+    }
   }
 }
 
@@ -212,7 +212,7 @@ export const generateRandomNotice = () => {
     { type: 'browse', text: `用户 ${user} 刚刚浏览了首页` },
     { type: 'publish', text: `用户 ${user} 发布了一个新任务：${task}` },
     { type: 'join', text: `用户 ${user} 加入了任务：${task}` },
-    { type: 'seek', text: `用户 ${user} 发布了趴活：${service}` },
+    { type: 'seek', text: `用户 ${user} 开始趴活：${service}` },
     { type: 'complete', text: `用户 ${user} 完成了任务：${task}` }
   ]
 

@@ -42,15 +42,13 @@
         <!-- 年龄 -->
         <view class="form-item">
           <text class="form-label">年龄</text>
-          <uni-data-select v-model="formData.age" :localdata="ageSelectData" placeholder="请选择年龄"
-            @popupopened="onAgeSelectOpened" @popupclosed="onAgeSelectClosed" />
+          <uni-data-select v-model="formData.age" :localdata="ageSelectData" placeholder="请选择年龄" />
         </view>
 
         <!-- 学历 -->
         <view class="form-item">
           <text class="form-label">学历</text>
-          <uni-data-select v-model="formData.education" :localdata="educationSelectData" placeholder="请选择学历"
-            @popupopened="onEducationSelectOpened" @popupclosed="onEducationSelectClosed" />
+          <uni-data-select v-model="formData.education" :localdata="educationSelectData" placeholder="请选择学历" />
         </view>
 
         <!-- 城市 -->
@@ -72,22 +70,14 @@
         <!-- 技能标签 -->
         <view class="form-item">
           <text class="form-label">技能标签</text>
-          <view class="tag-input-wrapper">
-            <view class="tag-list">
-              <view v-for="(skill, index) in formData.skills" :key="index" class="tag-item">
-                <text class="tag-text">{{ skill }}</text>
-                <uni-icons type="close" size="14" color="#999" @click="removeSkill(index)" />
-              </view>
-            </view>
-            <view class="tag-input-row">
-              <input v-model="newSkill" class="tag-input" placeholder="添加技能标签" @confirm="addSkill" />
-              <button class="add-btn" @click="addSkill">添加</button>
-            </view>
-          </view>
+          <!-- 技能选择器组件 -->
+          <skill-selector ref="skillSelectorRef" v-model:skills="formData.skills" v-model:strengths="formData.strengths"
+            v-model:personalStrengths="formData.personalStrengths" placeholder="添加技能标签" :show-strengths="true"
+            :show-personal-strengths="true" />
         </view>
 
         <!-- 擅长领域 -->
-        <view class="form-item">
+        <!-- <view class="form-item">
           <text class="form-label">擅长领域</text>
           <view class="tag-input-wrapper">
             <view class="tag-list">
@@ -101,14 +91,14 @@
               <button class="add-btn" @click="addTag">添加</button>
             </view>
           </view>
-        </view>
+        </view> -->
 
         <!-- 个人长处 -->
-        <view class="form-item">
+        <!-- <view class="form-item">
           <text class="form-label">个人长处</text>
           <textarea v-model="formData.strengths" class="form-textarea" placeholder="请描述你的个人长处和优势..." maxlength="200" />
           <text class="char-count">{{ formData.strengths.length }}/200</text>
-        </view>
+        </view> -->
       </view>
 
       <!-- 照片管理 -->
@@ -210,10 +200,10 @@
 
 <script setup>
 import { areaList } from '@/common/areaList.js'
+import skillSelector from '@/components/skill-selector/skill-selector.vue'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { onBackPress } from '@dcloudio/uni-app'
 import { computed, onMounted, ref } from 'vue'
-
 // 响应式数据
 const formData = ref({
   age: '',
@@ -244,9 +234,9 @@ const formData = ref({
 // 获取用户信息
 const userInfo = computed(() => store.userInfo)
 
-const newSkill = ref('')
 const newTag = ref('')
 const areaPickerRef = ref(null)
+const skillSelectorRef = ref(null)
 const isDataPickerOpen = ref(false)
 
 // 选项数据
@@ -344,17 +334,6 @@ function onDataPickerOpened() {
 function onDataPickerClosed() {
   console.log('onDataPickerClosed triggered')
   isDataPickerOpen.value = false
-}
-
-function addSkill() {
-  if (newSkill.value.trim() && !formData.value.skills.includes(newSkill.value.trim())) {
-    formData.value.skills.push(newSkill.value.trim())
-    newSkill.value = ''
-  }
-}
-
-function removeSkill(index) {
-  formData.value.skills.splice(index, 1)
 }
 
 function addTag() {
@@ -459,12 +438,20 @@ onMounted(() => {
 
 // 页面返回拦截
 onBackPress(() => {
+  // 检查 skill-selector 弹窗是否打开
+  if (skillSelectorRef.value && skillSelectorRef.value.isPopupOpen && skillSelectorRef.value.isPopupOpen.value) {
+    console.log('closing skill-selector via back press')
+    skillSelectorRef.value.hideSkillSelector()
+    return true // 阻止页面返回
+  }
+
   // 检查 uni-data-picker 是否处于打开状态
   if (isDataPickerOpen.value && areaPickerRef.value) {
     console.log('closing uni-data-picker via back press')
     areaPickerRef.value.hide()
     return true // 阻止页面返回
   }
+
   return false // 允许页面正常返回
 })
 

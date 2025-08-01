@@ -54,7 +54,7 @@ module.exports = {
     'promise/always-return': 'off', // 关闭 Promise then 返回值检查
 
     // 代码风格 - 更宽松
-    indent: ['warn', 2], // 改为warn
+    indent: 'off', // 关闭缩进检查，让 Prettier 处理
     quotes: ['warn', 'single'], // 改为warn
     semi: ['warn', 'never'], // 改为warn
     'comma-dangle': 'off', // 关闭尾随逗号检查，允许自由使用
