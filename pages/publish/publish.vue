@@ -4,13 +4,8 @@
       <!-- 标题 -->
       <uni-forms-item label="任务标题" name="name" required>
         <view class="input-row">
-          <uni-easyinput
-            v-model="form.name"
-            maxlength="15"
-            placeholder="请输入任务标题"
-            @input="onTitleInput"
-            :disabled="isFieldDisabled('name')"
-          >
+          <uni-easyinput v-model="form.name" maxlength="15" placeholder="请输入任务标题" @input="onTitleInput"
+            :disabled="isFieldDisabled('name')">
             <template #right>
               <text class="input-count">{{ form.name.length }}/15</text>
             </template>
@@ -20,24 +15,11 @@
       <!-- 描述 -->
       <uni-forms-item label="任务描述" name="description" required>
         <view class="input-row">
-          <uni-easyinput
-            type="textarea"
-            :trim="true"
-            v-model="form.description"
-            maxlength="80"
-            placeholder="请输入任务描述"
-            @input="onDescInput"
-          >
+          <uni-easyinput type="textarea" :trim="true" v-model="form.description" maxlength="80" placeholder="请输入任务描述"
+            @input="onDescInput">
             <template #right>
-              <uni-icons
-                v-if="form.description"
-                type="clear"
-                size="22"
-                color="#c0c4cc"
-                @mousedown.prevent
-                @click="form.description = ''"
-                style="margin-right: 4px; cursor: pointer"
-              />
+              <uni-icons v-if="form.description" type="clear" size="22" color="#c0c4cc" @mousedown.prevent
+                @click="form.description = ''" style="margin-right: 4px; cursor: pointer" />
             </template>
           </uni-easyinput>
           <text class="input-count">{{ form.description.length }}/80</text>
@@ -48,11 +30,8 @@
         <view class="reward-input">
           <uni-easyinput v-model="scoreProxy" type="number" maxlength="5" placeholder="请输入积分">
             <template #right>
-              <view
-                class="mode-switch-btn"
-                @click.stop="setMode('price')"
-                style="display: flex; align-items: center; cursor: pointer"
-              >
+              <view class="mode-switch-btn" @click.stop="setMode('price')"
+                style="display: flex; align-items: center; cursor: pointer">
                 <uni-icons type="wallet" size="18" color="#1976d2" style="margin-right: 2px" />
                 <text>金额结算</text>
               </view>
@@ -62,19 +41,14 @@
             scoreMaxUnit
           }}</view>
         </view>
-        <view class="desc-text" style="color: #888; font-size: 13px"
-          >每人奖励积分，任务开始时按实际参与人数总计扣除</view
-        >
+        <view class="desc-text" style="color: #888; font-size: 13px">每人奖励积分，任务开始时按实际参与人数总计扣除</view>
       </uni-forms-item>
       <uni-forms-item v-else label="任务金额" name="price" :required="true">
         <view class="reward-input">
           <uni-easyinput v-model="priceProxy" type="digit" maxlength="8" placeholder="请输入金额">
             <template #right>
-              <view
-                class="mode-switch-btn"
-                @click.stop="setMode('score')"
-                style="display: flex; align-items: center; cursor: pointer"
-              >
+              <view class="mode-switch-btn" @click.stop="setMode('score')"
+                style="display: flex; align-items: center; cursor: pointer">
                 <uni-icons type="medal" size="18" color="#1976d2" style="margin-right: 2px" />
                 <text>积分结算</text>
               </view>
@@ -84,26 +58,15 @@
             amountMaxUnit
           }}</view>
         </view>
-        <view class="desc-text" style="color: #888; font-size: 13px"
-          >每人奖励金额，任务开始时按实际参与人数总计扣除</view
-        >
+        <view class="desc-text" style="color: #888; font-size: 13px">每人奖励金额，任务开始时按实际参与人数总计扣除</view>
       </uni-forms-item>
       <!-- 参与人数 -->
       <uni-forms-item label="参与人数" name="max_participants" required>
         <view class="input-row">
-          <uni-easyinput
-            v-model="maxParticipantsProxy"
-            type="number"
-            maxlength="2"
-            placeholder="最大参与人数 1~99"
-          >
+          <uni-easyinput v-model="maxParticipantsProxy" type="number" maxlength="2" placeholder="最大参与人数 1~99">
             <template #right>
               <!-- 原有按钮替换为自定义开关 -->
-              <view
-                class="custom-switch"
-                :class="{ active: form.is_publisher_joined }"
-                @click="togglePublisherJoin"
-              >
+              <view class="custom-switch" :class="{ active: form.is_publisher_joined }" @click="togglePublisherJoin">
                 <view class="switch-track"></view>
                 <view class="switch-thumb">
                   <text>
@@ -120,30 +83,16 @@
       </uni-forms-item>
       <!-- 时间选择 -->
       <uni-forms-item label="任务时段" name="timeRange" required>
-        <uni-datetime-picker
-          :key="timeRangeKey"
-          ref="datePickerRef"
-          type="datetimerange"
-          v-model="form.timeRange"
-          :start="calendarStart"
-          :end="endDateStr"
-          :hide-second="true"
-          @change="onTimeRangeChange"
-        >
+        <uni-datetime-picker :key="timeRangeKey" ref="datePickerRef" type="datetimerange" v-model="form.timeRange"
+          :start="calendarStart" :end="endDateStr" :hide-second="true" @change="onTimeRangeChange">
           <template #default>
             <view class="custom-time-input" @click="onTimeInputClick">
               <uni-icons type="calendar" size="22" color="#1976d2" style="margin-right: 8px" />
               <text :style="{ color: form.start_time && form.end_time ? '#333' : '#bbb', flex: 1 }">
                 {{ timeRangeDisplay }}
               </text>
-              <uni-icons
-                v-if="form.start_time && form.end_time"
-                type="close"
-                size="20"
-                color="#bbb"
-                style="margin-left: 8px"
-                @click="onClearTimeRange()"
-              />
+              <uni-icons v-if="form.start_time && form.end_time" type="close" size="20" color="#bbb"
+                style="margin-left: 8px" @click="onClearTimeRange()" />
             </view>
           </template>
         </uni-datetime-picker>
@@ -153,43 +102,23 @@
       </uni-forms-item>
       <!-- 任务类型 -->
       <uni-forms-item label="任务类型" name="category" required>
-        <uni-data-picker
-          :localdata="typeOptions"
-          popup-title="请选择任务类型"
-          placeholder="请选择任务类型"
-          v-model="form.category"
-          @change="onTypeChange"
-          :readonly="isFieldDisabled('category')"
-        />
+        <uni-data-picker :localdata="typeOptions" popup-title="请选择任务类型" placeholder="请选择任务类型" v-model="form.category"
+          @change="onTypeChange" :readonly="isFieldDisabled('category')" />
         <view v-if="form.category !== -1" class="picker-value">
-          <image
-            v-if="typeOptions.find(opt => opt.value === form.category)?.icon"
-            :src="typeOptions.find(opt => opt.value === form.category)?.icon"
-            class="type-icon"
-          />
-          {{ typeOptions.find(opt => opt.value === form.category)?.text }}
+          <image v-if="typeOptions.find(opt => opt.value === form.category)?.icon"
+            :src="typeOptions.find(opt => opt.value === form.category)?.icon" class="type-icon" />
+          {{typeOptions.find(opt => opt.value === form.category)?.text}}
         </view>
       </uni-forms-item>
       <!-- 地区选择 -->
       <uni-forms-item label="所属地区" name="location" required>
-        <uni-data-picker
-          :localdata="areaPickerData"
-          popup-title="请选择地区"
-          placeholder="请选择省市区"
-          v-model="form.location"
-          @change="onAreaChange"
-          :readonly="isFieldDisabled('location')"
-        />
+        <uni-data-picker :localdata="areaPickerData" popup-title="请选择地区" placeholder="请选择省市区" v-model="form.location"
+          @change="onAreaChange" :readonly="isFieldDisabled('location')" />
       </uni-forms-item>
       <!-- 图片/视频上传 -->
       <uni-forms-item label="图片/视频" name="media">
-        <media-uploader
-          v-model="form.media_detail"
-          :maxImages="3"
-          :maxImageSize="2 * 1024 * 1024"
-          :maxVideoSize="10 * 1024 * 1024"
-          :maxVideoDuration="30"
-        />
+        <media-uploader v-model="form.media_detail" :maxImages="3" :maxImageSize="2 * 1024 * 1024"
+          :maxVideoSize="10 * 1024 * 1024" :maxVideoDuration="30" />
       </uni-forms-item>
       <button class="submit-btn" @click="submit">{{ isEditMode ? '确认修改' : '确认提交' }}</button>
     </view>
@@ -197,29 +126,19 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, nextTick, onMounted, watch } from 'vue'
-import { onReady, onLoad } from '@dcloudio/uni-app'
-import { formatAmountUnits, numberToChinese, formatDuration } from '@/utils/tools.js'
-import { categories } from '@/utils/categories.js'
 import { areaList } from '@/common/areaList.js'
 import MediaUploader from '@/components/media-uploader/media-uploader.vue'
-import { store, mutations } from '@/uni_modules/uni-id-pages/common/store.js'
+import { mutations, store } from '@/uni_modules/uni-id-pages/common/store.js'
+import { categories } from '@/utils/categories.js'
+import { formatAmountUnits, formatDuration } from '@/utils/tools.js'
+import { onLoad, onReady } from '@dcloudio/uni-app'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 
 const formRef = ref(null)
 const datePickerRef = ref(null)
 const ALLOWED_DESC_REGEX =
-  /[\w!"#$%&'()*+,./:;<=>?@[\\\]^{|}~·\u2013\u2014—\u2018‘\u2019’\u201C“\u201D”\u2026…\u3001、\u3002。\u3008-\u300B\u300E-\u3011\u4E00-\u9FA5\uFF01！\uFF0C，\uFF1A\uFF1B\uFF1F？￥\-]/g
+  /[\w!"#$%&'()*+,./:;<=>?@[\\\]^{|}~·\u2013\u2014—\u2018‘\u2019’\u201C“\u201D”\u2026…\u3001、\u3002。\u3008-\u300B\u300E-\u3011\u4E00-\u9FA5\uFF01！\uFF0C，\uFF1A\uFF1B\uFF1F？￥-]/g
 
-function getChinaNowString() {
-  const now = new Date()
-  const y = now.getFullYear()
-  const m = String(now.getMonth() + 1).padStart(2, '0')
-  const d = String(now.getDate()).padStart(2, '0')
-  const h = String(now.getHours()).padStart(2, '0')
-  const min = String(now.getMinutes()).padStart(2, '0')
-  const s = String(now.getSeconds()).padStart(2, '0')
-  return `${y}-${m}-${d} ${h}:${min}:${s}`
-}
 function getTodayZeroString() {
   const now = new Date()
   const y = now.getFullYear()
@@ -321,19 +240,11 @@ const rules = {
             end = minEnd
             fixed = true
           }
-          function format(dt) {
-            const y = dt.getFullYear()
-            const m = String(dt.getMonth() + 1).padStart(2, '0')
-            const d = String(dt.getDate()).padStart(2, '0')
-            const h = String(dt.getHours()).padStart(2, '0')
-            const min = String(dt.getMinutes()).padStart(2, '0')
-            return `${y}-${m}-${d} ${h}:${min}`
-          }
           if (fixed) {
             // 自动修正并赋值
-            data.timeRange = [format(start), format(end)]
-            data.start_time = format(start)
-            data.end_time = format(end)
+            data.timeRange = [formatDateTime(start), formatDateTime(end)]
+            data.start_time = formatDateTime(start)
+            data.end_time = formatDateTime(end)
             callback()
             return
           }
@@ -351,7 +262,7 @@ const rules = {
       {
         validateFunction: (rule, value, data, callback) => {
           const min = isPublisherJoined.value ? 2 : 1
-          if (!value || isNaN(Number(value)) || Number(value) < min) {
+          if (!value || Number.isNaN(Number(value)) || Number(value) < min) {
             callback(isPublisherJoined.value ? '发布者加入时，参与人数至少2人' : '参与人数至少1人')
             return
           }
@@ -453,7 +364,7 @@ const maxParticipantsProxy = computed({
       form.max_participants = null
     } else {
       const number_ = Number(value.toString().replaceAll(/\D/g, ''))
-      form.max_participants = isNaN(number_) ? null : number_
+      form.max_participants = Number.isNaN(number_) ? null : number_
     }
   }
 })
@@ -466,7 +377,7 @@ const scoreProxy = computed({
       form.score = null
     } else {
       const number_ = Number(value.toString().replaceAll(/\D/g, ''))
-      form.score = isNaN(number_) ? null : number_
+      form.score = Number.isNaN(number_) ? null : number_
     }
   }
 })
@@ -488,10 +399,10 @@ const priceProxy = computed({
     }
   }
 })
-function onTitleInput(e) {
+function onTitleInput() {
   if (form.name.length > 15) form.name = form.name.slice(0, 15)
 }
-function onDescInput(e) {
+function onDescInput() {
   let string_ = (form.description.match(ALLOWED_DESC_REGEX) || []).join('')
   string_ = string_.replaceAll(/^\s+|\s+$/g, '').replaceAll(/\s{2,}/g, ' ')
   form.description = string_.slice(0, 80)
@@ -524,16 +435,8 @@ function onTimeRangeChange(value) {
       })
     }
     // 只做提示和 start_time/end_time 显示
-    function format(dt) {
-      const y = dt.getFullYear()
-      const m = String(dt.getMonth() + 1).padStart(2, '0')
-      const d = String(dt.getDate()).padStart(2, '0')
-      const h = String(dt.getHours()).padStart(2, '0')
-      const min = String(dt.getMinutes()).padStart(2, '0')
-      return `${y}-${m}-${d} ${h}:${min}`
-    }
-    form.start_time = format(start)
-    form.end_time = format(end)
+    form.start_time = formatDateTime(start)
+    form.end_time = formatDateTime(end)
     timeRangeKey.value++
   } else {
     form.start_time = ''
@@ -548,6 +451,17 @@ function getEndDateString() {
   return now.toISOString().slice(0, 19).replace('T', ' ')
 }
 const endDateStr = computed(() => getEndDateString())
+
+// 格式化日期时间函数
+function formatDateTime(dt) {
+  const y = dt.getFullYear()
+  const m = String(dt.getMonth() + 1).padStart(2, '0')
+  const d = String(dt.getDate()).padStart(2, '0')
+  const h = String(dt.getHours()).padStart(2, '0')
+  const min = String(dt.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${d} ${h}:${min}`
+}
+
 function formatDateTimeHM(string_) {
   if (!string_) return ''
   if (typeof string_ === 'number') {
@@ -574,9 +488,6 @@ function formatDateTimeHM(string_) {
   }
   return ''
 }
-const typeText = computed(() => {
-  return typeOptions.find(opt => opt.value === form.category)?.text || ''
-})
 // 优化 toTimestamp，统一输出13位毫秒时间戳
 function toTimestamp(string_) {
   if (!string_) return ''
@@ -586,7 +497,7 @@ function toTimestamp(string_) {
     return string_
   }
   // 字符串转13位毫秒
-  return new Date(string_.replaceAll('-', '/')).getTime()
+  return new Date(string_.replace(/-/g, '/')).getTime()
 }
 function prepareSubmitData() {
   const data = { ...form }
@@ -723,15 +634,15 @@ async function submit() {
       uni.showToast({ title: '请至少上传一张图片', icon: 'none' })
       return
     }
-    if (form.mode === 'score' && (!form.score || isNaN(form.score) || form.score <= 0)) {
+    if (form.mode === 'score' && (!form.score || Number.isNaN(form.score) || form.score <= 0)) {
       uni.showToast({ title: '请输入每人奖励的正整数积分', icon: 'none' })
       return
     }
-    if (form.mode === 'price' && (!form.price || isNaN(form.price) || form.price <= 0)) {
+    if (form.mode === 'price' && (!form.price || Number.isNaN(form.price) || form.price <= 0)) {
       uni.showToast({ title: '请输入每人奖励的正数金额', icon: 'none' })
       return
     }
-    if (!form.max_participants || isNaN(form.max_participants) || form.max_participants <= 0) {
+    if (!form.max_participants || Number.isNaN(form.max_participants) || form.max_participants <= 0) {
       uni.showToast({ title: '请输入大于0的参与人数', icon: 'none' })
       return
     }
@@ -905,9 +816,12 @@ watch(() => form.media_detail, syncMediaFields, { deep: true })
 
 .reward-input {
   display: flex;
-  flex-direction: column; /* Changed to column to stack input and desc */
-  align-items: flex-start; /* Align items to the start */
-  gap: 4px; /* Reduced gap */
+  flex-direction: column;
+  /* Changed to column to stack input and desc */
+  align-items: flex-start;
+  /* Align items to the start */
+  gap: 4px;
+  /* Reduced gap */
   margin-bottom: 4px;
   position: relative;
 }
@@ -1074,6 +988,7 @@ watch(() => form.media_detail, syncMediaFields, { deep: true })
   border: 1px solid #eee;
   padding: 0 12px;
 }
+
 .custom-switch {
   width: 64px;
   height: 32px;
@@ -1090,10 +1005,12 @@ watch(() => form.media_detail, syncMediaFields, { deep: true })
   user-select: none;
   box-sizing: border-box;
 }
+
 .custom-switch.active {
   background: #1976d2;
   border-color: #1976d2;
 }
+
 .switch-track {
   position: absolute;
   left: 0;
@@ -1103,6 +1020,7 @@ watch(() => form.media_detail, syncMediaFields, { deep: true })
   border-radius: 16px;
   z-index: 0;
 }
+
 .switch-thumb {
   position: absolute;
   width: 32px;
@@ -1127,6 +1045,7 @@ watch(() => form.media_detail, syncMediaFields, { deep: true })
   padding: 0 1px;
   overflow: visible;
 }
+
 .custom-switch.active .switch-thumb {
   left: 28px;
   background: #fff;

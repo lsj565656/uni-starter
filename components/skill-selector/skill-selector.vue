@@ -37,13 +37,13 @@
     </view>
 
     <!-- 擅长领域显示 -->
-    <view v-if="showStrengths" class="strengths-section">
+    <view v-if="showCategorieTags" class="categorieTags-section">
       <text class="section-title">擅长领域</text>
-      <view class="strengths-tags">
-        <view v-if="autoStrengths.length === 0" class="strength-tag-empty">
+      <view class="categorieTags-tags">
+        <view v-if="autoCategorieTags.length === 0" class="strength-tag-empty">
           <text class="strength-text-empty">无</text>
         </view>
-        <view v-for="(strength, index) in autoStrengths" :key="index" class="strength-tag"
+        <view v-for="(strength, index) in autoCategorieTags" :key="index" class="strength-tag"
           @click="removeStrength(index)">
           <text class="strength-text">{{ strength }}</text>
           <uni-icons type="close" size="12" color="#fff" />
@@ -115,7 +115,7 @@ const props = defineProps({
     default: () => []
   },
   // 擅长领域
-  strengths: {
+  categorieTags: {
     type: String,
     default: ''
   },
@@ -126,7 +126,7 @@ const props = defineProps({
     default: '请输入技能标签'
   },
   // 是否显示擅长领域
-  showStrengths: {
+  showCategorieTags: {
     type: Boolean,
     default: true
   },
@@ -155,13 +155,13 @@ const props = defineProps({
 })
 
 // Emits定义
-const emit = defineEmits(['update:skills', 'update:strengths', 'change'])
+const emit = defineEmits(['update:skills', 'update:categorieTags', 'change'])
 
 // 响应式数据
 const inputValue = ref('')
 const selectedSkills = ref([])
 const customSkills = ref([]) // 自定义技能缓存
-const autoStrengths = ref([]) // 自动填充的擅长领域
+const autoCategorieTags = ref([]) // 自动填充的擅长领域
 const searchKeyword = ref('')
 const skillDrawer = ref(null)
 
@@ -196,7 +196,7 @@ onMounted(() => {
   selectedSkills.value = [...presetSkills, ...customSkillsList]
   customSkills.value = customSkillsList
   // 初始化自动擅长领域
-  updateAutoStrengths()
+  updateAutoCategorieTags()
 })
 
 // 页面返回拦截
@@ -347,7 +347,7 @@ function toggleSkill(skill, categoryKey) {
   }
 
   // 更新自动擅长领域
-  updateAutoStrengths()
+  updateAutoCategorieTags()
 }
 
 function canAddSkill(skill, categoryKey) {
@@ -457,17 +457,17 @@ function confirmSkills() {
 
 function updateValues() {
   emit('update:skills', selectedSkills.value)
-  emit('update:strengths', autoStrengths.value.join(', '))
+  emit('update:categorieTags', autoCategorieTags.value.join(', '))
   emit('change', {
     skills: selectedSkills.value,
-    strengths: autoStrengths.value.join(', ')
+    categorieTags: autoCategorieTags.value.join(', ')
   })
 }
 
 // 移除擅长领域
 function removeStrength(index) {
-  const strength = autoStrengths.value[index]
-  autoStrengths.value.splice(index, 1)
+  const strength = autoCategorieTags.value[index]
+  autoCategorieTags.value.splice(index, 1)
 
   // 找到对应的分类并移除该分类下的所有技能
   const categoryToRemove = Object.keys(categorySkillsMapping).find(key => {
@@ -514,18 +514,18 @@ function isCustomSkill(skill) {
 }
 
 // 更新自动擅长领域
-function updateAutoStrengths() {
-  const strengths = new Set()
+function updateAutoCategorieTags() {
+  const categorieTags = new Set()
 
   selectedSkills.value.forEach(skill => {
     const category = getCategoryBySkill(skill)
     if (category) {
       // 添加分类名称作为擅长领域
-      strengths.add(category.name)
+      categorieTags.add(category.name)
     }
   })
 
-  autoStrengths.value = [...strengths]
+  autoCategorieTags.value = [...categorieTags]
   updateValues()
 }
 
@@ -537,7 +537,7 @@ defineExpose({
   isPopupOpen: computed(() => isPopupOpen.value),
   getValues: () => ({
     skills: selectedSkills.value,
-    strengths: autoStrengths.value.join(', ')
+    categorieTags: autoCategorieTags.value.join(', ')
   }),
   validate: () => {
     if (props.required && selectedSkills.value.length === 0) {
@@ -689,7 +689,7 @@ defineExpose({
   color: #fff;
 }
 
-.strengths-section {
+.categorieTags-section {
   margin-bottom: 20rpx;
 }
 
@@ -701,7 +701,7 @@ defineExpose({
   font-weight: 500;
 }
 
-.strengths-tags {
+.categorieTags-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 15rpx;

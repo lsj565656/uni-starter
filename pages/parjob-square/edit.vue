@@ -66,8 +66,8 @@
           <uni-forms-item label="技能标签" name="skills" required>
             <!-- 技能选择器组件 -->
             <skill-selector ref="skillSelectorRef" v-model:skills="formData.skills"
-              v-model:strengths="formData.strengths" placeholder="自定义技能标签" :show-strengths="true" :max-custom-skills="2"
-              :max-categories="2" :max-skills-per-category="3" :required="true" />
+              v-model:categorieTags="formData.categorie_tags" placeholder="自定义技能标签" :show-categorie-tags="true"
+              :max-custom-skills="2" :max-categories="2" :max-skills-per-category="3" :required="true" />
           </uni-forms-item>
 
           <!-- 特长简介 -->
@@ -195,7 +195,7 @@ const formData = ref({
   location: [], // 省市value数组
   location_text: [], // 省市文本数组
   skills: [],
-  tags: [],
+  categorie_tags: [],
   strengths: '',
   photos: [],
   diploma_photos: [],
@@ -207,7 +207,7 @@ const formData = ref({
     city: true,
     skills: true,
     strengths: true,
-    tags: true,
+    categorie_tags: true,
     photos: true
   },
   is_active: true,
@@ -309,7 +309,7 @@ const showFields = [
   { key: 'city', label: '城市' },
   { key: 'skills', label: '技能标签' },
   { key: 'strengths', label: '特长简介' },
-  { key: 'tags', label: '擅长领域' },
+  { key: 'categorie_tags', label: '擅长领域' },
   { key: 'photos', label: '个人照片' }
 ]
 
@@ -338,11 +338,21 @@ function onAreaChange(e) {
     formData.value.city = ''
     return
   }
-  // 省市两级，存储 value 数组和文本数组
+  // 存储 value 数组和文本数组
   formData.value.location = e.detail.value.map(item => item.value)
   formData.value.location_text = e.detail.value.map(item => item.text)
-  // 设置城市文本（省市组合）
-  formData.value.city = formData.value.location_text.join(' ')
+
+  // 根据选择级别设置城市文本
+  if (formData.value.location_text.length === 2) {
+    // 省市二级：只存储市
+    formData.value.city = formData.value.location_text[1]
+  } else if (formData.value.location_text.length === 3) {
+    // 省市区三级：存储市-区
+    formData.value.city = `${formData.value.location_text[1]}-${formData.value.location_text[2]}`
+  } else {
+    // 其他情况：存储最后一个级别
+    formData.value.city = formData.value.location_text[formData.value.location_text.length - 1]
+  }
 }
 
 // uni-data-picker 弹层事件处理
@@ -357,7 +367,8 @@ function onDataPickerClosed() {
 // 特长简介输入处理
 function onStrengthsInput() {
   let string_ = (formData.value.strengths.match(ALLOWED_DESC_REGEX) || []).join('')
-  string_ = string_.replaceAll(/^\s+|\s+$/g, '').replaceAll(/\s{2,}/g, ' ')
+  // 使用 replace 替代 replaceAll，提高兼容性
+  string_ = string_.replace(/^\s+|\s+$/g, '').replace(/\s{2,}/g, ' ')
   formData.value.strengths = string_.slice(0, 200)
 }
 
@@ -423,6 +434,7 @@ async function saveProfile() {
     await formRef.value.validate()
     uni.showLoading({ title: '保存中...' })
     console.log('formData.value', formData.value)
+
     // 这里应该调用云函数保存数据
     // const result = await uniCloud.callFunction({
     //   name: 'saveParjobCard',

@@ -206,11 +206,12 @@
             </view>
           </view>
 
-          <view v-if="selectedUser.show_fields?.tags && selectedUser.tags.length > 0" class="detail-section">
+          <view v-if="selectedUser.show_fields?.categorie_tags && selectedUser.categorie_tags.length > 0"
+            class="detail-section">
             <text class="detail-section-title">擅长领域</text>
             <view class="detail-tags">
-              <view v-for="tag in selectedUser.tags" :key="tag" class="detail-tag">
-                {{ tag }}
+              <view v-for="categorie_tag in selectedUser?.categorie_tags" :key="categorie_tag" class="detail-tag">
+                {{ categorie_tag }}
               </view>
             </view>
           </view>
@@ -593,7 +594,7 @@ function applyFilter() {
       education: user.education,
       city: user.city,
       skills: user.skills || [],
-      tags: user.tags || [],
+      categorie_tags: user.categorie_tags || [],
       strengths: user.strengths,
       photos: user.photos || ['/static/images/user-bg.png'],
       show_fields: user.show_fields,
@@ -662,7 +663,7 @@ async function loadActiveUsers() {
       education: user.education,
       city: user.city,
       skills: user.skills || [],
-      tags: user.tags || [],
+      categorie_tags: user.categorie_tags || [],
       strengths: user.strengths,
       photos: user.photos || ['/static/images/user-bg.png'],
       show_fields: user.show_fields,
