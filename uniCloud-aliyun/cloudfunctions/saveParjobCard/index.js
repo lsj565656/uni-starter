@@ -13,7 +13,7 @@ exports.main = async (event, context) => {
 		education, 
 		city, 
 		skills, 
-		tags, 
+		categorie_tags, 
 		strengths, 
 		photos, 
 		diploma_photos, 
@@ -32,26 +32,40 @@ exports.main = async (event, context) => {
 	}
 	
 	try {
+		// 获取当前用户信息（从云函数上下文）
+		const { uid } = context.auth || {}
+		
+		// 验证用户ID一致性
+		if (uid && uid !== user_id) {
+			return {
+				code: 3,
+				message: '用户ID不匹配，无法操作其他用户的数据'
+			}
+		}
+		
+		// 使用云函数中的用户ID或前端传递的用户ID
+		const finalUserId = uid || user_id
+		
 		// 检查是否已存在该用户的趴活卡片
 		const existingCard = await collection.where({
-			user_id: user_id
+			user_id: finalUserId
 		}).get()
 		
 		const now = new Date()
 		const cardData = {
-			user_id,
-			nickname,
-			avatar,
-			gender: gender || '',
+			user_id: finalUserId,
+			nickname: nickname || '',
+			avatar: avatar || '',
+			gender: gender !== undefined ? parseInt(gender) : 0,
 			age: age ? parseInt(age) : null,
 			education: education || '',
 			city: city || '',
-			skills: skills || [],
-			tags: tags || [],
+			skills: Array.isArray(skills) ? skills : [],
+			categorie_tags: Array.isArray(categorie_tags) ? categorie_tags : [],
 			strengths: strengths || '',
-			photos: photos || [],
-			diploma_photos: diploma_photos || [],
-			certificate_photos: certificate_photos || [],
+			photos: Array.isArray(photos) ? photos : [],
+			diploma_photos: Array.isArray(diploma_photos) ? diploma_photos : [],
+			certificate_photos: Array.isArray(certificate_photos) ? certificate_photos : [],
 			show_fields: show_fields || {
 				age: true,
 				gender: true,
@@ -59,7 +73,7 @@ exports.main = async (event, context) => {
 				city: true,
 				skills: true,
 				strengths: true,
-				tags: true,
+				categorie_tags: true,
 				photos: true
 			},
 			is_active: is_active !== undefined ? is_active : true,
@@ -73,16 +87,31 @@ exports.main = async (event, context) => {
 			// 更新现有记录
 			const cardId = existingCard.data[0]._id
 			result = await collection.doc(cardId).update(cardData)
+			
+			console.log('更新趴活卡片成功:', {
+				user_id: finalUserId,
+				card_id: cardId,
+				update_time: now
+			})
 		} else {
 			// 创建新记录
 			cardData.created_at = now
 			result = await collection.add(cardData)
+			
+			console.log('创建趴活卡片成功:', {
+				user_id: finalUserId,
+				card_id: result.id,
+				create_time: now
+			})
 		}
 		
 		return {
 			code: 0,
-			message: '保存成功',
-			data: result
+			message: existingCard.data.length > 0 ? '更新成功' : '创建成功',
+			data: {
+				card_id: result.id || existingCard.data[0]._id,
+				is_new: existingCard.data.length === 0
+			}
 		}
 		
 	} catch (error) {

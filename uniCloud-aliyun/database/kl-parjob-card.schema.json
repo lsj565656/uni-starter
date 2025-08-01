@@ -21,7 +21,7 @@
     "city": { "bsonType": "string", "description": "常驻城市" },
     "skills": { "bsonType": "array", "items": { "bsonType": "string" }, "description": "技能标签" },
     "strengths": { "bsonType": "string", "description": "个人长处描述" },
-    "tags": { "bsonType": "array", "items": { "bsonType": "string" }, "description": "擅长领域标签" },
+    "categorie_tags": { "bsonType": "array", "items": { "bsonType": "string" }, "description": "擅长领域标签" },
     "photos": { "bsonType": "array", "items": { "bsonType": "string" }, "description": "个人照片URL数组" },
     "diploma_photos": { "bsonType": "array", "items": { "bsonType": "string" }, "description": "毕业证书图片URL" },
     "certificate_photos": { "bsonType": "array", "items": { "bsonType": "string" }, "description": "职业技能证书图片URL" },
@@ -35,7 +35,7 @@
         "city": { "bsonType": "bool" },
         "skills": { "bsonType": "bool" },
         "strengths": { "bsonType": "bool" },
-        "tags": { "bsonType": "bool" },
+        "categorie_tags": { "bsonType": "bool" },
         "photos": { "bsonType": "bool" }
       }
     },

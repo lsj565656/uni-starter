@@ -10,8 +10,8 @@
       </template>
     </uni-nav-bar>
 
-    <uni-forms ref="formRef" :modelValue="formData" :rules="rules" label-width="90">
-      <scroll-view class="content-scroll" scroll-y>
+    <uni-forms ref="formRef" :modelValue="formData" :disabled="isSaving" :rules="rules" label-width="90">
+      <scroll-view class="content-scroll" scroll-y :class="{ 'disabled-scroll': isSaving }">
         <!-- 基本信息 -->
         <uni-section title="基本信息" type="line"></uni-section>
         <view class="section">
@@ -176,6 +176,14 @@
         </view>
       </scroll-view>
     </uni-forms>
+    
+    <!-- 保存状态遮罩层 -->
+    <view v-if="isSaving" class="saving-overlay" @click.stop>
+      <view class="saving-content">
+        <uni-icons type="spinner-cycle" size="40" color="#007aff" class="saving-icon" />
+        <text class="saving-text">保存中...</text>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -189,6 +197,7 @@ import { computed, onMounted, ref } from 'vue'
 const ALLOWED_DESC_REGEX = /[\w!"#$%&'()*+,./:;<=>?@[\\\]^{|}~·\u2013\u2014—\u2018'\u2019'\u201C"\u201D"\u2026…\u3001、\u3002。\u3008-\u300B\u300E-\u3011\u4E00-\u9FA5\uFF01！\uFF0C，\uFF1A\uFF1B\uFF1F？￥-]/g
 // 响应式数据
 const formData = ref({
+  user_id: '',
   avatar: '',
   nickname: '',
   gender: '',
@@ -216,6 +225,9 @@ const formData = ref({
   is_active: true,
   allow_homepage_view: false
 })
+
+// 保存状态管理
+const isSaving = ref(false)
 
 // 校验规则
 const rules = {
@@ -432,42 +444,58 @@ function removeCertificate(index) {
 
 // 保存数据
 async function saveProfile() {
+  if (isSaving.value) return // 防止重复提交
+  
   try {
     // 表单校验
     await formRef.value.validate()
-    uni.showLoading({ title: '保存中...' })
+    
+    // 设置保存状态
+    isSaving.value = true
+    
     console.log('formData.value', formData.value)
 
     // 这里应该调用云函数保存数据
-    // const result = await uniCloud.callFunction({
-    //   name: 'saveParjobCard',
-    //   data: formData.value
-    // })
-
-    // 模拟保存
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    uni.hideLoading()
-    uni.showToast({
-      title: '保存成功',
-      icon: 'success'
+    const result = await uniCloud.callFunction({
+      name: 'saveParjobCard',
+      data: formData.value
     })
 
-    setTimeout(() => {
-      uni.navigateBack()
-    }, 1500)
+    // 检查云函数返回结果
+    if (result.result && result.result.code === 0) {
+      // 保存成功
+      uni.showToast({
+        title: result.result.message || '保存成功',
+        icon: 'success',
+        duration: 2000
+      })
+
+      // 2秒后返回上一页
+      setTimeout(() => {
+        uni.navigateBack()
+      }, 1500)
+      
+      // 记录保存结果（避免 ESLint 警告）
+      console.log('保存成功，返回数据:', result.result.data)
+    } else {
+      // 保存失败
+      throw new Error(result.result?.message || '保存失败')
+    }
 
   } catch (error) {
-    uni.hideLoading()
     uni.showToast({
       title: '保存失败',
       icon: 'error'
     })
+  } finally {
+    // 无论成功失败都要重置保存状态
+    isSaving.value = false
   }
 }
 
 // 初始化数据
 onMounted(() => {
+  formData.value.user_id = userInfo.value._id
   // 初始化用户基本信息
   formData.value.avatar = userInfo.value.avatar_file?.url || '/static/default-avatar.png'
   formData.value.nickname = userInfo.value.nickname || '未设置'
@@ -837,5 +865,51 @@ onMounted(() => {
 .switch-label {
   font-size: 28rpx;
   color: #333;
+}
+
+/* 保存状态遮罩层样式 */
+.saving-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.saving-content {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.2);
+}
+
+.saving-icon {
+  animation: spin 1s linear infinite;
+}
+
+.saving-text {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 禁用滚动样式 */
+.disabled-scroll {
+  pointer-events: none;
+  user-select: none;
 }
 </style>
