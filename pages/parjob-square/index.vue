@@ -242,6 +242,7 @@
 <script setup>
 import PlanetSphere from '@/components/3d-planet-sphere/3d-planet-sphere.vue'
 import { getActiveParjobCards, getAvailableCities, getAvailableSkills, getFilteredParjobCards } from '@/utils/parjob-cards.js'
+import { onBackPress } from '@dcloudio/uni-app'
 import { computed, onMounted, ref } from 'vue'
 
 // 响应式数据
@@ -696,6 +697,16 @@ function onSpherePause() {
 function onSphereResume() {
   // 球体恢复时的处理逻辑
 }
+
+// 页面返回拦截
+onBackPress(() => {
+  // 检查用户详情弹窗是否打开
+  if (isUserDetailOpen.value) {
+    hideUserDetail()
+    return true // 阻止页面返回
+  }
+  return false // 允许页面正常返回
+})
 
 // 生命周期
 onMounted(() => {
