@@ -13,8 +13,8 @@
     <uni-forms ref="formRef" :modelValue="formData" :rules="rules" label-width="90">
       <scroll-view class="content-scroll" scroll-y>
         <!-- 基本信息 -->
+        <uni-section title="基本信息" type="line"></uni-section>
         <view class="section">
-          <view class="section-title">基本信息</view>
 
           <!-- 头像 -->
           <uni-forms-item label="头像" name="avatar">
@@ -59,31 +59,38 @@
         </view>
 
         <!-- 技能标签 -->
+        <uni-section title="技能标签" type="line"></uni-section>
         <view class="section">
-          <view class="section-title">技能标签</view>
 
           <!-- 技能标签 -->
           <uni-forms-item label="技能标签" name="skills" required>
             <!-- 技能选择器组件 -->
             <skill-selector ref="skillSelectorRef" v-model:skills="formData.skills"
-              v-model:strengths="formData.strengths" v-model:personalStrengths="formData.personalStrengths"
-              placeholder="自定义技能标签" :show-strengths="true" :show-personal-strengths="false" :max-custom-skills="2"
-              :max-categories="2" :max-skills-per-category="3" :max-personal-strengths-length="200" :required="true" />
+              v-model:strengths="formData.strengths" placeholder="自定义技能标签" :show-strengths="true" :max-custom-skills="2"
+              :max-categories="2" :max-skills-per-category="3" :required="true" />
           </uni-forms-item>
 
-          <!-- 个人长处 -->
-          <uni-forms-item label="个人长处" name="personalStrengths">
-            <uni-easyinput type="textarea" v-model="formData.personalStrengths" placeholder="请输入个人长处（可选）"
-              maxlength="200" :trim="true" />
+          <!-- 特长简介 -->
+          <uni-forms-item label="特长" name="strengths">
+            <view class="input-row">
+              <uni-easyinput type="textarea" :trim="true" v-model="formData.strengths" maxlength="200"
+                placeholder="请输入特长、优势、亮点等（可选）" @input="onStrengthsInput">
+                <template #right>
+                  <uni-icons v-if="formData.strengths" type="clear" size="22" color="#c0c4cc" @mousedown.prevent
+                    @click="clearStrengths" style="margin-right: 4px; cursor: pointer" />
+                </template>
+              </uni-easyinput>
+              <text class="input-count">{{ formData.strengths.length }}/200</text>
+            </view>
           </uni-forms-item>
         </view>
 
         <!-- 照片管理 -->
+        <uni-section title="图片管理" type="line" sub-title="上传个人照片和认证证书（可选）"></uni-section>
         <view class="section">
-          <view class="section-title">照片管理</view>
 
           <!-- 个人照片 -->
-          <uni-forms-item label="个人照片" name="photos" required>
+          <uni-forms-item label="个人照片" name="photos">
             <view class="photo-grid">
               <view v-for="(photo, index) in formData.photos" :key="index" class="photo-item">
                 <image :src="photo" class="photo-image" mode="aspectFill" />
@@ -135,12 +142,11 @@
         </view>
 
         <!-- 展示设置 -->
+        <uni-section title="展示设置" type="line" sub-title="控制信息展示和隐私设置"></uni-section>
         <view class="section">
-          <view class="section-title">展示设置</view>
 
           <!-- 字段展示控制 -->
           <view class="form-item">
-            <text class="form-label">信息展示控制</text>
             <view class="switch-list">
               <view v-for="field in showFields" :key="field.key" class="switch-item">
                 <text class="switch-label">{{ field.label }}</text>
@@ -177,7 +183,6 @@
 import { areaList } from '@/common/areaList.js'
 import skillSelector from '@/components/skill-selector/skill-selector.vue'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
-import { onBackPress } from '@dcloudio/uni-app'
 import { computed, onMounted, ref } from 'vue'
 
 // 校验规则常量
@@ -192,7 +197,6 @@ const formData = ref({
   skills: [],
   tags: [],
   strengths: '',
-  personalStrengths: '',
   photos: [],
   diploma_photos: [],
   certificate_photos: [],
@@ -232,14 +236,9 @@ const rules = {
       { required: true, errorMessage: '请至少选择一个技能标签', trigger: 'change' }
     ]
   },
-  photos: {
+  strengths: {
     rules: [
-      { required: true, errorMessage: '请至少上传一张个人照片', trigger: 'change' }
-    ]
-  },
-  personalStrengths: {
-    rules: [
-      { max: 200, errorMessage: '个人长处最多200字', trigger: 'blur' },
+      { max: 200, errorMessage: '特长简介最多200字', trigger: 'blur' },
       {
         validator: (rule, value, callback) => {
           if (!value) return callback()
@@ -309,7 +308,7 @@ const showFields = [
   { key: 'education', label: '学历' },
   { key: 'city', label: '城市' },
   { key: 'skills', label: '技能标签' },
-  { key: 'strengths', label: '个人长处' },
+  { key: 'strengths', label: '特长简介' },
   { key: 'tags', label: '擅长领域' },
   { key: 'photos', label: '个人照片' }
 ]
@@ -353,6 +352,18 @@ function onDataPickerOpened() {
 
 function onDataPickerClosed() {
   isDataPickerOpen.value = false
+}
+
+// 特长简介输入处理
+function onStrengthsInput() {
+  let string_ = (formData.value.strengths.match(ALLOWED_DESC_REGEX) || []).join('')
+  string_ = string_.replaceAll(/^\s+|\s+$/g, '').replaceAll(/\s{2,}/g, ' ')
+  formData.value.strengths = string_.slice(0, 200)
+}
+
+// 清空特长简介
+function clearStrengths() {
+  formData.value.strengths = ''
 }
 
 function toggleShowField(key, value) {
@@ -410,27 +421,8 @@ async function saveProfile() {
   try {
     // 表单校验
     await formRef.value.validate()
-
-    // 额外校验：个人照片
-    if (!formData.value.photos || formData.value.photos.length === 0) {
-      uni.showToast({
-        title: '请至少上传一张个人照片',
-        icon: 'none'
-      })
-      return
-    }
-
-    // 额外校验：技能标签
-    if (!formData.value.skills || formData.value.skills.length === 0) {
-      uni.showToast({
-        title: '请至少选择一个技能标签',
-        icon: 'none'
-      })
-      return
-    }
-
     uni.showLoading({ title: '保存中...' })
-
+    console.log('formData.value', formData.value)
     // 这里应该调用云函数保存数据
     // const result = await uniCloud.callFunction({
     //   name: 'saveParjobCard',
@@ -463,16 +455,6 @@ async function saveProfile() {
 onMounted(() => {
   // 这里应该从数据库加载用户现有的趴活信息
   // loadUserParjobCard()
-})
-
-// 页面返回拦截
-onBackPress(() => {
-  // 检查 uni-data-picker 是否处于打开状态
-  if (isDataPickerOpen.value && areaPickerRef.value) {
-    return true // 阻止页面返回
-  }
-
-  return false // 允许页面正常返回
 })
 
 </script>
@@ -517,12 +499,6 @@ onBackPress(() => {
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
 }
 
-.section-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 30rpx;
-}
 
 .avatar-section {
   display: flex;
@@ -603,6 +579,18 @@ onBackPress(() => {
 
 .form-item {
   margin-bottom: 30rpx;
+}
+
+.input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.input-count {
+  text-align: right;
+  color: #999;
+  font-size: 24rpx;
 }
 
 

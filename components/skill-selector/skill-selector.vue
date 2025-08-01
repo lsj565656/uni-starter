@@ -51,18 +51,6 @@
       </view>
     </view>
 
-    <!-- 个人长处输入 -->
-    <view v-if="showPersonalStrengths" class="personal-strengths-section">
-      <text class="section-title">个人长处</text>
-      <view class="personal-strengths-input-container">
-        <textarea v-model="personalStrengthsValue" class="personal-strengths-textarea" placeholder="请输入个人长处"
-          :maxlength="maxPersonalStrengthsLength" @input="onPersonalStrengthsInput" />
-        <view class="clear-btn" @click="clearPersonalStrengths" v-if="personalStrengthsValue">
-          <uni-icons type="close" size="14" color="#999" />
-        </view>
-        <text class="char-count">{{ personalStrengthsValue.length }}/{{ maxPersonalStrengthsLength }}</text>
-      </view>
-    </view>
 
     <!-- 技能选择抽屉 -->
     <uni-drawer ref="skillDrawer" mode="right" :width="300" :mask-click="false" @change="onDrawerChange">
@@ -131,11 +119,7 @@ const props = defineProps({
     type: String,
     default: ''
   },
-  // 个人长处
-  personalStrengths: {
-    type: String,
-    default: ''
-  },
+
   // 输入框占位符
   placeholder: {
     type: String,
@@ -146,11 +130,7 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
-  // 是否显示个人长处
-  showPersonalStrengths: {
-    type: Boolean,
-    default: true
-  },
+
   // 每个领域最多选择技能数
   maxSkillsPerCategory: {
     type: Number,
@@ -166,11 +146,7 @@ const props = defineProps({
     type: Number,
     default: 2
   },
-  // 个人长处最大长度
-  maxPersonalStrengthsLength: {
-    type: Number,
-    default: 200
-  },
+
   // 是否必填
   required: {
     type: Boolean,
@@ -179,14 +155,13 @@ const props = defineProps({
 })
 
 // Emits定义
-const emit = defineEmits(['update:skills', 'update:strengths', 'update:personalStrengths', 'change'])
+const emit = defineEmits(['update:skills', 'update:strengths', 'change'])
 
 // 响应式数据
 const inputValue = ref('')
 const selectedSkills = ref([])
 const customSkills = ref([]) // 自定义技能缓存
 const autoStrengths = ref([]) // 自动填充的擅长领域
-const personalStrengthsValue = ref('')
 const searchKeyword = ref('')
 const skillDrawer = ref(null)
 
@@ -222,7 +197,6 @@ onMounted(() => {
   customSkills.value = customSkillsList
   // 初始化自动擅长领域
   updateAutoStrengths()
-  personalStrengthsValue.value = props.personalStrengths
 })
 
 // 页面返回拦截
@@ -486,8 +460,7 @@ function updateValues() {
   emit('update:strengths', autoStrengths.value.join(', '))
   emit('change', {
     skills: selectedSkills.value,
-    strengths: autoStrengths.value.join(', '),
-    personalStrengths: personalStrengthsValue.value
+    strengths: autoStrengths.value.join(', ')
   })
 }
 
@@ -520,29 +493,6 @@ function removeStrength(index) {
   updateValues()
 }
 
-function onPersonalStrengthsInput(e) {
-  // 限制只能输入常用标点符号
-  const value = e.detail.value
-  const filteredValue = value.replace(/[^\u4e00-\u9fa5a-zA-Z0-9\s，。！？；：""''（）【】《》、]/g, '')
-
-  personalStrengthsValue.value = filteredValue
-  emit('update:personalStrengths', personalStrengthsValue.value)
-  emit('change', {
-    skills: selectedSkills.value,
-    strengths: autoStrengths.value.join(', '),
-    personalStrengths: personalStrengthsValue.value
-  })
-}
-
-function clearPersonalStrengths() {
-  personalStrengthsValue.value = ''
-  emit('update:personalStrengths', '')
-  emit('change', {
-    skills: selectedSkills.value,
-    strengths: autoStrengths.value.join(', '),
-    personalStrengths: ''
-  })
-}
 
 // 获取技能所属分类
 function getCategoryBySkill(skill) {
@@ -584,12 +534,10 @@ defineExpose({
   showSkillSelector,
   hideSkillSelector,
   resetSkills,
-  clearPersonalStrengths,
   isPopupOpen: computed(() => isPopupOpen.value),
   getValues: () => ({
     skills: selectedSkills.value,
-    strengths: autoStrengths.value.join(', '),
-    personalStrengths: personalStrengthsValue.value
+    strengths: autoStrengths.value.join(', ')
   }),
   validate: () => {
     if (props.required && selectedSkills.value.length === 0) {
@@ -741,8 +689,7 @@ defineExpose({
   color: #fff;
 }
 
-.strengths-section,
-.personal-strengths-section {
+.strengths-section {
   margin-bottom: 20rpx;
 }
 
@@ -799,64 +746,6 @@ defineExpose({
   color: $uni-text-color-inverse;
 }
 
-.strengths-input-container,
-.personal-strengths-input-container {
-  position: relative;
-}
-
-.strengths-input,
-.personal-strengths-textarea {
-  width: 100%;
-  border: 1rpx solid #e5e5e5;
-  border-radius: 12rpx;
-  padding: 20rpx;
-  font-size: 28rpx;
-  background: #fff;
-  transition: all 0.3s ease;
-}
-
-.strengths-input {
-  height: 80rpx;
-}
-
-.personal-strengths-textarea {
-  height: 160rpx;
-  resize: none;
-}
-
-.strengths-input:focus,
-.personal-strengths-textarea:focus {
-  border-color: #007aff;
-  box-shadow: 0 0 0 2rpx rgba(0, 122, 255, 0.1);
-}
-
-.clear-btn {
-  position: absolute;
-  top: 50%;
-  right: 20rpx;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40rpx;
-  height: 40rpx;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 50%;
-  transition: all 0.3s ease;
-}
-
-.clear-btn:active {
-  background: rgba(0, 0, 0, 0.2);
-  transform: translateY(-50%) scale(0.9);
-}
-
-.char-count {
-  display: block;
-  text-align: right;
-  font-size: 24rpx;
-  color: #999;
-  margin-top: 8rpx;
-}
 
 /* 技能选择抽屉样式 */
 .skill-selector-modal {
