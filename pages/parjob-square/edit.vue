@@ -10,165 +10,166 @@
       </template>
     </uni-nav-bar>
 
-    <scroll-view class="content-scroll" scroll-y>
-      <!-- 基本信息 -->
-      <view class="section">
-        <view class="section-title">基本信息</view>
+    <uni-forms ref="formRef" :modelValue="formData" :rules="rules" label-width="90">
+      <scroll-view class="content-scroll" scroll-y>
+        <!-- 基本信息 -->
+        <view class="section">
+          <view class="section-title">基本信息</view>
 
-        <!-- 头像 -->
-        <view class="avatar-section">
-          <view class="avatar-wrapper">
-            <image :src="userInfo.avatar_file.url || '/static/default-avatar.png'" class="avatar-image"
-              mode="aspectFill" />
-          </view>
+          <!-- 头像 -->
+          <uni-forms-item label="头像" name="avatar">
+            <view class="avatar-section">
+              <view class="avatar-wrapper">
+                <image :src="userInfo.avatar_file.url || '/static/default-avatar.png'" class="avatar-image"
+                  mode="aspectFill" />
+              </view>
+            </view>
+          </uni-forms-item>
+
+          <!-- 昵称 -->
+          <uni-forms-item label="昵称" name="nickname">
+            <view class="readonly-input">
+              <text class="readonly-text">{{ userInfo.nickname || '未设置' }}</text>
+            </view>
+          </uni-forms-item>
+
+          <!-- 性别 -->
+          <uni-forms-item label="性别" name="gender">
+            <view class="readonly-input">
+              <text class="readonly-text">{{ getGenderText(userInfo.gender) }}</text>
+            </view>
+          </uni-forms-item>
+
+          <!-- 年龄 -->
+          <uni-forms-item label="年龄" name="age" required>
+            <uni-data-select v-model="formData.age" :localdata="ageSelectData" placeholder="请选择年龄" />
+          </uni-forms-item>
+
+          <!-- 学历 -->
+          <uni-forms-item label="学历" name="education" required>
+            <uni-data-select v-model="formData.education" :localdata="educationSelectData" placeholder="请选择学历" />
+          </uni-forms-item>
+
+          <!-- 城市 -->
+          <uni-forms-item label="城市" name="location" required>
+            <uni-data-picker ref="areaPickerRef" :localdata="areaPickerData" popup-title="请选择常驻城市" placeholder="请选择省市"
+              v-model="formData.location" @change="onAreaChange" @popupopened="onDataPickerOpened"
+              @popupclosed="onDataPickerClosed" @popupshow="onDataPickerOpened" @popuphide="onDataPickerClosed" />
+          </uni-forms-item>
         </view>
-
-        <!-- 昵称 -->
-        <view class="form-item">
-          <text class="form-label">昵称</text>
-          <view class="readonly-input">
-            <text class="readonly-text">{{ userInfo.nickname || '未设置' }}</text>
-          </view>
-        </view>
-
-        <!-- 性别 -->
-        <view class="form-item">
-          <text class="form-label">性别</text>
-          <view class="readonly-input">
-            <text class="readonly-text">{{ getGenderText(userInfo.gender) }}</text>
-          </view>
-        </view>
-
-        <!-- 年龄 -->
-        <view class="form-item">
-          <text class="form-label">年龄</text>
-          <uni-data-select v-model="formData.age" :localdata="ageSelectData" placeholder="请选择年龄" />
-        </view>
-
-        <!-- 学历 -->
-        <view class="form-item">
-          <text class="form-label">学历</text>
-          <uni-data-select v-model="formData.education" :localdata="educationSelectData" placeholder="请选择学历" />
-        </view>
-
-        <!-- 城市 -->
-        <view class="form-item">
-          <text class="form-label">常驻城市</text>
-          <uni-data-picker ref="areaPickerRef" :localdata="areaPickerData" popup-title="请选择地区" placeholder="请选择省市"
-            v-model="formData.location" @change="onAreaChange" @popupopened="onDataPickerOpened"
-            @popupclosed="onDataPickerClosed" @popupshow="onDataPickerOpened" @popuphide="onDataPickerClosed" />
-        </view>
-      </view>
-
-      <!-- 技能与标签 -->
-      <view class="section">
-        <view class="section-title">技能与标签</view>
 
         <!-- 技能标签 -->
-        <view class="form-item">
-          <text class="form-label">技能标签</text>
-          <!-- 技能选择器组件 -->
-          <skill-selector ref="skillSelectorRef" v-model:skills="formData.skills" v-model:strengths="formData.strengths"
-            v-model:personalStrengths="formData.personalStrengths" placeholder="添加技能标签" :show-strengths="true"
-            :show-personal-strengths="true" :max-custom-skills="2" :max-categories="2" :max-skills-per-category="3"
-            :max-personal-strengths-length="200" :required="true" />
+        <view class="section">
+          <view class="section-title">技能标签</view>
+
+          <!-- 技能标签 -->
+          <uni-forms-item label="技能标签" name="skills" required>
+            <!-- 技能选择器组件 -->
+            <skill-selector ref="skillSelectorRef" v-model:skills="formData.skills"
+              v-model:strengths="formData.strengths" v-model:personalStrengths="formData.personalStrengths"
+              placeholder="自定义技能标签" :show-strengths="true" :show-personal-strengths="false" :max-custom-skills="2"
+              :max-categories="2" :max-skills-per-category="3" :max-personal-strengths-length="200" :required="true" />
+          </uni-forms-item>
+
+          <!-- 个人长处 -->
+          <uni-forms-item label="个人长处" name="personalStrengths">
+            <uni-easyinput type="textarea" v-model="formData.personalStrengths" placeholder="请输入个人长处（可选）"
+              maxlength="200" :trim="true" />
+          </uni-forms-item>
         </view>
-      </view>
 
-      <!-- 照片管理 -->
-      <view class="section">
-        <view class="section-title">照片管理</view>
+        <!-- 照片管理 -->
+        <view class="section">
+          <view class="section-title">照片管理</view>
 
-        <!-- 个人照片 -->
-        <view class="form-item">
-          <text class="form-label">个人照片</text>
-          <view class="photo-grid">
-            <view v-for="(photo, index) in formData.photos" :key="index" class="photo-item">
-              <image :src="photo" class="photo-image" mode="aspectFill" />
-              <view class="photo-delete" @click="removePhoto(index)">
-                <uni-icons type="close" size="16" color="#fff" />
+          <!-- 个人照片 -->
+          <uni-forms-item label="个人照片" name="photos" required>
+            <view class="photo-grid">
+              <view v-for="(photo, index) in formData.photos" :key="index" class="photo-item">
+                <image :src="photo" class="photo-image" mode="aspectFill" />
+                <view class="photo-delete" @click="removePhoto(index)">
+                  <uni-icons type="close" size="16" color="#fff" />
+                </view>
+              </view>
+              <view v-if="formData.photos.length < 3" class="photo-add" @click="choosePhotos">
+                <uni-icons type="plus" size="30" color="#999" />
+                <text class="add-text">添加照片</text>
               </view>
             </view>
-            <view v-if="formData.photos.length < 3" class="photo-add" @click="choosePhotos">
-              <uni-icons type="plus" size="30" color="#999" />
-              <text class="add-text">添加照片</text>
-            </view>
-          </view>
-          <text class="photo-tip">最多可上传3张个人照片</text>
-        </view>
+            <text class="photo-tip">最多可上传3张个人照片</text>
+          </uni-forms-item>
 
-        <!-- 毕业证书 -->
-        <view class="form-item">
-          <text class="form-label">毕业证书（仅用于认证）</text>
-          <view class="cert-grid">
-            <view v-for="(cert, index) in formData.diploma_photos" :key="index" class="cert-item">
-              <image :src="cert" class="cert-image" mode="aspectFill" />
-              <view class="cert-delete" @click="removeDiploma(index)">
-                <uni-icons type="close" size="16" color="#fff" />
+          <!-- 毕业证书 -->
+          <uni-forms-item label="毕业证书" name="diploma_photos">
+            <view class="photo-grid">
+              <view v-for="(cert, index) in formData.diploma_photos" :key="index" class="photo-item">
+                <image :src="cert" class="photo-image" mode="aspectFill" />
+                <view class="photo-delete" @click="removeDiploma(index)">
+                  <uni-icons type="close" size="16" color="#fff" />
+                </view>
+              </view>
+              <view v-if="formData.diploma_photos.length < 3" class="photo-add" @click="chooseDiploma">
+                <uni-icons type="plus" size="30" color="#999" />
+                <text class="add-text">上传证书</text>
               </view>
             </view>
-            <view v-if="formData.diploma_photos.length < 3" class="cert-add" @click="chooseDiploma">
-              <uni-icons type="plus" size="30" color="#999" />
-              <text class="add-text">上传证书</text>
-            </view>
-          </view>
-          <text class="cert-tip">证书仅用于平台认证，不会对外展示</text>
-        </view>
+            <text class="photo-tip">证书仅用于平台认证，不会对外展示</text>
+          </uni-forms-item>
 
-        <!-- 职业证书 -->
-        <view class="form-item">
-          <text class="form-label">职业证书（仅用于认证）</text>
-          <view class="cert-grid">
-            <view v-for="(cert, index) in formData.certificate_photos" :key="index" class="cert-item">
-              <image :src="cert" class="cert-image" mode="aspectFill" />
-              <view class="cert-delete" @click="removeCertificate(index)">
-                <uni-icons type="close" size="16" color="#fff" />
+          <!-- 职业证书 -->
+          <uni-forms-item label="职业证书" name="certificate_photos">
+            <view class="photo-grid">
+              <view v-for="(cert, index) in formData.certificate_photos" :key="index" class="photo-item">
+                <image :src="cert" class="photo-image" mode="aspectFill" />
+                <view class="photo-delete" @click="removeCertificate(index)">
+                  <uni-icons type="close" size="16" color="#fff" />
+                </view>
+              </view>
+              <view v-if="formData.certificate_photos.length < 3" class="photo-add" @click="chooseCertificate">
+                <uni-icons type="plus" size="30" color="#999" />
+                <text class="add-text">上传证书</text>
               </view>
             </view>
-            <view v-if="formData.certificate_photos.length < 3" class="cert-add" @click="chooseCertificate">
-              <uni-icons type="plus" size="30" color="#999" />
-              <text class="add-text">上传证书</text>
+            <text class="photo-tip">证书仅用于平台认证，不会对外展示</text>
+          </uni-forms-item>
+        </view>
+
+        <!-- 展示设置 -->
+        <view class="section">
+          <view class="section-title">展示设置</view>
+
+          <!-- 字段展示控制 -->
+          <view class="form-item">
+            <text class="form-label">信息展示控制</text>
+            <view class="switch-list">
+              <view v-for="field in showFields" :key="field.key" class="switch-item">
+                <text class="switch-label">{{ field.label }}</text>
+                <switch :checked="formData.show_fields[field.key]"
+                  @change="(e) => toggleShowField(field.key, e.detail.value)" color="#007aff" />
+              </view>
             </view>
           </view>
-          <text class="cert-tip">证书仅用于平台认证，不会对外展示</text>
-        </view>
-      </view>
 
-      <!-- 展示设置 -->
-      <view class="section">
-        <view class="section-title">展示设置</view>
+          <!-- 是否在趴活广场展示 -->
+          <view class="form-item">
+            <view class="switch-item">
+              <text class="switch-label">在趴活广场展示我的信息</text>
+              <switch :checked="formData.is_active" @change="(e) => formData.is_active = e.detail.value"
+                color="#007aff" />
+            </view>
+          </view>
 
-        <!-- 字段展示控制 -->
-        <view class="form-item">
-          <text class="form-label">信息展示控制</text>
-          <view class="switch-list">
-            <view v-for="field in showFields" :key="field.key" class="switch-item">
-              <text class="switch-label">{{ field.label }}</text>
-              <switch :checked="formData.show_fields[field.key]"
-                @change="(e) => toggleShowField(field.key, e.detail.value)" color="#007aff" />
+          <!-- 是否允许主页查看 -->
+          <view class="form-item">
+            <view class="switch-item">
+              <text class="switch-label">允许他人通过我的主页查看趴活信息</text>
+              <switch :checked="formData.allow_homepage_view"
+                @change="(e) => formData.allow_homepage_view = e.detail.value" color="#007aff" />
             </view>
           </view>
         </view>
-
-        <!-- 是否在趴活广场展示 -->
-        <view class="form-item">
-          <view class="switch-item">
-            <text class="switch-label">在趴活广场展示我的信息</text>
-            <switch :checked="formData.is_active" @change="(e) => formData.is_active = e.detail.value"
-              color="#007aff" />
-          </view>
-        </view>
-
-        <!-- 是否允许主页查看 -->
-        <view class="form-item">
-          <view class="switch-item">
-            <text class="switch-label">允许他人通过我的主页查看趴活信息</text>
-            <switch :checked="formData.allow_homepage_view"
-              @change="(e) => formData.allow_homepage_view = e.detail.value" color="#007aff" />
-          </view>
-        </view>
-      </view>
-    </scroll-view>
+      </scroll-view>
+    </uni-forms>
   </view>
 </template>
 
@@ -178,6 +179,9 @@ import skillSelector from '@/components/skill-selector/skill-selector.vue'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { onBackPress } from '@dcloudio/uni-app'
 import { computed, onMounted, ref } from 'vue'
+
+// 校验规则常量
+const ALLOWED_DESC_REGEX = /[\w!"#$%&'()*+,./:;<=>?@[\\\]^{|}~·\u2013\u2014—\u2018'\u2019'\u201C"\u201D"\u2026…\u3001、\u3002。\u3008-\u300B\u300E-\u3011\u4E00-\u9FA5\uFF01！\uFF0C，\uFF1A\uFF1B\uFF1F？￥-]/g
 // 响应式数据
 const formData = ref({
   age: '',
@@ -188,6 +192,7 @@ const formData = ref({
   skills: [],
   tags: [],
   strengths: '',
+  personalStrengths: '',
   photos: [],
   diploma_photos: [],
   certificate_photos: [],
@@ -205,8 +210,52 @@ const formData = ref({
   allow_homepage_view: false
 })
 
+// 校验规则
+const rules = {
+  age: {
+    rules: [
+      { required: true, errorMessage: '请选择年龄', trigger: 'change' }
+    ]
+  },
+  education: {
+    rules: [
+      { required: true, errorMessage: '请选择学历', trigger: 'change' }
+    ]
+  },
+  location: {
+    rules: [
+      { required: true, errorMessage: '请选择常驻城市', trigger: 'change' }
+    ]
+  },
+  skills: {
+    rules: [
+      { required: true, errorMessage: '请至少选择一个技能标签', trigger: 'change' }
+    ]
+  },
+  photos: {
+    rules: [
+      { required: true, errorMessage: '请至少上传一张个人照片', trigger: 'change' }
+    ]
+  },
+  personalStrengths: {
+    rules: [
+      { max: 200, errorMessage: '个人长处最多200字', trigger: 'blur' },
+      {
+        validator: (rule, value, callback) => {
+          if (!value) return callback()
+          const string_ = (value.match(ALLOWED_DESC_REGEX) || []).join('')
+          if (string_.length !== value.length) return callback('仅限常用中英文及标点')
+          return callback()
+        },
+        trigger: 'blur'
+      }
+    ]
+  }
+}
+
 // 获取用户信息
 const userInfo = computed(() => store.userInfo)
+const formRef = ref(null)
 const areaPickerRef = ref(null)
 const skillSelectorRef = ref(null)
 const isDataPickerOpen = ref(false)
@@ -299,12 +348,10 @@ function onAreaChange(e) {
 
 // uni-data-picker 弹层事件处理
 function onDataPickerOpened() {
-  console.log('onDataPickerOpened triggered')
   isDataPickerOpen.value = true
 }
 
 function onDataPickerClosed() {
-  console.log('onDataPickerClosed triggered')
   isDataPickerOpen.value = false
 }
 
@@ -361,6 +408,27 @@ function removeCertificate(index) {
 // 保存数据
 async function saveProfile() {
   try {
+    // 表单校验
+    await formRef.value.validate()
+
+    // 额外校验：个人照片
+    if (!formData.value.photos || formData.value.photos.length === 0) {
+      uni.showToast({
+        title: '请至少上传一张个人照片',
+        icon: 'none'
+      })
+      return
+    }
+
+    // 额外校验：技能标签
+    if (!formData.value.skills || formData.value.skills.length === 0) {
+      uni.showToast({
+        title: '请至少选择一个技能标签',
+        icon: 'none'
+      })
+      return
+    }
+
     uni.showLoading({ title: '保存中...' })
 
     // 这里应该调用云函数保存数据
@@ -399,17 +467,8 @@ onMounted(() => {
 
 // 页面返回拦截
 onBackPress(() => {
-  // 检查 skill-selector 弹窗是否打开
-  if (skillSelectorRef.value && skillSelectorRef.value.isPopupOpen && skillSelectorRef.value.isPopupOpen.value) {
-    console.log('closing skill-selector via back press')
-    skillSelectorRef.value.hideSkillSelector()
-    return true // 阻止页面返回
-  }
-
   // 检查 uni-data-picker 是否处于打开状态
   if (isDataPickerOpen.value && areaPickerRef.value) {
-    console.log('closing uni-data-picker via back press')
-    areaPickerRef.value.hide()
     return true // 阻止页面返回
   }
 
@@ -545,6 +604,7 @@ onBackPress(() => {
 .form-item {
   margin-bottom: 30rpx;
 }
+
 
 .form-label {
   display: block;
