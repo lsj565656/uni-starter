@@ -105,9 +105,7 @@ const uniShare = new UniShare()
 // #endif
 const database = uniCloud.database()
 import { store, mutations } from '@/uni_modules/uni-id-pages/common/store.js'
-import { ref, computed, onMounted } from 'vue'
 import { onPageScroll } from '@dcloudio/uni-app'
-import { fetchUserScore } from '@/utils/user.js'
 export default {
   // #ifdef APP
   onBackPress({ from }) {
@@ -397,7 +395,7 @@ export default {
           icon: 'none'
         })
       }
-      const { appName, logo, company, slogan } = this.appConfig.about
+      const { appName, logo, slogan } = this.appConfig.about
       // #ifdef APP
       uniShare.show(
         {

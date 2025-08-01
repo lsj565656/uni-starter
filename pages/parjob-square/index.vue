@@ -45,49 +45,60 @@
       </view>
     </view>
 
-    <!-- 功能区块 -->
+        <!-- 功能区块 -->
     <view class="function-blocks">
       <!-- 编辑信息卡按钮 -->
-      <view class="function-block edit-profile-block" @click="goToEdit">
-        <view class="block-icon">
-          <uni-icons custom-prefix="iconfont" type="icon-xiugai" size="24" color="#fff" />
+      <uni-card class="function-card edit-profile-card" @click="goToEdit">
+        <view class="card-content">
+          <view class="block-icon">
+            <uni-icons custom-prefix="iconfont" type="icon-xiugai" size="24" color="#fff" />
+          </view>
+          <view class="block-content">
+            <text class="block-title">编辑我的信息卡</text>
+            <text class="block-desc">完善个人信息，提高匹配率</text>
+          </view>
+          <view class="card-actions">
+            <view @click.stop class="card-actions-eye">
+              <uni-icons type="eye" size="16" color="#fff" @click="viewMyProfile" />
+            </view>
+            <uni-icons type="right" size="16" color="#fff" />
+          </view>
         </view>
-        <view class="block-content">
-          <text class="block-title">编辑我的信息卡</text>
-          <text class="block-desc">完善个人信息，提高匹配率</text>
-        </view>
-        <uni-icons type="right" size="16" color="#fff" />
-      </view>
+      </uni-card>
 
       <!-- 筛选条件块 -->
-      <view class="function-block filter-block" @click="showFilterModal">
-        <view class="block-icon">
-          <uni-icons type="list" size="24" color="#fff" />
-        </view>
-        <view class="block-content">
-          <text class="block-title">筛选条件</text>
-          <view class="filter-tags" v-if="hasActiveFilters">
-            <view v-for="(tag, index) in activeFilterTags" :key="index" class="filter-tag">
-              {{ tag }}
-            </view>
-            <text class="filter-count">({{ activeFilterCount }})</text>
+      <uni-card class="function-card filter-card" @click="showFilterModal">
+        <view class="card-content">
+          <view class="block-icon">
+            <uni-icons type="list" size="24" color="#fff" />
           </view>
-          <text v-else class="block-desc">设置筛选条件，精准匹配</text>
+          <view class="block-content">
+            <text class="block-title">筛选条件</text>
+            <view class="filter-tags" v-if="hasActiveFilters">
+              <view v-for="(tag, index) in activeFilterTags" :key="index" class="filter-tag">
+                {{ tag }}
+              </view>
+              <text class="filter-count">({{ activeFilterCount }})</text>
+            </view>
+            <text v-else class="block-desc">设置筛选条件，精准匹配</text>
+          </view>
+          <uni-icons type="right" size="16" color="#fff" />
         </view>
-        <uni-icons type="right" size="16" color="#fff" />
-      </view>
+      </uni-card>
 
       <!-- 智能推荐按钮 -->
-      <view class="function-block smart-recommend-block" @click="startSmartRecommend">
-        <view class="block-icon">
-          <uni-icons custom-prefix="iconfont" type="icon-zhinengtuijian" size="24" color="#fff" />
+      <uni-card class="function-card smart-recommend-card" @click="startSmartRecommend">
+        <view class="card-content">
+          <view class="block-icon">
+            <uni-icons custom-prefix="iconfont" type="icon-zhinengtuijian" size="24" color="#fff" />
+          </view>
+          <view class="block-content">
+            <text class="block-title">智能推荐</text>
+            <text class="block-desc">根据发布任务智能匹配</text>
+          </view>
+          <uni-icons type="right" size="16" color="#fff" />
         </view>
-        <view class="block-content">
-          <text class="block-title">智能推荐</text>
-          <text class="block-desc">根据发布任务智能匹配</text>
-        </view>
-        <uni-icons type="right" size="16" color="#fff" />
-      </view>
+      </uni-card>
     </view>
 
     <!-- 底部统计 -->
@@ -242,6 +253,7 @@
 <script setup>
 import PlanetSphere from '@/components/3d-planet-sphere/3d-planet-sphere.vue'
 import { getActiveParjobCards, getAvailableCities, getAvailableSkills, getFilteredParjobCards } from '@/utils/parjob-cards.js'
+import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { onBackPress } from '@dcloudio/uni-app'
 import { computed, onMounted, ref } from 'vue'
 
@@ -249,6 +261,9 @@ import { computed, onMounted, ref } from 'vue'
 const activeUsers = ref([])
 const selectedUser = ref(null)
 const isUserDetailOpen = ref(false)
+
+// 获取用户信息
+const userInfo = computed(() => store.userInfo)
 
 // 屏幕信息
 const screenInfo = ref({
@@ -639,6 +654,23 @@ function startSmartRecommend() {
   })
 }
 
+function viewMyProfile() {
+  console.log('viewMyProfile')
+  // 获取当前用户的信息卡数据
+  const currentUser = getActiveParjobCards().find(user => user.user_id === userInfo.value._id)
+  
+  if (currentUser) {
+    // 如果有信息卡，显示用户详情
+    showUserDetail(currentUser)
+  } else {
+    // 如果没有信息卡，提示用户先编辑
+    uni.showToast({
+      title: '请先编辑您的信息卡',
+      icon: 'none'
+    })
+  }
+}
+
 // 获取屏幕信息
 function getScreenInfo() {
   const systemInfo = uni.getSystemInfoSync()
@@ -754,26 +786,35 @@ onMounted(() => {
 .function-blocks {
   position: absolute;
   bottom: 120rpx;
-  left: 30rpx;
-  right: 30rpx;
+  left: 12rpx;
+  right: 12rpx;
   z-index: 80;
 }
 
-.function-block {
-  display: flex;
-  align-items: center;
-  padding: 20rpx 30rpx;
-  margin-bottom: 20rpx;
+.function-card {
   border-radius: 16rpx;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
   backdrop-filter: blur(10rpx);
   border: 1rpx solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
+  padding: 0 !important;
+  margin: 4px 6px 12px !important;
+  overflow: hidden;
 }
 
-.function-block:active {
+.function-card:active {
   transform: scale(0.98);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+}
+
+.card-content {
+  display: flex;
+  align-items: center;
+  padding: 2rpx 4rpx;
+}
+
+.uni-card__content {
+  padding: 0 !important;
 }
 
 .block-icon {
@@ -787,15 +828,15 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.edit-profile-block .block-icon {
+.edit-profile-card .block-icon {
   background: linear-gradient(135deg, #667eea, #764ba2);
 }
 
-.filter-block .block-icon {
+.filter-card .block-icon {
   background: linear-gradient(135deg, #f093fb, #f5576c);
 }
 
-.smart-recommend-block .block-icon {
+.smart-recommend-card .block-icon {
   background: linear-gradient(135deg, #4facfe, #00f2fe);
 }
 
@@ -815,6 +856,22 @@ onMounted(() => {
 .block-desc {
   font-size: 24rpx;
   color: rgba(255, 255, 255, 0.7);
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  width: 200rpx;
+  justify-content: space-between;
+  gap: 10rpx;
+}
+
+.card-actions-eye {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .filter-tags {
