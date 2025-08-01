@@ -234,6 +234,7 @@ export default {
       })
     },
     checkLogin(actionName = '操作') {
+      console.log('checkLogin',actionName)
       if (!this.userInfo || !this.userInfo._id) {
         this.showLoginNotice()
         return false
@@ -952,6 +953,6 @@ uni-button:after {
 }
 .login-notice-bar {
   margin-top: 50px !important;
-  top: var(--status-bar-height, 0px) !important;
+  top: var(--status-bar-height, 0) !important;
 }
 </style>

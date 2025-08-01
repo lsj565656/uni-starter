@@ -37,7 +37,7 @@
     </view>
 
     <!-- 擅长领域显示 -->
-    <view v-if="showCategorieTags" class="categorieTags-section">
+    <view v-if="showCategorieTags && autoCategorieTags.length > 0" class="categorieTags-section">
       <text class="section-title">擅长领域</text>
       <view class="categorieTags-tags">
         <view v-if="autoCategorieTags.length === 0" class="strength-tag-empty">
@@ -116,8 +116,8 @@ const props = defineProps({
   },
   // 擅长领域
   categorieTags: {
-    type: String,
-    default: ''
+    type: Array,
+    default: () => []
   },
 
   // 输入框占位符
@@ -354,10 +354,6 @@ function canAddSkill(skill, categoryKey) {
   const categorySkills = getSkillsByCategory(categoryKey)
   const selectedCategorySkills = selectedSkills.value.filter(s => categorySkills.includes(s))
 
-  console.log('canAddSkill - skill:', skill, 'categoryKey:', categoryKey)
-  console.log('canAddSkill - selectedCategorySkills:', selectedCategorySkills)
-  console.log('canAddSkill - selectedCategories:', [...selectedCategories.value])
-
   // 检查每个领域的技能数量限制（包含当前要添加的技能）
   if (selectedCategorySkills.length >= props.maxSkillsPerCategory) {
     uni.showToast({
@@ -457,10 +453,10 @@ function confirmSkills() {
 
 function updateValues() {
   emit('update:skills', selectedSkills.value)
-  emit('update:categorieTags', autoCategorieTags.value.join(', '))
+  emit('update:categorieTags', autoCategorieTags.value)
   emit('change', {
     skills: selectedSkills.value,
-    categorieTags: autoCategorieTags.value.join(', ')
+    categorieTags: autoCategorieTags.value
   })
 }
 
@@ -535,10 +531,10 @@ defineExpose({
   hideSkillSelector,
   resetSkills,
   isPopupOpen: computed(() => isPopupOpen.value),
-  getValues: () => ({
-    skills: selectedSkills.value,
-    categorieTags: autoCategorieTags.value.join(', ')
-  }),
+      getValues: () => ({
+      skills: selectedSkills.value,
+      categorieTags: autoCategorieTags.value
+    }),
   validate: () => {
     if (props.required && selectedSkills.value.length === 0) {
       return { valid: false, message: '请至少选择一个技能' }

@@ -52,6 +52,7 @@ module.exports = {
 
     // Promise 相关规则 - 更宽松
     'promise/always-return': 'off', // 关闭 Promise then 返回值检查
+    'promise/catch-or-return': 'off', // 关闭 Promise catch 或 return 检查
 
     // 代码风格 - 更宽松
     indent: 'off', // 关闭缩进检查，让 Prettier 处理

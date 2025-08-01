@@ -17,10 +17,10 @@
         <view class="section">
 
           <!-- 头像 -->
-          <uni-forms-item label="头像" name="avatar">
+          <uni-forms-item name="avatar">
             <view class="avatar-section">
               <view class="avatar-wrapper">
-                <image :src="userInfo.avatar_file.url || '/static/default-avatar.png'" class="avatar-image"
+                <image :src="formData.avatar" class="avatar-image"
                   mode="aspectFill" />
               </view>
             </view>
@@ -29,14 +29,14 @@
           <!-- 昵称 -->
           <uni-forms-item label="昵称" name="nickname">
             <view class="readonly-input">
-              <text class="readonly-text">{{ userInfo.nickname || '未设置' }}</text>
+              <text class="readonly-text">{{ formData.nickname }}</text>
             </view>
           </uni-forms-item>
 
           <!-- 性别 -->
           <uni-forms-item label="性别" name="gender">
             <view class="readonly-input">
-              <text class="readonly-text">{{ getGenderText(userInfo.gender) }}</text>
+              <text class="readonly-text">{{ getGenderText(formData.gender) }}</text>
             </view>
           </uni-forms-item>
 
@@ -189,6 +189,9 @@ import { computed, onMounted, ref } from 'vue'
 const ALLOWED_DESC_REGEX = /[\w!"#$%&'()*+,./:;<=>?@[\\\]^{|}~·\u2013\u2014—\u2018'\u2019'\u201C"\u201D"\u2026…\u3001、\u3002。\u3008-\u300B\u300E-\u3011\u4E00-\u9FA5\uFF01！\uFF0C，\uFF1A\uFF1B\uFF1F？￥-]/g
 // 响应式数据
 const formData = ref({
+  avatar: '',
+  nickname: '',
+  gender: '',
   age: '',
   education: '',
   city: '',
@@ -465,6 +468,11 @@ async function saveProfile() {
 
 // 初始化数据
 onMounted(() => {
+  // 初始化用户基本信息
+  formData.value.avatar = userInfo.value.avatar_file?.url || '/static/default-avatar.png'
+  formData.value.nickname = userInfo.value.nickname || '未设置'
+  formData.value.gender = userInfo.value.gender || 0
+  
   // 这里应该从数据库加载用户现有的趴活信息
   // loadUserParjobCard()
 })

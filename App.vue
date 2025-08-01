@@ -4,7 +4,6 @@ import openApp from '@/common/openApp.js'
 // #ifdef H5
 openApp() //创建在h5端全局悬浮引导用户下载app的功能
 // #endif
-import checkIsAgree from '@/pages/uni-agree/utils/uni-agree.js'
 import uniIdPageInit from '@/uni_modules/uni-id-pages/init.js'
 export default {
   globalData: {
@@ -133,7 +132,7 @@ export default {
   cursor: pointer;
   transition: opacity 0.2s;
   margin-top: 80px !important;
-  top: var(--status-bar-height, 0px) !important;
+  top: var(--status-bar-height, 0) !important;
 }
 .login-notice-bar:active {
   background: #fd6767dc;
