@@ -10,7 +10,9 @@ let hostUserInfo = uni.getStorageSync('uni-id-pages-userInfo')||{}
 
 const data = {
 	userInfo: hostUserInfo,
-	hasLogin: Object.keys(hostUserInfo).length != 0
+	hasLogin: Object.keys(hostUserInfo).length != 0,
+	// 用户趴活信息卡缓存（仅内存存储）
+	userParCard: null
 }
 
 // 定义 mutations, 修改属性
@@ -83,6 +85,8 @@ export const mutations = {
 		uni.removeStorageSync('uni_id_token');
 		uni.setStorageSync('uni_id_token_expired', 0)
     this.setUserInfo({},{cover:true})
+    // 清除用户趴活信息卡缓存
+    this.setUserParCard(null)
     uni.$emit('uni-id-pages-logout')
 		uni.redirectTo({
 			url: `/${pagesJson.uniIdRouter && pagesJson.uniIdRouter.loginPage ? pagesJson.uniIdRouter.loginPage: 'uni_modules/uni-id-pages/pages/login/login-withoutpwd'}`,
@@ -165,8 +169,16 @@ export const mutations = {
 		if (autoBack) {
 			this.loginBack({uniIdRedirectUrl})
 		}
+	},
+	// 设置用户趴活信息卡（仅内存存储）
+	setUserParCard(data) {
+		store.userParCard = data
+		return data
+	},
+	// 获取用户趴活信息卡
+	getUserParCard() {
+		return store.userParCard
 	}
-
 }
 
 // #ifdef VUE2
