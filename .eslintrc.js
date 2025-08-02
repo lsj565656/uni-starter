@@ -39,6 +39,7 @@ module.exports = {
     'vue/no-unused-vars': 'off', // 关闭 Vue 未使用变量检查
     'vue/no-unused-components': 'warn', // 改为warn
     'vue/valid-v-for': 'off', // 关闭 v-for key 检查
+    'vue/no-deprecated-v-on-native-modifier': 'off', // 关闭 .native 修饰符检查
 
     // JavaScript 规则 - 更宽松
     'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
