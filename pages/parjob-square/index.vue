@@ -254,10 +254,10 @@
 
 <script setup>
 import PlanetSphere from '@/components/3d-planet-sphere/3d-planet-sphere.vue'
-import { getAvailableCities, getAvailableSkills, getFilteredParjobCards, getAllActiveParjobCards } from '@/utils/parjob-cards.js'
+import { getAvailableCities, getAvailableSkills, getFilteredParjobCards, getAllActiveParjobCards, updateActiveUserInList, getCachedUserParCard } from '@/utils/parjob-cards.js'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { getUserParCard } from '@/utils/user-parcard.js'
-import { onBackPress } from '@dcloudio/uni-app'
+import { onBackPress, onShow } from '@dcloudio/uni-app'
 import { computed, onMounted, ref } from 'vue'
 
 // 响应式数据
@@ -679,11 +679,6 @@ async function loadActiveUsers() {
     // 计算统计数据
     calculateStats()
     
-    console.log('数据融合结果:', {
-      totalUsersCount: formattedUsers.length,
-      cloudDataCount: formattedUsers.filter(u => u.dataSource === 'cloud').length,
-      mockDataCount: formattedUsers.filter(u => u.dataSource === 'mock').length
-    })
   } catch (error) {
     console.error('加载用户数据失败:', error)
     // 加载失败时使用 mock 数据
@@ -716,6 +711,64 @@ function calculateStats() {
   })
   totalCities.value = allCities.size
 }
+
+// 实时更新用户数据（当用户编辑信息卡后调用）
+async function updateUserInActiveList(userId, isActive) {
+  try {
+    if (isActive) {
+      // 开启展示：从缓存获取用户数据并添加到列表
+      const userData = await getCachedUserParCard(userId)
+      if (userData && userData.is_active) {
+        activeUsers.value = updateActiveUserInList(activeUsers.value, userData, 'add')
+      }
+    } else {
+      // 关闭展示：从列表中移除用户
+      const userData = { user_id: userId }
+      activeUsers.value = updateActiveUserInList(activeUsers.value, userData, 'remove')
+    }
+    
+    // 重新计算统计数据
+    calculateStats()
+  } catch (error) {
+    console.error('实时更新用户数据失败:', error)
+  }
+}
+
+// 暴露给全局使用（如果需要手动调用）
+defineExpose({
+  updateUserInActiveList
+})
+
+// 监听页面显示事件，用于处理从编辑页面返回时的数据更新
+onShow(() => {
+  // 检查是否需要更新数据
+  const lastEditTime = uni.getStorageSync('lastEditTime')
+  const currentUserId = store.userInfo?._id
+  
+  if (lastEditTime && currentUserId) {
+    const now = Date.now()
+    const timeDiff = now - lastEditTime
+    
+    // 如果距离上次编辑时间小于30秒，则进行实时更新
+    if (timeDiff < 30_000) {
+      // 延迟一点时间确保数据已保存
+      setTimeout(async () => {
+        const userData = await getCachedUserParCard(currentUserId)
+        if (userData) {
+          if (userData.is_active) {
+            // 如果用户开启了展示，添加到列表
+            activeUsers.value = updateActiveUserInList(activeUsers.value, userData, 'add')
+          } else {
+            // 如果用户关闭了展示，从列表移除
+            const tempUserData = { user_id: currentUserId }
+            activeUsers.value = updateActiveUserInList(activeUsers.value, tempUserData, 'remove')
+          }
+          calculateStats()
+        }
+      }, 1000)
+    }
+  }
+})
 
 // 组件事件处理
 function handleUserDotClick(user) {

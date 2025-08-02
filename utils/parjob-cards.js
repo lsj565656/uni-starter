@@ -486,6 +486,49 @@ export async function getAllActiveParjobCards(mode = 'mock-cloud') {
   return await getFilteredParjobCards({}, mode)
 }
 
+// 实时更新用户数据（添加或移除单个用户）
+export function updateActiveUserInList(userList, userData, action = 'add') {
+  const updatedList = [...userList]
+  
+  if (action === 'add') {
+    // 添加用户：检查是否已存在，如果存在则更新，否则添加
+    const existingIndex = updatedList.findIndex(user => user.user_id === userData.user_id)
+    if (existingIndex === -1) {
+      // 添加新用户
+      updatedList.push(formatUserData(userData, 'cloud'))
+    } else {
+      // 更新现有用户数据
+      updatedList[existingIndex] = formatUserData(userData, 'cloud')
+    }
+  } else if (action === 'remove') {
+    // 移除用户：根据 user_id 移除
+    const removeIndex = updatedList.findIndex(user => user.user_id === userData.user_id)
+    if (removeIndex !== -1) {
+      updatedList.splice(removeIndex, 1)
+    }
+  }
+  
+  return updatedList
+}
+
+// 从缓存获取用户信息卡数据
+export async function getCachedUserParCard(userId) {
+  try {
+    const result = await uniCloud.callFunction({
+      name: 'getUserParCard',
+      data: { user_id: userId }
+    })
+    
+    if (result.result && result.result.code === 0 && result.result.data) {
+      return result.result.data
+    }
+    return null
+  } catch (error) {
+    console.error('获取缓存用户数据失败:', error)
+    return null
+  }
+}
+
 // 获取所有可用的城市列表
 export function getAvailableCities() {
   const cities = [...new Set(parjobCards.map(card => card.city))]

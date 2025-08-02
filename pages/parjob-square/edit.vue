@@ -453,8 +453,6 @@ async function saveProfile() {
     
     // 设置保存状态
     isSaving.value = true
-    
-    console.log('formData.value', formData.value)
 
     // 这里应该调用云函数保存数据
     const result = await uniCloud.callFunction({
@@ -474,6 +472,9 @@ async function saveProfile() {
       }
       updateUserParCardCache(updatedCardData)
       
+      // 记录编辑时间戳，用于实时更新
+      uni.setStorageSync('lastEditTime', Date.now())
+      
       // 保存成功
     uni.showToast({
         title: result.result.message || '保存成功',
@@ -486,8 +487,6 @@ async function saveProfile() {
       uni.navigateBack()
     }, 1500)
       
-      // 记录保存结果（避免 ESLint 警告）
-      console.log('保存成功，返回数据:', result.result.data)
     } else {
       // 保存失败
       throw new Error(result.result?.message || '保存失败')
@@ -521,7 +520,6 @@ async function loadUserParjobCard() {
       fillFormWithCardData(cardData)
     } else {
       // 未找到用户信息卡，使用默认用户信息
-      console.log('未找到用户趴活信息卡，使用默认用户信息')
       fillFormWithDefaultUserInfo()
     }
     
