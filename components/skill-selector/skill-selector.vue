@@ -105,7 +105,7 @@ import {
   searchSkills
 } from '@/utils/category-skills-mapping.js'
 import { onBackPress } from '@dcloudio/uni-app'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 // Props定义
 const props = defineProps({
@@ -172,32 +172,54 @@ const selectedCategories = ref(new Set())
 // 弹窗状态管理
 const isPopupOpen = ref(false)
 
-// 初始化数据
-onMounted(() => {
+// 初始化技能数据
+function initializeSkills() {
   categories.value = getAllCategories()
 
-  // 分离自定义技能和预设技能
-  const allSkills = [...props.skills]
-  const presetSkills = []
-  const customSkillsList = []
-
-  allSkills.forEach(skill => {
+  // 直接使用传入的技能数据
+  selectedSkills.value = [...(props.skills || [])]
+  customSkills.value = []
+  
+  // 根据技能自动设置分类
+  selectedCategories.value.clear()
+  selectedSkills.value.forEach(skill => {
     const category = getCategoryBySkill(skill)
     if (category) {
-      // 预设技能
-      presetSkills.push(skill)
       selectedCategories.value.add(category.key)
-    } else {
-      // 自定义技能
-      customSkillsList.push(skill)
     }
   })
+  
+  // 直接使用传入的领域标签
+  autoCategorieTags.value = [...(props.categorieTags || [])]
+}
 
-  selectedSkills.value = [...presetSkills, ...customSkillsList]
-  customSkills.value = customSkillsList
-  // 初始化自动擅长领域
-  updateAutoCategorieTags()
+// 初始化数据
+onMounted(() => {
+  initializeSkills()
 })
+
+// 安全的props监听：防止递归更新
+let isUpdating = false
+
+watch(() => [props.skills, props.categorieTags], (newValues, oldValues) => {
+  // 防止递归更新
+  if (isUpdating) return
+  
+  const newSkills = newValues[0] || []
+  const newCategorieTags = newValues[1] || []
+  const oldSkills = oldValues?.[0] || []
+  const oldCategorieTags = oldValues?.[1] || []
+  
+  // 比较数组内容是否真的发生了变化
+  const skillsChanged = JSON.stringify(newSkills) !== JSON.stringify(oldSkills)
+  const categorieTagsChanged = JSON.stringify(newCategorieTags) !== JSON.stringify(oldCategorieTags)
+  
+  if (skillsChanged || categorieTagsChanged) {
+    isUpdating = true
+    initializeSkills()
+    isUpdating = false
+  }
+}, { deep: true, immediate: true })
 
 // 页面返回拦截
 onBackPress(() => {
@@ -452,6 +474,9 @@ function confirmSkills() {
 }
 
 function updateValues() {
+  // 防止递归更新
+  if (isUpdating) return
+  
   emit('update:skills', selectedSkills.value)
   emit('update:categorieTags', autoCategorieTags.value)
   emit('change', {
@@ -530,6 +555,7 @@ defineExpose({
   showSkillSelector,
   hideSkillSelector,
   resetSkills,
+  initializeSkills, // 暴露初始化方法
   isPopupOpen: computed(() => isPopupOpen.value),
       getValues: () => ({
       skills: selectedSkills.value,

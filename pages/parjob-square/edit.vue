@@ -191,6 +191,7 @@
 import { areaList } from '@/common/areaList.js'
 import skillSelector from '@/components/skill-selector/skill-selector.vue'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+import { getUserParCard, updateUserParCardCache } from '@/utils/user-parcard.js'
 import { computed, onMounted, ref } from 'vue'
 
 // 校验规则常量
@@ -463,17 +464,27 @@ async function saveProfile() {
 
     // 检查云函数返回结果
     if (result.result && result.result.code === 0) {
+      // 保存成功后更新缓存
+      const updatedCardData = { 
+        ...formData.value,
+        // 确保地区信息正确保存
+        location: formData.value.location || [],
+        location_text: formData.value.location_text || [],
+        city: formData.value.city || ''
+      }
+      updateUserParCardCache(updatedCardData)
+      
       // 保存成功
-      uni.showToast({
+    uni.showToast({
         title: result.result.message || '保存成功',
         icon: 'success',
         duration: 2000
-      })
-
+    })
+    
       // 2秒后返回上一页
-      setTimeout(() => {
-        uni.navigateBack()
-      }, 1500)
+    setTimeout(() => {
+      uni.navigateBack()
+    }, 1500)
       
       // 记录保存结果（避免 ESLint 警告）
       console.log('保存成功，返回数据:', result.result.data)
@@ -496,14 +507,89 @@ async function saveProfile() {
 // 初始化数据
 onMounted(() => {
   formData.value.user_id = userInfo.value._id
-  // 初始化用户基本信息
+  loadUserParjobCard()
+})
+
+// 加载用户趴活信息卡
+async function loadUserParjobCard() {
+  try {
+    // 使用工具函数获取用户信息卡
+    const cardData = await getUserParCard(userInfo.value._id)
+    
+    if (cardData) {
+      // 找到用户信息卡，填充表单
+      fillFormWithCardData(cardData)
+    } else {
+      // 未找到用户信息卡，使用默认用户信息
+      console.log('未找到用户趴活信息卡，使用默认用户信息')
+      fillFormWithDefaultUserInfo()
+    }
+    
+  } catch (error) {
+    console.error('加载用户趴活信息卡失败:', error)
+    // 出错时使用默认用户信息
+    fillFormWithDefaultUserInfo()
+  }
+}
+
+// 用卡片数据填充表单
+function fillFormWithCardData(cardData) {
+  // 基本信息
+  formData.value.avatar = cardData.avatar || userInfo.value.avatar_file?.url || '/static/default-avatar.png'
+  formData.value.nickname = cardData.nickname || userInfo.value.nickname || '未设置'
+  formData.value.gender = cardData.gender === undefined ? (userInfo.value.gender || 0) : cardData.gender
+  formData.value.age = cardData.age || ''
+  formData.value.education = cardData.education || ''
+  
+  // 地区信息（优先使用新的location字段，兼容旧的city字段）
+  if (cardData.location && Array.isArray(cardData.location) && cardData.location.length > 0) {
+    formData.value.location = cardData.location
+    formData.value.location_text = cardData.location_text || []
+    // 根据location_text设置city
+    if (cardData.location_text && cardData.location_text.length > 0) {
+      formData.value.city = cardData.location_text[cardData.location_text.length - 1] || ''
+    } else {
+      formData.value.city = cardData.city || ''
+    }
+  } else {
+    // 兼容旧数据
+    formData.value.city = cardData.city || ''
+    formData.value.location = []
+    formData.value.location_text = []
+  }
+  
+  // 技能信息
+  formData.value.skills = cardData.skills || []
+  formData.value.categorie_tags = cardData.categorie_tags || []
+  formData.value.strengths = cardData.strengths || ''
+  
+  // 照片信息
+  formData.value.photos = cardData.photos || []
+  formData.value.diploma_photos = cardData.diploma_photos || []
+  formData.value.certificate_photos = cardData.certificate_photos || []
+  
+  // 展示设置
+  formData.value.show_fields = cardData.show_fields || {
+    age: true,
+    gender: true,
+    education: true,
+    city: true,
+    skills: true,
+    strengths: true,
+    categorie_tags: true,
+    photos: true
+  }
+  formData.value.is_active = cardData.is_active === undefined ? true : cardData.is_active
+  formData.value.allow_homepage_view = cardData.allow_homepage_view === undefined ? false : cardData.allow_homepage_view
+}
+
+// 用默认用户信息填充表单
+function fillFormWithDefaultUserInfo() {
   formData.value.avatar = userInfo.value.avatar_file?.url || '/static/default-avatar.png'
   formData.value.nickname = userInfo.value.nickname || '未设置'
   formData.value.gender = userInfo.value.gender || 0
-  
-  // 这里应该从数据库加载用户现有的趴活信息
-  // loadUserParjobCard()
-})
+  // 其他字段保持默认值
+}
 
 </script>
 

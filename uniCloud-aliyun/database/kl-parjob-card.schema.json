@@ -18,7 +18,17 @@
     },
     "age": { "bsonType": "int", "description": "年龄" },
     "education": { "bsonType": "string", "description": "学历" },
-    "city": { "bsonType": "string", "description": "常驻城市" },
+    "location": { 
+      "bsonType": "array", 
+      "items": { "bsonType": "string" },
+      "description": "地区代码数组，如['110000', '110100', '110101']" 
+    },
+    "location_text": { 
+      "bsonType": "array", 
+      "items": { "bsonType": "string" },
+      "description": "地区名称数组，如['北京市', '北京市', '东城区']" 
+    },
+    "city": { "bsonType": "string", "description": "常驻城市（兼容旧数据）" },
     "skills": { "bsonType": "array", "items": { "bsonType": "string" }, "description": "技能标签" },
     "strengths": { "bsonType": "string", "description": "个人长处描述" },
     "categorie_tags": { "bsonType": "array", "items": { "bsonType": "string" }, "description": "擅长领域标签" },

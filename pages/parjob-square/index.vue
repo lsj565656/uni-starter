@@ -242,7 +242,9 @@
         </view>
 
         <view class="detail-actions">
-          <button class="detail-action-btn" @click="contactUser">联系Ta</button>
+          <button class="detail-action-btn" @click="contactUser">
+            {{ selectedUser?.isCurrentUser ? '去编辑' : '联系Ta' }}
+          </button>
           <button class="detail-action-btn secondary" @click="hideUserDetail">关闭</button>
         </view>
       </view>
@@ -254,6 +256,7 @@
 import PlanetSphere from '@/components/3d-planet-sphere/3d-planet-sphere.vue'
 import { getActiveParjobCards, getAvailableCities, getAvailableSkills, getFilteredParjobCards } from '@/utils/parjob-cards.js'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+import { getUserParCard } from '@/utils/user-parcard.js'
 import { onBackPress } from '@dcloudio/uni-app'
 import { computed, onMounted, ref } from 'vue'
 
@@ -261,9 +264,10 @@ import { computed, onMounted, ref } from 'vue'
 const activeUsers = ref([])
 const selectedUser = ref(null)
 const isUserDetailOpen = ref(false)
+const totalUsers = ref(0)
+const totalSkills = ref(0)
+const totalCities = ref(0)
 
-// 获取用户信息
-const userInfo = computed(() => store.userInfo)
 
 // 屏幕信息
 const screenInfo = ref({
@@ -331,30 +335,9 @@ const userDetailPopup = ref(null)
 const filterPopup = ref(null)
 
 // 计算属性
-const totalSkills = computed(() => {
-  const skills = new Set()
-  activeUsers.value.forEach(user => {
-    if (user.skills) {
-      user.skills.forEach(skill => skills.add(skill))
-    }
-  })
-  return skills.size
-})
 
-const totalCities = computed(() => {
-  const cities = new Set()
-  activeUsers.value.forEach(user => {
-    if (user.city) {
-      cities.add(user.city)
-    }
-  })
-  return cities.size
-})
-
-// 显示技能（限制20个）
 const displaySkills = computed(() => {
   const skills = getAvailableSkills()
-  // return skills.slice(0, 20)
   return skills
 })
 
@@ -523,6 +506,35 @@ function goToEdit() {
   })
 }
 
+// 查看自己的信息卡
+async function viewMyProfile() {
+  try {
+    const userCard = await getUserParCard(store.userInfo._id)
+    
+    if (userCard) {
+      // 有信息卡，使用公共弹窗显示
+      showUserDetail(userCard)
+    } else {
+      // 没有信息卡，提示去编辑
+      uni.showModal({
+        title: '提示',
+        content: '您还没有创建信息卡，是否现在去编辑？',
+        success: (res) => {
+          if (res.confirm) {
+            goToEdit()
+          }
+        }
+      })
+    }
+  } catch (error) {
+    console.error('查看用户信息卡失败:', error)
+    uni.showToast({
+      title: '加载失败',
+      icon: 'error'
+    })
+  }
+}
+
 function goBack() {
   uni.navigateBack()
 }
@@ -630,6 +642,8 @@ function applyFilter() {
 
 function showUserDetail(user) {
   selectedUser.value = user
+  // 检查是否是当前用户
+  selectedUser.value.isCurrentUser = user.user_id === store.userInfo._id
   userDetailPopup.value.open()
   isUserDetailOpen.value = true
 }
@@ -641,10 +655,17 @@ function hideUserDetail() {
 }
 
 function contactUser() {
-  uni.showToast({
-    title: '功能开发中',
-    icon: 'none'
-  })
+  if (selectedUser.value?.isCurrentUser) {
+    // 当前用户，跳转到编辑页面
+    hideUserDetail()
+    goToEdit()
+  } else {
+    // 其他用户，显示联系功能
+    uni.showToast({
+      title: '功能开发中',
+      icon: 'none'
+    })
+  }
 }
 
 function startSmartRecommend() {
@@ -653,24 +674,6 @@ function startSmartRecommend() {
     icon: 'none'
   })
 }
-
-function viewMyProfile() {
-  console.log('viewMyProfile')
-  // 获取当前用户的信息卡数据
-  const currentUser = getActiveParjobCards().find(user => user.user_id === userInfo.value._id)
-  
-  if (currentUser) {
-    // 如果有信息卡，显示用户详情
-    showUserDetail(currentUser)
-  } else {
-    // 如果没有信息卡，提示用户先编辑
-    uni.showToast({
-      title: '请先编辑您的信息卡',
-      icon: 'none'
-    })
-  }
-}
-
 // 获取屏幕信息
 function getScreenInfo() {
   const systemInfo = uni.getSystemInfoSync()
@@ -689,12 +692,18 @@ async function loadActiveUsers() {
     // 转换数据格式以适配现有逻辑
     const formattedUsers = users.map(user => ({
       _id: user._id,
+      user_id: user.user_id,
       nickname: user.nickname,
       avatar: user.avatar || '/static/images/user-bg.png',
       gender: user.gender,
       age: user.age,
       education: user.education,
-      city: user.city,
+      // 优先使用location_text，兼容city字段
+      city: user.location_text && user.location_text.length > 0 
+        ? user.location_text[user.location_text.length - 1] 
+        : user.city || '',
+      location: user.location || [],
+      location_text: user.location_text || [],
       skills: user.skills || [],
       categorie_tags: user.categorie_tags || [],
       strengths: user.strengths,
@@ -703,14 +712,41 @@ async function loadActiveUsers() {
       isOnline: true
     }))
 
+    // 只使用真实数据，不混合mock数据
     activeUsers.value = formattedUsers
+    
+    // 计算统计数据
+    calculateStats()
   } catch (error) {
     console.error('加载用户数据失败:', error)
-    uni.showToast({
-      title: '加载失败',
-      icon: 'error'
-    })
+    // 加载失败时使用空数组
+    activeUsers.value = []
+    calculateStats()
   }
+}
+
+// 计算统计数据
+function calculateStats() {
+  // 计算活跃用户数
+  totalUsers.value = activeUsers.value.length
+  
+  // 计算技能标签总数（去重）
+  const allSkills = new Set()
+  activeUsers.value.forEach(user => {
+    if (user.skills && Array.isArray(user.skills)) {
+      user.skills.forEach(skill => allSkills.add(skill))
+    }
+  })
+  totalSkills.value = allSkills.size
+  
+  // 计算覆盖城市数（去重）
+  const allCities = new Set()
+  activeUsers.value.forEach(user => {
+    if (user.city) {
+      allCities.add(user.city)
+    }
+  })
+  totalCities.value = allCities.size
 }
 
 // 组件事件处理
