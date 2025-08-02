@@ -254,7 +254,7 @@
 
 <script setup>
 import PlanetSphere from '@/components/3d-planet-sphere/3d-planet-sphere.vue'
-import { getActiveParjobCards, getAvailableCities, getAvailableSkills, getFilteredParjobCards } from '@/utils/parjob-cards.js'
+import { getAvailableCities, getAvailableSkills, getFilteredParjobCards, getAllActiveParjobCards } from '@/utils/parjob-cards.js'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { getUserParCard } from '@/utils/user-parcard.js'
 import { onBackPress } from '@dcloudio/uni-app'
@@ -584,7 +584,7 @@ function resetFilter() {
   applyFilter()
 }
 
-function applyFilter() {
+async function applyFilter() {
   try {
     // 构建筛选条件
     const filters = {}
@@ -609,25 +609,8 @@ function applyFilter() {
       filters.city = filterCities.value // 支持多城市筛选
     }
 
-    // 使用筛选函数获取数据
-    const filteredUsers = getFilteredParjobCards(filters)
-
-    // 转换数据格式以适配现有逻辑
-    const formattedUsers = filteredUsers.map(user => ({
-      _id: user._id,
-      nickname: user.nickname,
-      avatar: user.avatar || '/static/images/user-bg.png',
-      gender: user.gender,
-      age: user.age,
-      education: user.education,
-      city: user.city,
-      skills: user.skills || [],
-      categorie_tags: user.categorie_tags || [],
-      strengths: user.strengths,
-      photos: user.photos || ['/static/images/user-bg.png'],
-      show_fields: user.show_fields,
-      isOnline: true
-    }))
+    // 使用重构后的工具函数，支持筛选和多种数据模式 mock-cloud full-mock 和 full-cloud
+    const formattedUsers = await getFilteredParjobCards(filters, 'mock-cloud')
 
     activeUsers.value = formattedUsers
     hideFilterModal()
@@ -687,40 +670,25 @@ function getScreenInfo() {
 // 加载活跃用户数据
 async function loadActiveUsers() {
   try {
-    const users = getActiveParjobCards()
-
-    // 转换数据格式以适配现有逻辑
-    const formattedUsers = users.map(user => ({
-      _id: user._id,
-      user_id: user.user_id,
-      nickname: user.nickname,
-      avatar: user.avatar || '/static/images/user-bg.png',
-      gender: user.gender,
-      age: user.age,
-      education: user.education,
-      // 优先使用location_text，兼容city字段
-      city: user.location_text && user.location_text.length > 0 
-        ? user.location_text[user.location_text.length - 1] 
-        : user.city || '',
-      location: user.location || [],
-      location_text: user.location_text || [],
-      skills: user.skills || [],
-      categorie_tags: user.categorie_tags || [],
-      strengths: user.strengths,
-      photos: user.photos || ['/static/images/user-bg.png'],
-      show_fields: user.show_fields,
-      isOnline: true
-    }))
-
-    // 只使用真实数据，不混合mock数据
+    // 使用重构后的工具函数，默认使用 mock-cloud 模式
+    const formattedUsers = await getAllActiveParjobCards('mock-cloud')
+    
+    // 设置活跃用户数据
     activeUsers.value = formattedUsers
     
     // 计算统计数据
     calculateStats()
+    
+    console.log('数据融合结果:', {
+      totalUsersCount: formattedUsers.length,
+      cloudDataCount: formattedUsers.filter(u => u.dataSource === 'cloud').length,
+      mockDataCount: formattedUsers.filter(u => u.dataSource === 'mock').length
+    })
   } catch (error) {
     console.error('加载用户数据失败:', error)
-    // 加载失败时使用空数组
-    activeUsers.value = []
+    // 加载失败时使用 mock 数据
+    const mockUsers = await getAllActiveParjobCards('full-mock')
+    activeUsers.value = mockUsers
     calculateStats()
   }
 }

@@ -5,7 +5,7 @@ export const parjobCards = [
   {
     _id: '68627a8d862066586ce32cbd',
     user_id: '68627a8d862066586ce32cbd',
-    nickname: '还是寿司好吃',
+    nickname: '事在人为',
     avatar:
       'https://mp-41f01fda-353a-49f0-b280-105f5bc23bfb.cdn.bspapp.com/cloudstorage/b65b10c1-0222-424a-96c8-c1b13a363314.',
     gender: 2,
@@ -333,73 +333,157 @@ export const parjobCards = [
     allow_homepage_view: true,
     created_at: '2024-01-07T10:20:00.000Z',
     updated_at: '2024-01-15T12:30:00.000Z'
-  },
-  {
-    _id: '688e7890a7c43263da471571',
-    user_id: '688e7890a7c43263da471571',
-    nickname: '设计师',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200',
-    gender: 2,
-    age: 26,
-    education: '本科',
-    city: '苏州',
-    skills: ['UI设计', '平面设计', '品牌设计', '动效设计'],
-    strengths: '专业UI设计师，擅长用户界面设计和品牌视觉设计，有丰富的动效设计经验，能够提供完整的设计解决方案。',
-    categorie_tags: ['UI设计', '平面设计', '品牌设计', '动效设计'],
-    photos: [
-      'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-      'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400'
-    ],
-    diploma_photos: [],
-    certificate_photos: [],
-    show_fields: {
-      age: true,
-      gender: true,
-      education: true,
-      city: true,
-      skills: true,
-      strengths: true,
-      categorie_tags: true,
-      photos: true
-    },
-    is_active: true,
-    allow_homepage_view: false,
-    created_at: '2024-01-12T13:45:00.000Z',
-    updated_at: '2024-01-20T16:15:00.000Z'
   }
 ]
 
-// 获取所有活跃的趴活卡片
+// 获取所有活跃的趴活卡片（仅 mock 数据）
 export function getActiveParjobCards() {
   return parjobCards.filter(card => card.is_active)
 }
 
-// 根据筛选条件获取趴活卡片
-export function getFilteredParjobCards(filters = {}) {
-  let filtered = getActiveParjobCards()
-
-  if (filters.city && filters.city.length > 0) {
-    filtered = filtered.filter(card => filters.city.includes(card.city))
+// 从云函数获取活跃用户数据
+async function getCloudActiveParjobCards() {
+  try {
+    const result = await uniCloud.callFunction({
+      name: 'getActiveParjobCards'
+    })
+    
+    if (result.result && result.result.code === 0) {
+      return result.result.data || []
+    }
+    return []
+  } catch (error) {
+    console.error('获取云函数数据失败:', error)
+    return []
   }
+}
 
+// 转换数据格式为统一格式
+function formatUserData(user, dataSource = 'mock') {
+  return {
+    _id: user._id,
+    user_id: user.user_id,
+    nickname: user.nickname,
+    avatar: user.avatar || '/static/images/user-bg.png',
+    gender: user.gender,
+    age: user.age,
+    education: user.education,
+    city: user.location_text && user.location_text.length > 0 
+      ? user.location_text[user.location_text.length - 1] 
+      : user.city || '',
+    location: user.location || [],
+    location_text: user.location_text || [],
+    skills: user.skills || [],
+    categorie_tags: user.categorie_tags || [],
+    strengths: user.strengths,
+    photos: user.photos || ['/static/images/user-bg.png'],
+    show_fields: user.show_fields,
+    isOnline: true,
+    dataSource: dataSource // 'mock' 或 'cloud'
+  }
+}
+
+// 融合 mock 数据和云函数数据
+async function mergeUserData(mockUsers, cloudUsers) {
+  const allUsers = []
+  const existingUserIds = new Set()
+  
+  // 先添加云函数数据
+  cloudUsers.forEach(user => {
+    const formattedUser = formatUserData(user, 'cloud')
+    allUsers.push(formattedUser)
+    existingUserIds.add(user.user_id)
+  })
+  
+  // 再添加 mock 数据（避免重复）
+  mockUsers.forEach(user => {
+    if (!existingUserIds.has(user.user_id)) {
+      const formattedUser = formatUserData(user, 'mock')
+      allUsers.push(formattedUser)
+    }
+  })
+  
+  return allUsers
+}
+
+// 筛选用户数据的通用函数
+function filterUsers(users, filters) {
+  let filteredUsers = users
+
+  // 性别筛选
   if (filters.gender) {
     if (filters.gender === 0) {
       // 未知性别：除了1和2之外的所有情况
-      filtered = filtered.filter(card => !card.gender || (card.gender !== 1 && card.gender !== 2))
+      filteredUsers = filteredUsers.filter(user => !user.gender || (user.gender !== 1 && user.gender !== 2))
     } else {
-      filtered = filtered.filter(card => card.gender === filters.gender)
+      filteredUsers = filteredUsers.filter(user => user.gender === filters.gender)
     }
   }
 
-  if (filters.skills && filters.skills.length > 0) {
-    filtered = filtered.filter(card => card.skills.some(skill => filters.skills.includes(skill)))
-  }
-
+  // 年龄筛选
   if (filters.ageRange) {
-    filtered = filtered.filter(card => card.age >= filters.ageRange.min && card.age <= filters.ageRange.max)
+    filteredUsers = filteredUsers.filter(user => {
+      const age = user.age || 0
+      return age >= filters.ageRange.min && age <= filters.ageRange.max
+    })
   }
 
-  return filtered
+  // 技能筛选
+  if (filters.skills && filters.skills.length > 0) {
+    filteredUsers = filteredUsers.filter(user => {
+      return user.skills && user.skills.some(skill => filters.skills.includes(skill))
+    })
+  }
+
+  // 城市筛选
+  if (filters.city && filters.city.length > 0) {
+    filteredUsers = filteredUsers.filter(user => {
+      const userCity = user.location_text && user.location_text.length > 0 
+        ? user.location_text[user.location_text.length - 1] 
+        : user.city
+      return filters.city.includes(userCity)
+    })
+  }
+
+  return filteredUsers
+}
+
+// 根据筛选条件获取趴活卡片（支持多种数据模式 mock-cloud full-mock 和 full-cloud ）
+export async function getFilteredParjobCards(filters = {}, mode = 'mock-cloud') {
+  let mockUsers = []
+  let cloudUsers = []
+  
+  // 根据模式获取数据
+  if (mode === 'full-mock' || mode === 'mock-cloud') {
+    // 获取 mock 数据
+    mockUsers = getActiveParjobCards()
+    
+    // 对 mock 数据进行筛选
+    mockUsers = filterUsers(mockUsers, filters)
+  }
+  
+  if (mode === 'full-cloud' || mode === 'mock-cloud') {
+    // 获取云函数数据
+    cloudUsers = await getCloudActiveParjobCards()
+    
+    // 对云函数数据进行筛选
+    cloudUsers = filterUsers(cloudUsers, filters)
+  }
+  
+  // 根据模式返回数据
+  if (mode === 'full-mock') {
+    return mockUsers.map(user => formatUserData(user, 'mock'))
+  } else if (mode === 'full-cloud') {
+    return cloudUsers.map(user => formatUserData(user, 'cloud'))
+  } else {
+    // mock-cloud 模式：融合数据
+    return await mergeUserData(mockUsers, cloudUsers)
+  }
+}
+
+// 获取所有活跃用户数据（支持多种模式）
+export async function getAllActiveParjobCards(mode = 'mock-cloud') {
+  return await getFilteredParjobCards({}, mode)
 }
 
 // 获取所有可用的城市列表
