@@ -544,12 +544,6 @@ function addCustomSkill() {
   }
 }
 
-// 清空所有擅长领域
-function clearAllCategorieTags() {
-  formData.categorie_tags = []
-  formData.skills = [] // 移除所有与擅长领域相关的技能
-}
-
 // 保存数据
 async function saveProfile() {
   if (isSaving.value) return // 防止重复提交
@@ -557,6 +551,15 @@ async function saveProfile() {
   try {
     // 表单校验
     await formRef.value.validate()
+    
+    // 合并自定义技能到技能列表中
+    const allSkills = [...formData.skills]
+    formData.custom_skills.forEach(customSkill => {
+      if (!allSkills.includes(customSkill)) {
+        allSkills.push(customSkill)
+      }
+    })
+    formData.skills = allSkills
     
     // 设置保存状态
     isSaving.value = true
@@ -616,9 +619,31 @@ function setupEventListeners() {
     console.log('接收到 skillSelected 事件:', result)
     
     if (result && result.skills) {
-      formData.skills = result.skills || []
+      // 分离系统技能和自定义技能
+      const systemSkills = []
+      const customSkills = []
+      
+      result.skills.forEach(skill => {
+        // 检查是否是系统预定义的技能
+        const isSystemSkill = Object.values(categorySkillsMapping).some(category => 
+          category.skills.includes(skill)
+        )
+        
+        if (isSystemSkill) {
+          if (!systemSkills.includes(skill)) {
+            systemSkills.push(skill)
+          }
+        } else {
+          // 不是系统技能，添加到自定义技能
+          if (!customSkills.includes(skill)) {
+            customSkills.push(skill)
+          }
+        }
+      })
+      
+      formData.skills = systemSkills
+      formData.custom_skills = customSkills
       formData.categorie_tags = result.categorieTags || []
-      formData.custom_skills = result.customSkills || [] // 接收自定义技能
     }
   })
 }
@@ -686,10 +711,43 @@ function fillFormWithCardData(cardData) {
     formData.location_text = []
   }
   
-  // 技能信息
-  formData.skills = cardData.skills || []
+  // 技能信息处理
+  const allSkills = cardData.skills || []
+  const customSkills = cardData.custom_skills || []
+  
+  // 分离系统技能和自定义技能
+  const systemSkills = []
+  const finalCustomSkills = []
+  
+  // 先处理明确的自定义技能
+  customSkills.forEach(skill => {
+    if (!systemSkills.includes(skill)) {
+      finalCustomSkills.push(skill)
+    }
+  })
+  
+  // 处理所有技能，区分系统技能和自定义技能
+  allSkills.forEach(skill => {
+    // 检查是否是系统预定义的技能
+    const isSystemSkill = Object.values(categorySkillsMapping).some(category => 
+      category.skills.includes(skill)
+    )
+    
+    if (isSystemSkill) {
+      if (!systemSkills.includes(skill)) {
+        systemSkills.push(skill)
+      }
+    } else {
+      // 不是系统技能，且不在自定义技能列表中，则添加到自定义技能
+      if (!finalCustomSkills.includes(skill)) {
+        finalCustomSkills.push(skill)
+      }
+    }
+  })
+  
+  formData.skills = systemSkills
+  formData.custom_skills = finalCustomSkills
   formData.categorie_tags = cardData.categorie_tags || []
-  formData.custom_skills = cardData.custom_skills || [] // 填充自定义技能
   formData.strengths = cardData.strengths || ''
   
   // 照片信息
