@@ -188,7 +188,48 @@
 			"path": "pages/parjob-square/edit",
 			"style": {
 				"navigationBarTitleText": "编辑趴活信息",
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "disableScroll": false,
+				"app-plus": {
+					"bounce": "none",
+					"scrollIndicator": "none"
+				},
+				"h5": {
+					"bounce": "none"
+				}
+			}
+		},
+		{
+			"path": "pages/parjob-square/city-selector",
+			"style": {
+				"navigationBarTitleText": "选择城市",
+				"navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "disableScroll": false,
+				"app-plus": {
+					"bounce": "none",
+					"scrollIndicator": "none"
+				},
+				"h5": {
+					"bounce": "none"
+				}
+			}
+		},
+		{
+			"path": "pages/parjob-square/skill-selector",
+			"style": {
+				"navigationBarTitleText": "选择技能",
+				"navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+				"disableScroll": false,
+				"app-plus": {
+					"bounce": "none",
+					"scrollIndicator": "none"
+				},
+				"h5": {
+					"bounce": "none"
+				}
 			}
 		},
 		{

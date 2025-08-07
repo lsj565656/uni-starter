@@ -159,24 +159,61 @@
             </view>
           </view>
 
-          <!-- 技能筛选 -->
+          <!-- 技能筛选 - 使用选择器 -->
           <view class="filter-section">
-            <text class="filter-label">技能标签 (最多4个)</text>
-            <view class="skill-filter">
-              <view v-for="skill in displaySkills" :key="skill" class="skill-filter-item"
-                :class="{ active: tempFilterSkills.includes(skill) }" @click="toggleTempSkillFilter(skill)">
-                {{ skill }}
+            <text class="filter-label">技能标签</text>
+            <view class="filter-selector-wrapper">
+              <view class="selected-skills" v-if="tempFilterSkills.length > 0">
+                <view v-for="(skill, index) in tempFilterSkills" :key="index" class="selected-skill-tag">
+                  <text class="skill-text">{{ skill }}</text>
+                  <uni-icons type="close" size="12" color="#666" @click="removeTempSkill(index)" />
+                </view>
+              </view>
+              
+              <!-- 自定义技能展示 -->
+              <view class="selected-custom-skills" v-if="tempFilterCustomSkills.length > 0">
+                <view v-for="(skill, index) in tempFilterCustomSkills" :key="'custom-' + index" class="selected-custom-skill-tag">
+                  <text class="custom-skill-text">自定义：{{ skill }}</text>
+                  <uni-icons type="close" size="12" color="#666" @click="removeTempCustomSkill(index)" />
+                </view>
+              </view>
+              
+              <view class="skill-selector-btn" @click="showSkillSelector">
+                <text class="btn-text">{{ tempFilterSkills.length > 0 ? '已选择' + tempFilterSkills.length + '个技能' : '选择技能标签' }}</text>
+                <uni-icons type="arrowright" size="14" color="#666" />
               </view>
             </view>
           </view>
 
-          <!-- 城市筛选 -->
+          <!-- 擅长领域筛选 -->
+          <view class="filter-section" v-if="tempFilterCategorieTags.length > 0">
+            <text class="filter-label">擅长领域</text>
+            <view class="filter-selector-wrapper">
+              <view class="selected-skills" v-if="tempFilterCategorieTags.length > 0">
+                <view v-for="(tag, index) in tempFilterCategorieTags" :key="index" class="selected-categorie-tag">
+                  <text class="skill-text">{{ tag }}</text>
+                  <uni-icons type="close" size="12" color="#666" @click="removeTempCategorieTag(index)" />
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 城市筛选 - 使用选择器 -->
           <view class="filter-section">
-            <text class="filter-label">城市 (最多4个)</text>
-            <view class="city-filter">
-              <view v-for="city in allCities" :key="city" class="city-filter-item"
-                :class="{ active: tempFilterCities.includes(city) }" @click="toggleTempCityFilter(city)">
-                {{ city }}
+            <text class="filter-label">城市</text>
+            <view class="filter-selector-wrapper">
+              <view class="selected-cities" v-if="tempFilterCities.length > 0">
+                <view v-for="(city, index) in tempFilterCities" :key="index" class="selected-city-tag">
+                  <view class="city-info">
+                    <text class="city-text">{{ typeof city === 'string' ? city : city.name }}</text>
+                    <text v-if="typeof city === 'object' && city.code" class="city-code">{{ city.code }}</text>
+                  </view>
+                  <uni-icons type="close" size="12" color="#666" @click="removeTempCity(index)" />
+                </view>
+              </view>
+              <view class="city-selector-btn" @click="showCitySelector">
+                <text class="btn-text">{{ tempFilterCities.length > 0 ? '已选择' + tempFilterCities.length + '个城市' : '选择城市' }}</text>
+                <uni-icons type="arrowright" size="14" color="#666" />
               </view>
             </view>
           </view>
@@ -254,11 +291,12 @@
 
 <script setup>
 import PlanetSphere from '@/components/3d-planet-sphere/3d-planet-sphere.vue'
-import { getAvailableCities, getAvailableSkills, getFilteredParjobCards, getAllActiveParjobCards, updateActiveUserInList, getCachedUserParCard } from '@/utils/parjob-cards.js'
+import { getAvailableCitiesAsync, getAvailableSkillsAsync, getFilteredParjobCards, getAllActiveParjobCards, updateActiveUserInList, getCachedUserParCard } from '@/utils/parjob-cards.js'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { getUserParCard } from '@/utils/user-parcard.js'
 import { onBackPress, onShow } from '@dcloudio/uni-app'
-import { computed, onMounted, ref, nextTick } from 'vue'
+import { computed, onMounted, ref, nextTick, onUnmounted } from 'vue'
+import { categorySkillsMapping } from '@/utils/category-skills-mapping.js'
 
 // 响应式数据
 const activeUsers = ref([])
@@ -320,6 +358,8 @@ const filterAgeMin = ref(null)
 const filterAgeMax = ref(null)
 const filterSkills = ref([])
 const filterCities = ref([])
+const filterCategorieTags = ref([])
+const filterCustomSkills = ref([]) // 新增自定义技能筛选
 
 // 添加临时筛选状态，用于弹窗中的临时筛选条件
 const tempFilterGender = ref('')
@@ -327,6 +367,8 @@ const tempFilterAgeMin = ref(null)
 const tempFilterAgeMax = ref(null)
 const tempFilterSkills = ref([])
 const tempFilterCities = ref([])
+const tempFilterCategorieTags = ref([])
+const tempFilterCustomSkills = ref([]) // 新增临时自定义技能筛选
 
 // 性别选项
 const genderOptions = [
@@ -346,17 +388,11 @@ const ageOptions = Array.from({ length: 43 }, (_, i) => ({
 const userDetailPopup = ref(null)
 const filterPopup = ref(null)
 
+// 城市和技能数据
+const allCities = ref([])
+const displaySkills = ref([])
+
 // 计算属性
-
-const displaySkills = computed(() => {
-  const skills = getAvailableSkills()
-  return skills
-})
-
-// 所有城市
-const allCities = computed(() => {
-  return getAvailableCities()
-})
 
 // 筛选相关计算属性
 const hasActiveFilters = computed(() => {
@@ -406,7 +442,9 @@ const isDefaultFilterState = computed(() => {
     tempFilterAgeMin.value === null &&
     tempFilterAgeMax.value === null &&
     tempFilterSkills.value.length === 0 &&
-    tempFilterCities.value.length === 0
+    tempFilterCities.value.length === 0 &&
+    tempFilterCategorieTags.value.length === 0 &&
+    tempFilterCustomSkills.value.length === 0
 })
 
 // 计算固定展示区域的样式，与3D球体位置完全一致
@@ -491,28 +529,6 @@ function getAgeLabel(ageIndex) {
   return ageOptions[ageIndex]?.label || '请选择'
 }
 
-function onAgeMinChange(e) {
-  const index = Number.parseInt(e.detail.value)
-  tempFilterAgeMin.value = index
-
-  // 联动校验：最小年龄不能大于最大年龄
-  if (tempFilterAgeMax.value !== null && tempFilterAgeMax.value !== '' &&
-    ageOptions[index].value > ageOptions[tempFilterAgeMax.value].value) {
-    tempFilterAgeMax.value = index
-  }
-}
-
-function onAgeMaxChange(e) {
-  const index = Number.parseInt(e.detail.value)
-  tempFilterAgeMax.value = index
-
-  // 联动校验：最大年龄不能小于最小年龄
-  if (tempFilterAgeMin.value !== null && tempFilterAgeMin.value !== '' &&
-    ageOptions[index].value < ageOptions[tempFilterAgeMin.value].value) {
-    tempFilterAgeMin.value = index
-  }
-}
-
 // 临时年龄选择函数
 function onTempAgeMinChange(e) {
   const index = Number.parseInt(e.detail.value)
@@ -543,7 +559,9 @@ function showFilterModal() {
   tempFilterAgeMax.value = filterAgeMax.value
   tempFilterSkills.value = [...filterSkills.value]
   tempFilterCities.value = [...filterCities.value]
-  
+  tempFilterCategorieTags.value = [...filterCategorieTags.value]
+  tempFilterCustomSkills.value = [...filterCustomSkills.value] // 复制自定义技能
+
   filterPopup.value.open()
   isFilterModalOpen.value = true
   drawerStates.value.filterDrawer = true
@@ -567,7 +585,7 @@ function goToEdit() {
 async function viewMyProfile() {
   try {
     const userCard = await getUserParCard(store.userInfo._id)
-    
+
     if (userCard) {
       // 有信息卡，使用公共弹窗显示
       showUserDetail(userCard)
@@ -596,85 +614,99 @@ function goBack() {
   uni.navigateBack()
 }
 
-function toggleSkillFilter(skill) {
-  const index = filterSkills.value.indexOf(skill)
-  if (index > -1) {
-    filterSkills.value.splice(index, 1)
-  } else {
-    // 限制最多选3个技能
-    if (filterSkills.value.length < 4) {
-      filterSkills.value.push(skill)
-    } else {
-      uni.showToast({
-        title: '最多只能选择4个技能',
-        icon: 'none'
-      })
+// 技能选择器相关
+function showSkillSelector() {
+  // 打开技能选择弹窗
+  const selectedData = {
+    skills: tempFilterSkills.value,
+    categorieTags: tempFilterCategorieTags.value,
+    customSkills: tempFilterCustomSkills.value // 传递自定义技能
+  }
+  const selectedDataJson = encodeURIComponent(JSON.stringify(selectedData))
+
+  uni.navigateTo({
+    url: `/pages/parjob-square/skill-selector?selected=${selectedDataJson}&mode=filter`
+  })
+}
+
+function removeTempSkill(index) {
+  const skill = tempFilterSkills.value[index]
+  tempFilterSkills.value.splice(index, 1)
+
+  // 检查是否需要清除相关的擅长领域
+  removeRelatedCategorieTag(skill)
+}
+
+// 移除相关的擅长领域
+function removeRelatedCategorieTag(skill) {
+  // 检查这个技能是否属于某个擅长领域
+  const category = getCategoryBySkill(skill)
+  if (category) {
+    // 检查该领域下是否还有其他技能
+    const remainingSkills = tempFilterSkills.value.filter(s => {
+      const skillCategory = getCategoryBySkill(s)
+      return skillCategory && skillCategory.name === category.name
+    })
+
+    // 如果没有剩余技能，移除该擅长领域
+    if (remainingSkills.length === 0) {
+      const tagIndex = tempFilterCategorieTags.value.indexOf(category.name)
+      if (tagIndex > -1) {
+        tempFilterCategorieTags.value.splice(tagIndex, 1)
+      }
     }
   }
 }
 
-function toggleCityFilter(city) {
-  const index = filterCities.value.indexOf(city)
-  if (index > -1) {
-    filterCities.value.splice(index, 1)
-  } else {
-    // 限制最多选4个城市
-    if (filterCities.value.length < 4) {
-      filterCities.value.push(city)
-    } else {
-      uni.showToast({
-        title: '最多只能选择4个城市',
-        icon: 'none'
-      })
-    }
-  }
+// 移除擅长领域及其相关技能
+function removeTempCategorieTag(index) {
+  const tagName = tempFilterCategorieTags.value[index]
+  tempFilterCategorieTags.value.splice(index, 1)
+
+  // 移除该领域下的所有技能
+  tempFilterSkills.value = tempFilterSkills.value.filter(skill => {
+    const category = getCategoryBySkill(skill)
+    return !category || category.name !== tagName
+  })
 }
 
-// 临时技能筛选
-function toggleTempSkillFilter(skill) {
-  const index = tempFilterSkills.value.indexOf(skill)
-  if (index > -1) {
-    tempFilterSkills.value.splice(index, 1)
-  } else {
-    // 限制最多选4个技能
-    if (tempFilterSkills.value.length < 4) {
-      tempFilterSkills.value.push(skill)
-    } else {
-      uni.showToast({
-        title: '最多只能选择4个技能',
-        icon: 'none'
-      })
+// 获取技能所属分类
+function getCategoryBySkill(skill) {
+  for (const [key, category] of Object.entries(categorySkillsMapping)) {
+    if (category.skills.includes(skill)) {
+      return {
+        key,
+        name: category.name,
+        description: category.description
+      }
     }
   }
+  return null
 }
 
-// 临时城市筛选
-function toggleTempCityFilter(city) {
-  const index = tempFilterCities.value.indexOf(city)
-  if (index > -1) {
-    tempFilterCities.value.splice(index, 1)
-  } else {
-    // 限制最多选4个城市
-    if (tempFilterCities.value.length < 4) {
-      tempFilterCities.value.push(city)
-    } else {
-      uni.showToast({
-        title: '最多只能选择4个城市',
-        icon: 'none'
-      })
+// 城市选择器相关
+function showCitySelector() {
+  // 打开城市选择弹窗，传递完整的城市对象信息
+  console.log('tempFilterCities before mapping:', tempFilterCities.value)
+
+  const selectedCitiesData = tempFilterCities.value.map(city => {
+    if (typeof city === 'string') {
+      // 如果是字符串，转换为对象格式
+      return { name: city }
     }
-  }
+    return city
+  })
+  // 将城市对象转换为JSON字符串传递
+  const selectedCitiesJson = encodeURIComponent(JSON.stringify(selectedCitiesData))
+  const url = `/pages/parjob-square/city-selector?selected=${selectedCitiesJson}&mode=filter`
+
+  uni.navigateTo({
+    url: url
+  })
 }
 
-function resetFilter() {
-  filterGender.value = ''
-  filterAgeMin.value = null
-  filterAgeMax.value = null
-  filterSkills.value = []
-  filterCities.value = []
-
-  // 重置后直接应用筛选
-  applyFilter()
+function removeTempCity(index) {
+  tempFilterCities.value.splice(index, 1)
 }
 
 // 临时重置筛选
@@ -684,6 +716,8 @@ function resetTempFilter() {
   tempFilterAgeMax.value = null
   tempFilterSkills.value = []
   tempFilterCities.value = []
+  tempFilterCategorieTags.value = []
+  tempFilterCustomSkills.value = [] // 重置自定义技能
 }
 
 // 应用临时筛选
@@ -694,6 +728,8 @@ function applyTempFilter() {
   filterAgeMax.value = tempFilterAgeMax.value
   filterSkills.value = [...tempFilterSkills.value]
   filterCities.value = [...tempFilterCities.value]
+  filterCategorieTags.value = [...tempFilterCategorieTags.value]
+  filterCustomSkills.value = [...tempFilterCustomSkills.value] // 应用自定义技能
 
   // 应用筛选并关闭弹窗
   applyFilter()
@@ -709,8 +745,8 @@ async function applyFilter() {
       filters.gender = filterGender.value
     }
 
-    if (filterAgeMin.value !== null && filterAgeMin.value !== '' &&
-      filterAgeMax.value !== null && filterAgeMax.value !== '') {
+    if (filterAgeMin.value !== null && filterAgeMax.value !== null &&
+      filterAgeMin.value !== '' && filterAgeMax.value !== '') {
       filters.ageRange = {
         min: ageOptions[filterAgeMin.value].value,
         max: ageOptions[filterAgeMax.value].value
@@ -721,8 +757,20 @@ async function applyFilter() {
       filters.skills = filterSkills.value
     }
 
+    if (filterCategorieTags.value.length > 0) {
+      filters.categorieTags = filterCategorieTags.value
+    }
+
+    if (filterCustomSkills.value.length > 0) {
+      filters.customSkills = filterCustomSkills.value
+    }
+
     if (filterCities.value.length > 0) {
-      filters.city = filterCities.value // 支持多城市筛选
+      // 处理新的城市数据结构
+      const cityNames = filterCities.value.map(city =>
+        typeof city === 'string' ? city : city.name
+      )
+      filters.city = cityNames // 支持多城市筛选
     }
 
     // 使用重构后的工具函数，支持筛选和多种数据模式 mock-cloud full-mock 和 full-cloud
@@ -773,6 +821,7 @@ function startSmartRecommend() {
     icon: 'none'
   })
 }
+
 // 获取屏幕信息
 function getScreenInfo() {
   const systemInfo = uni.getSystemInfoSync()
@@ -788,13 +837,13 @@ async function loadActiveUsers() {
   try {
     // 使用重构后的工具函数，默认使用 mock-cloud 模式
     const formattedUsers = await getAllActiveParjobCards('mock-cloud')
-    
+
     // 设置活跃用户数据
     activeUsers.value = formattedUsers
-    
+
     // 计算统计数据
     calculateStats()
-    
+
   } catch (error) {
     console.error('加载用户数据失败:', error)
     // 加载失败时使用 mock 数据
@@ -808,7 +857,7 @@ async function loadActiveUsers() {
 function calculateStats() {
   // 计算活跃用户数
   totalUsers.value = activeUsers.value.length
-  
+
   // 计算技能标签总数（去重）
   const allSkills = new Set()
   activeUsers.value.forEach(user => {
@@ -817,7 +866,7 @@ function calculateStats() {
     }
   })
   totalSkills.value = allSkills.size
-  
+
   // 计算覆盖城市数（去重）
   const allCities = new Set()
   activeUsers.value.forEach(user => {
@@ -842,7 +891,7 @@ async function updateUserInActiveList(userId, isActive) {
       const userData = { user_id: userId }
       activeUsers.value = updateActiveUserInList(activeUsers.value, userData, 'remove')
     }
-    
+
     // 重新计算统计数据
     calculateStats()
   } catch (error) {
@@ -860,11 +909,11 @@ onShow(() => {
   // 检查是否需要更新数据
   const lastEditTime = uni.getStorageSync('lastEditTime')
   const currentUserId = store.userInfo?._id
-  
+
   if (lastEditTime && currentUserId) {
     const now = Date.now()
     const timeDiff = now - lastEditTime
-    
+
     // 如果距离上次编辑时间小于30秒，则进行实时更新
     if (timeDiff < 30_000) {
       // 延迟一点时间确保数据已保存
@@ -910,7 +959,7 @@ onBackPress(() => {
     hideFilterModal()
     return true // 阻止页面返回
   }
-  
+
   // 检查用户详情弹窗是否打开
   if (isUserDetailOpen.value) {
     hideUserDetail()
@@ -923,13 +972,87 @@ onBackPress(() => {
 onMounted(() => {
   getScreenInfo() // 获取屏幕信息
   loadActiveUsers()
+  loadFilterData() // 加载筛选数据
+  setupEventListeners() // 设置事件监听器
 })
+
+// 加载筛选数据（城市和技能）
+async function loadFilterData() {
+  try {
+    // 加载技能数据（支持混合模式）
+    displaySkills.value = await getAvailableSkillsAsync('mock-cloud')
+
+    // 加载城市数据（支持混合模式）
+    allCities.value = await getAvailableCitiesAsync('mock-cloud')
+  } catch (error) {
+    console.error('加载筛选数据失败:', error)
+    // 失败时使用空数组，避免页面报错
+    displaySkills.value = []
+    allCities.value = []
+  }
+}
 
 // 监听页面显示事件，用于处理弹窗状态
 onShow(() => {
   // 检查抽屉状态
   checkDrawerState()
 })
+
+// 页面卸载时移除事件监听
+onUnmounted(() => {
+  uni.$off('skillSelected')
+  uni.$off('citySelected')
+})
+
+// 设置事件监听器
+function setupEventListeners() {
+  // 监听技能选择结果
+  uni.$on('skillSelected', (result) => {
+    console.log('接收到 skillSelected 事件:', result)
+
+    if (Array.isArray(result)) {
+      // 筛选模式：只接收技能数组
+      console.log('筛选模式 - 设置技能:', result)
+      tempFilterSkills.value = result
+      // 根据技能自动生成擅长领域
+      updateTempCategorieTags()
+    } else if (result && result.skills) {
+      // 编辑模式：接收技能和擅长领域对象
+      console.log('编辑模式 - 设置技能和擅长领域:', result)
+      tempFilterSkills.value = result.skills
+      tempFilterCategorieTags.value = result.categorieTags || []
+      tempFilterCustomSkills.value = result.customSkills || [] // 处理自定义技能
+    } else {
+      console.warn('接收到无效的技能选择数据:', result)
+    }
+  })
+
+  // 监听城市选择结果
+  uni.$on('citySelected', (cities) => {
+    console.log('citySelected event received:', cities)
+    tempFilterCities.value = cities
+    console.log('tempFilterCities after update:', tempFilterCities.value)
+  })
+}
+
+// 根据技能更新擅长领域
+function updateTempCategorieTags() {
+  const categorieTags = new Set()
+
+  tempFilterSkills.value.forEach(skill => {
+    const category = getCategoryBySkill(skill)
+    if (category) {
+      categorieTags.add(category.name)
+    }
+  })
+
+  tempFilterCategorieTags.value = [...categorieTags]
+}
+
+// 移除自定义技能
+function removeTempCustomSkill(index) {
+  tempFilterCustomSkills.value.splice(index, 1)
+}
 
 // 检查抽屉状态
 function checkDrawerState() {
@@ -1273,9 +1396,77 @@ function checkDrawerState() {
   background: #d0d0d0;
 }
 
-.filter-apply {
-  background: #667eea;
-  color: #fff;
+/* 筛选选择器样式 */
+.filter-selector-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 15rpx;
+}
+
+.selected-skills,
+.selected-cities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.selected-skill-tag,
+.selected-categorie-tag,
+.selected-city-tag,
+.selected-custom-skill-tag {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background: #f0f8ff;
+  color: #007aff;
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+}
+.selected-categorie-tag {
+  color: #00c44b;
+}
+.selected-custom-skill-tag {
+  color: #ff6b35;
+}
+
+.city-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+}
+
+.city-text {
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.city-code {
+  font-size: 20rpx;
+  color: #999;
+}
+
+.skill-selector-btn,
+.city-selector-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 80rpx;
+  border: 1rpx solid #e5e5e5;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  background: #fff;
+  transition: all 0.3s ease;
+}
+
+.skill-selector-btn:active,
+.city-selector-btn:active {
+  background: #f8f9fa;
+}
+
+.btn-text {
+  font-size: 28rpx;
+  color: #333;
 }
 
 /* 用户详情弹窗样式 */

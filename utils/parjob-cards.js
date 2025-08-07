@@ -180,7 +180,7 @@ export const parjobCards = [
     city: '成都',
     skills: ['地陪', '翻译服务'],
     strengths: '海外留学背景，精通英语和日语，有丰富的商务翻译和口译经验，能够提供专业翻译服务。',
-    categorie_tags: ['旅行','邻帮'],
+    categorie_tags: ['旅行', '邻帮'],
     photos: [
       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
       'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400'
@@ -408,44 +408,57 @@ async function mergeUserData(mockUsers, cloudUsers) {
 
 // 筛选用户数据的通用函数
 function filterUsers(users, filters) {
-  let filteredUsers = users
-
-  // 性别筛选
-  if (filters.gender) {
-    if (filters.gender === 0) {
-      // 未知性别：除了1和2之外的所有情况
-      filteredUsers = filteredUsers.filter(user => !user.gender || (user.gender !== 1 && user.gender !== 2))
-    } else {
-      filteredUsers = filteredUsers.filter(user => user.gender === filters.gender)
+  return users.filter(user => {
+    // 性别筛选
+    if (filters.gender !== undefined && filters.gender !== '' && user.gender !== filters.gender) {
+      return false
     }
-  }
 
-  // 年龄筛选
-  if (filters.ageRange) {
-    filteredUsers = filteredUsers.filter(user => {
-      const age = user.age || 0
-      return age >= filters.ageRange.min && age <= filters.ageRange.max
-    })
-  }
+    // 年龄筛选
+    if (filters.ageRange) {
+      const userAge = parseInt(user.age)
+      if (userAge < filters.ageRange.min || userAge > filters.ageRange.max) {
+        return false
+      }
+    }
 
-  // 技能筛选
-  if (filters.skills && filters.skills.length > 0) {
-    filteredUsers = filteredUsers.filter(user => {
-      return user.skills && user.skills.some(skill => filters.skills.includes(skill))
-    })
-  }
+    // 技能筛选
+    if (filters.skills && filters.skills.length > 0) {
+      const userSkills = user.skills || []
+      const hasMatchingSkill = filters.skills.some(skill => userSkills.includes(skill))
+      if (!hasMatchingSkill) {
+        return false
+      }
+    }
 
-  // 城市筛选
-  if (filters.city && filters.city.length > 0) {
-    filteredUsers = filteredUsers.filter(user => {
-      const userCity = user.location_text && user.location_text.length > 0 
-        ? user.location_text[user.location_text.length - 1] 
-        : user.city
-      return filters.city.includes(userCity)
-    })
-  }
+    // 擅长领域筛选
+    if (filters.categorieTags && filters.categorieTags.length > 0) {
+      const userCategorieTags = user.categorie_tags || []
+      const hasMatchingCategory = filters.categorieTags.some(tag => userCategorieTags.includes(tag))
+      if (!hasMatchingCategory) {
+        return false
+      }
+    }
 
-  return filteredUsers
+    // 自定义技能筛选
+    if (filters.customSkills && filters.customSkills.length > 0) {
+      const userCustomSkills = user.custom_skills || []
+      const hasMatchingCustomSkill = filters.customSkills.some(skill => userCustomSkills.includes(skill))
+      if (!hasMatchingCustomSkill) {
+        return false
+      }
+    }
+
+    // 城市筛选
+    if (filters.city && filters.city.length > 0) {
+      const userCity = user.city
+      if (!userCity || !filters.city.includes(userCity)) {
+        return false
+      }
+    }
+
+    return true
+  })
 }
 
 // 根据筛选条件获取趴活卡片（支持多种数据模式 mock-cloud full-mock 和 full-cloud ）
@@ -529,20 +542,64 @@ export async function getCachedUserParCard(userId) {
   }
 }
 
-// 获取所有可用的城市列表
-export function getAvailableCities() {
-  const cities = [...new Set(parjobCards.map(card => card.city))]
+// 获取所有可用的城市列表（支持混合模式，包含云函数数据）
+export async function getAvailableCitiesAsync(mode = 'mock-cloud') {
+  const cities = new Set()
+  
+  // 添加 mock 数据的城市
+  if (mode === 'full-mock' || mode === 'mock-cloud') {
+    parjobCards.forEach(card => {
+      if (card.city) cities.add(card.city)
+    })
+  }
+  
+  // 添加云函数数据的城市
+  if (mode === 'full-cloud' || mode === 'mock-cloud') {
+    try {
+      const cloudUsers = await getCloudActiveParjobCards()
+      cloudUsers.forEach(user => {
+        const userCity = user.location_text && user.location_text.length > 0 
+          ? user.location_text[user.location_text.length - 1] 
+          : user.city
+        if (userCity) cities.add(userCity)
+      })
+    } catch (error) {
+      console.error('获取云函数城市数据失败:', error)
+    }
+  }
+  
+  // 添加固定城市
   const fixedCities = ['郑州', '开封', '洛阳']
-  const allCities = [...new Set([...cities, ...fixedCities])]
-  return allCities.sort()
+  fixedCities.forEach(city => cities.add(city))
+  
+  return [...cities].sort()
 }
 
-// 获取所有可用的技能标签
-export function getAvailableSkills() {
+// 获取所有可用的技能标签（支持混合模式，包含云函数数据）
+export async function getAvailableSkillsAsync(mode = 'mock-cloud') {
   const skills = new Set()
-  for (const card of parjobCards) {
-    for (const skill of card.skills) skills.add(skill)
+  
+  // 添加 mock 数据的技能标签
+  if (mode === 'full-mock' || mode === 'mock-cloud') {
+    for (const card of parjobCards) {
+      for (const skill of card.skills) skills.add(skill)
+    }
   }
+  
+  // 添加云函数数据的技能标签
+  if (mode === 'full-cloud' || mode === 'mock-cloud') {
+    try {
+      const cloudUsers = await getCloudActiveParjobCards()
+      cloudUsers.forEach(user => {
+        if (user.skills && Array.isArray(user.skills)) {
+          user.skills.forEach(skill => skills.add(skill))
+        }
+      })
+    } catch (error) {
+      console.error('获取云函数技能数据失败:', error)
+    }
+  }
+  
   return [...skills].sort()
 }
 

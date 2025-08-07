@@ -63,11 +63,75 @@
         <view class="section">
 
           <!-- 技能标签 -->
-          <uni-forms-item label="技能标签" name="skills" required>
-            <!-- 技能选择器组件 -->
-            <skill-selector ref="skillSelectorRef" v-model:skills="formData.skills"
-              v-model:categorieTags="formData.categorie_tags" placeholder="自定义技能标签" :show-categorie-tags="true"
-              :max-custom-skills="2" :max-categories="2" :max-skills-per-category="3" :required="true" />
+          <uni-forms-item label="技能标签" name="skills">
+            <view class="skill-section">
+              <view class="selected-skills" v-if="formData.skills.length > 0">
+                <view v-for="(skill, index) in formData.skills" :key="index" class="selected-skill-tag">
+                  <text class="skill-text">{{ skill }}</text>
+                  <uni-icons type="close" size="12" color="#666" @click="removeSkill(index)" />
+                </view>
+              </view>
+              
+              <!-- 自定义 -->
+              <view class="selected-custom-skills" v-if="formData.custom_skills.length > 0">
+                <view v-for="(skill, index) in formData.custom_skills" :key="'custom-' + index" class="selected-custom-skill-tag">
+                  <text class="custom-skill-text">自定义：{{ skill }}</text>
+                  <uni-icons type="close" size="12" color="#666" @click="removeCustomSkill(index)" />
+                </view>
+              </view>
+              
+              <!-- 擅长领域展示 -->
+              <view class="selected-categorie-tags" v-if="formData.categorie_tags.length > 0">
+                <view v-for="(tag, index) in formData.categorie_tags" :key="index" class="selected-categorie-tag">
+                  <text class="categorie-text">{{ tag }}</text>
+                  <uni-icons type="close" size="12" color="#666" @click="removeCategorieTag(index)" />
+                </view>
+              </view>
+              
+              <button class="skill-selector-btn" @click="showSkillSelector">
+                <text class="btn-text">{{ formData.skills.length > 0 ? '已选择' + formData.skills.length + '个技能' : '选择技能标签' }}</text>
+                <uni-icons type="arrowright" size="14" color="#666" />
+              </button>
+            </view>
+          </uni-forms-item>
+
+          <!-- 自定义技能 -->
+          <uni-forms-item label="自定义" name="custom_skills">
+            <view class="custom-skill-section">
+              <view class="custom-input-container">
+                <input 
+                  v-model="customSkillInput" 
+                  class="custom-input" 
+                  placeholder="请输入自定义技能" 
+                  maxlength="5"
+                  @input="onCustomInputChange"
+                />
+                <button 
+                  class="add-custom-btn" 
+                  :disabled="!canAddCustomSkill"
+                  @click="addCustomSkill"
+                >
+                  添加
+                </button>
+              </view>
+              <text class="custom-skill-tip">最多添加{{ maxCustomSkills }}个自定义技能</text>
+            </view>
+          </uni-forms-item>
+
+          <!-- 擅长领域 -->
+          <uni-forms-item label="擅长领域" name="categorie_tags">
+            <view class="categorie-tags-wrapper">
+              <view class="selected-categorie-tags" v-if="formData.categorie_tags.length > 0">
+                <view v-for="(tag, index) in formData.categorie_tags" :key="index" class="selected-categorie-tag">
+                  <text class="categorie-text">{{ tag }}</text>
+                  <uni-icons type="close" size="12" color="#666" @click="removeCategorieTag(index)" />
+                </view>
+              </view>
+              <view class="categorie-selector-btn" @click="showCategorieSelector">
+                <text class="btn-text">{{ formData.categorie_tags.length > 0 ? '已选择' + formData.categorie_tags.length + '个领域' : '选择擅长领域' }}</text>
+                <uni-icons type="arrowright" size="14" color="#666" />
+              </view>
+            </view>
           </uni-forms-item>
 
           <!-- 特长简介 -->
@@ -146,13 +210,11 @@
         <view class="section">
 
           <!-- 字段展示控制 -->
-          <view class="form-item">
-            <view class="switch-list">
-              <view v-for="field in showFields" :key="field.key" class="switch-item">
-                <text class="switch-label">{{ field.label }}</text>
-                <switch :checked="formData.show_fields[field.key]"
-                  @change="(e) => toggleShowField(field.key, e.detail.value)" color="#007aff" />
-              </view>
+          <view class="switch-list">
+            <view v-for="field in showFields" :key="field.key" class="switch-item">
+              <text class="switch-label">{{ field.label }}</text>
+              <switch :checked="formData.show_fields[field.key]"
+                @change="(e) => toggleShowField(field.key, e.detail.value)" color="#007aff" />
             </view>
           </view>
 
@@ -189,134 +251,101 @@
 
 <script setup>
 import { areaList } from '@/common/areaList.js'
-import skillSelector from '@/components/skill-selector/skill-selector.vue'
-import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { getUserParCard, updateUserParCardCache } from '@/utils/user-parcard.js'
-import { computed, onMounted, ref } from 'vue'
+import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+import { onMounted, ref, reactive, computed, onUnmounted } from 'vue'
 
 // 校验规则常量
 const ALLOWED_DESC_REGEX = /[\w!"#$%&'()*+,./:;<=>?@[\\\]^{|}~·\u2013\u2014—\u2018'\u2019'\u201C"\u201D"\u2026…\u3001、\u3002。\u3008-\u300B\u300E-\u3011\u4E00-\u9FA5\uFF01！\uFF0C，\uFF1A\uFF1B\uFF1F？￥-]/g
 // 响应式数据
-const formData = ref({
+const formRef = ref(null)
+const areaPickerRef = ref(null)
+const isSaving = ref(false)
+const isDataPickerOpen = ref(false)
+
+// 表单数据
+const formData = reactive({
   user_id: '',
   avatar: '',
   nickname: '',
-  gender: '',
+  gender: 0,
   age: '',
   education: '',
+  location: [],
+  location_text: [],
   city: '',
-  location: [], // 省市value数组
-  location_text: [], // 省市文本数组
   skills: [],
   categorie_tags: [],
+  custom_skills: [], // 新增自定义技能数组
   strengths: '',
   photos: [],
-  diploma_photos: [],
   certificate_photos: [],
+  is_active: true,
+  allow_homepage_view: false,
   show_fields: {
     age: true,
-    gender: true,
     education: true,
     city: true,
     skills: true,
-    strengths: true,
     categorie_tags: true,
+    custom_skills: true, // 新增自定义技能显示字段
+    strengths: true,
     photos: true
-  },
-  is_active: true,
-  allow_homepage_view: false
+  }
 })
 
-// 保存状态管理
-const isSaving = ref(false)
-
-// 校验规则
+// 表单验证规则
 const rules = {
+  nickname: {
+    rules: [{
+      required: true,
+      errorMessage: '请输入昵称'
+    }]
+  },
+  gender: {
+    rules: [{
+      required: true,
+      errorMessage: '请选择性别'
+    }]
+  },
   age: {
-    rules: [
-      { required: true, errorMessage: '请选择年龄', trigger: 'change' }
-    ]
-  },
-  education: {
-    rules: [
-      { required: true, errorMessage: '请选择学历', trigger: 'change' }
-    ]
-  },
-  location: {
-    rules: [
-      { required: true, errorMessage: '请选择常驻城市', trigger: 'change' }
-    ]
-  },
-  skills: {
-    rules: [
-      { required: true, errorMessage: '请至少选择一个技能标签', trigger: 'change' }
-    ]
-  },
-  strengths: {
-    rules: [
-      { max: 200, errorMessage: '特长简介最多200字', trigger: 'blur' },
-      {
-        validator: (rule, value, callback) => {
-          if (!value) return callback()
-          const string_ = (value.match(ALLOWED_DESC_REGEX) || []).join('')
-          if (string_.length !== value.length) return callback('仅限常用中英文及标点')
-          return callback()
-        },
-        trigger: 'blur'
-      }
-    ]
+    rules: [{
+      required: true,
+      errorMessage: '请输入年龄'
+    }]
   }
 }
+
+// 自定义技能输入
+const customSkillInput = ref('')
+const maxCustomSkills = ref(3)
+
+// 计算属性
+const canAddCustomSkill = computed(() => {
+  return customSkillInput.value.length >= 2 && 
+         customSkillInput.value.length <= 5 && 
+         formData.custom_skills.length < maxCustomSkills.value &&
+         !formData.custom_skills.includes(customSkillInput.value)
+})
 
 // 获取用户信息
 const userInfo = computed(() => store.userInfo)
-const formRef = ref(null)
-const areaPickerRef = ref(null)
-const skillSelectorRef = ref(null)
-const isDataPickerOpen = ref(false)
 
 // 选项数据
-const educationOptions = ['高中', '大专', '本科', '硕士', '博士']
-
-// 年龄选项 (18-60岁)
-const ageOptions = Array.from({ length: 43 }, (_, i) => ({
+const ageSelectData = Array.from({ length: 43 }, (_, i) => ({
   value: i + 18,
-  label: `${i + 18}岁`
+  text: `${i + 18}岁`
 }))
 
-// uni-data-select 数据格式
-const ageSelectData = ageOptions.map(option => ({
-  value: option.value,
-  text: option.label
-}))
+const educationSelectData = [
+  { value: '高中', text: '高中' },
+  { value: '大专', text: '大专' },
+  { value: '本科', text: '本科' },
+  { value: '硕士', text: '硕士' },
+  { value: '博士', text: '博士' }
+]
 
-const educationSelectData = educationOptions.map(option => ({
-  value: option,
-  text: option
-}))
-
-// 地区数据
-function parseAreaList(areaList) {
-  // 省
-  const provinces = Object.entries(areaList.provinces).map(([code, name]) => ({
-    text: name,
-    value: code,
-    children: []
-  }))
-  // 市
-  const cities = Object.entries(areaList.cities).map(([code, name]) => ({
-    text: name,
-    value: code,
-    provinceCode: code.slice(0, 2) + '0000', // 前2位+0000
-    children: []
-  }))
-  // 组装
-  for (const province of provinces) {
-    province.children = cities.filter(city => city.provinceCode === province.value)
-  }
-  return provinces
-}
-const areaPickerData = parseAreaList(areaList)
+const areaPickerData = areaList
 
 const showFields = [
   { key: 'age', label: '年龄' },
@@ -328,7 +357,6 @@ const showFields = [
   { key: 'categorie_tags', label: '擅长领域' },
   { key: 'photos', label: '个人照片' }
 ]
-
 
 // 方法
 function goBack() {
@@ -349,25 +377,25 @@ function getGenderText(gender) {
 function onAreaChange(e) {
   // 清空
   if (!e.detail.value || e.detail.value.length === 0) {
-    formData.value.location = []
-    formData.value.location_text = []
-    formData.value.city = ''
+    formData.location = []
+    formData.location_text = []
+    formData.city = ''
     return
   }
   // 存储 value 数组和文本数组
-  formData.value.location = e.detail.value.map(item => item.value)
-  formData.value.location_text = e.detail.value.map(item => item.text)
+  formData.location = e.detail.value.map(item => item.value)
+  formData.location_text = e.detail.value.map(item => item.text)
 
   // 根据选择级别设置城市文本
-  if (formData.value.location_text.length === 2) {
+  if (formData.location_text.length === 2) {
     // 省市二级：只存储市
-    formData.value.city = formData.value.location_text[1]
-  } else if (formData.value.location_text.length === 3) {
+    formData.city = formData.location_text[1]
+  } else if (formData.location_text.length === 3) {
     // 省市区三级：存储市-区
-    formData.value.city = `${formData.value.location_text[1]}-${formData.value.location_text[2]}`
+    formData.city = `${formData.location_text[1]}-${formData.location_text[2]}`
   } else {
     // 其他情况：存储最后一个级别
-    formData.value.city = formData.value.location_text[formData.value.location_text.length - 1]
+    formData.city = formData.location_text[formData.location_text.length - 1]
   }
 }
 
@@ -382,65 +410,160 @@ function onDataPickerClosed() {
 
 // 特长简介输入处理
 function onStrengthsInput() {
-  let string_ = (formData.value.strengths.match(ALLOWED_DESC_REGEX) || []).join('')
+  let string_ = (formData.strengths.match(ALLOWED_DESC_REGEX) || []).join('')
   // 使用 replace 替代 replaceAll，提高兼容性
   string_ = string_.replace(/^\s+|\s+$/g, '').replace(/\s{2,}/g, ' ')
-  formData.value.strengths = string_.slice(0, 200)
+  formData.strengths = string_.slice(0, 200)
 }
 
 // 清空特长简介
 function clearStrengths() {
-  formData.value.strengths = ''
+  formData.strengths = ''
 }
 
 function toggleShowField(key, value) {
-  formData.value.show_fields[key] = value
+  formData.show_fields[key] = value
 }
 
 
 function choosePhotos() {
   uni.chooseImage({
-    count: 6 - formData.value.photos.length,
+    count: 6 - formData.photos.length,
     sizeType: ['compressed'],
     sourceType: ['album', 'camera'],
     success: (res) => {
-      formData.value.photos.push(...res.tempFilePaths)
+      formData.photos.push(...res.tempFilePaths)
     }
   })
 }
 
 function removePhoto(index) {
-  formData.value.photos.splice(index, 1)
+  formData.photos.splice(index, 1)
 }
 
 function chooseDiploma() {
   uni.chooseImage({
-    count: 3 - formData.value.diploma_photos.length,
+    count: 3 - formData.certificate_photos.length,
     sizeType: ['compressed'],
     sourceType: ['album', 'camera'],
     success: (res) => {
-      formData.value.diploma_photos.push(...res.tempFilePaths)
+      formData.certificate_photos.push(...res.tempFilePaths)
     }
   })
 }
 
 function removeDiploma(index) {
-  formData.value.diploma_photos.splice(index, 1)
+  formData.certificate_photos.splice(index, 1)
 }
 
 function chooseCertificate() {
   uni.chooseImage({
-    count: 3 - formData.value.certificate_photos.length,
+    count: 3 - formData.certificate_photos.length,
     sizeType: ['compressed'],
     sourceType: ['album', 'camera'],
     success: (res) => {
-      formData.value.certificate_photos.push(...res.tempFilePaths)
+      formData.certificate_photos.push(...res.tempFilePaths)
     }
   })
 }
 
 function removeCertificate(index) {
-  formData.value.certificate_photos.splice(index, 1)
+  formData.certificate_photos.splice(index, 1)
+}
+
+// 技能选择相关
+function showSkillSelector() {
+  const selectedData = {
+    skills: formData.skills,
+    categorieTags: formData.categorie_tags,
+    customSkills: formData.custom_skills // 传递自定义技能
+  }
+  const selectedDataJson = encodeURIComponent(JSON.stringify(selectedData))
+  
+  uni.navigateTo({
+    url: `/pages/parjob-square/skill-selector?selected=${selectedDataJson}&mode=edit`
+  })
+}
+
+function showCategorieSelector() {
+  // 擅长领域选择器（复用技能选择页面）
+  const selectedData = {
+    skills: formData.skills,
+    categorieTags: formData.categorie_tags
+  }
+  const selectedDataJson = encodeURIComponent(JSON.stringify(selectedData))
+  
+  uni.navigateTo({
+    url: `/pages/parjob-square/skill-selector?selected=${selectedDataJson}&mode=edit`
+  })
+}
+
+function removeSkill(index) {
+  const skill = formData.skills[index]
+  formData.skills.splice(index, 1)
+  
+  // 检查是否需要清除相关的擅长领域
+  removeRelatedCategorieTag(skill)
+}
+
+function removeCustomSkill(index) {
+  formData.custom_skills.splice(index, 1)
+}
+
+// 移除相关的擅长领域
+function removeRelatedCategorieTag(skill) {
+  const category = getCategoryBySkill(skill)
+  if (category) {
+    const remainingSkills = formData.skills.filter(s => {
+      const skillCategory = getCategoryBySkill(s)
+      return skillCategory && skillCategory.name === category.name
+    })
+    
+    if (remainingSkills.length === 0) {
+      const tagIndex = formData.categorie_tags.indexOf(category.name)
+      if (tagIndex > -1) {
+        formData.categorie_tags.splice(tagIndex, 1)
+      }
+    }
+  }
+}
+
+// 移除擅长领域及其相关技能
+function removeCategorieTag(index) {
+  const tagName = formData.categorie_tags[index]
+  formData.categorie_tags.splice(index, 1)
+  
+  // 移除该领域下的所有技能
+  formData.skills = formData.skills.filter(skill => {
+    const category = getCategoryBySkill(skill)
+    return !category || category.name !== tagName
+  })
+}
+
+// 获取技能所属分类
+function getCategoryBySkill(skill) {
+  for (const [key, category] of Object.entries()) {
+    if (category.skills.includes(skill)) {
+      return {
+        key,
+        name: category.name,
+        description: category.description
+      }
+    }
+  }
+  return null
+}
+
+// 自定义技能相关方法
+function onCustomInputChange(e) {
+  customSkillInput.value = e.detail.value
+}
+
+function addCustomSkill() {
+  if (canAddCustomSkill.value) {
+    formData.custom_skills.push(customSkillInput.value)
+    customSkillInput.value = ''
+  }
 }
 
 // 保存数据
@@ -457,18 +580,18 @@ async function saveProfile() {
     // 这里应该调用云函数保存数据
     const result = await uniCloud.callFunction({
       name: 'saveParjobCard',
-      data: formData.value
+      data: formData
     })
 
     // 检查云函数返回结果
     if (result.result && result.result.code === 0) {
       // 保存成功后更新缓存
       const updatedCardData = { 
-        ...formData.value,
+        ...formData,
         // 确保地区信息正确保存
-        location: formData.value.location || [],
-        location_text: formData.value.location_text || [],
-        city: formData.value.city || ''
+        location: formData.location || [],
+        location_text: formData.location_text || [],
+        city: formData.city || ''
       }
       updateUserParCardCache(updatedCardData)
       
@@ -503,10 +626,33 @@ async function saveProfile() {
   }
 }
 
+// 监听技能选择结果
+function setupEventListeners() {
+  uni.$on('skillSelected', (result) => {
+    console.log('接收到 skillSelected 事件:', result)
+    
+    if (result && result.skills) {
+      formData.skills = result.skills || []
+      formData.categorie_tags = result.categorieTags || []
+      formData.custom_skills = result.customSkills || [] // 接收自定义技能
+    }
+  })
+}
+
+function cleanupEventListeners() {
+  uni.$off('skillSelected')
+}
+
 // 初始化数据
 onMounted(() => {
-  formData.value.user_id = userInfo.value._id
+  formData.user_id = userInfo.value._id
+  setupEventListeners()
   loadUserParjobCard()
+})
+
+// 页面卸载时移除事件监听
+onUnmounted(() => {
+  cleanupEventListeners()
 })
 
 // 加载用户趴活信息卡
@@ -533,59 +679,59 @@ async function loadUserParjobCard() {
 // 用卡片数据填充表单
 function fillFormWithCardData(cardData) {
   // 基本信息
-  formData.value.avatar = cardData.avatar || userInfo.value.avatar_file?.url || '/static/default-avatar.png'
-  formData.value.nickname = cardData.nickname || userInfo.value.nickname || '未设置'
-  formData.value.gender = cardData.gender === undefined ? (userInfo.value.gender || 0) : cardData.gender
-  formData.value.age = cardData.age || ''
-  formData.value.education = cardData.education || ''
+  formData.avatar = cardData.avatar || userInfo.value.avatar_file?.url || '/static/default-avatar.png'
+  formData.nickname = cardData.nickname || userInfo.value.nickname || '未设置'
+  formData.gender = cardData.gender === undefined ? (userInfo.value.gender || 0) : cardData.gender
+  formData.age = cardData.age || ''
+  formData.education = cardData.education || ''
   
   // 地区信息（优先使用新的location字段，兼容旧的city字段）
   if (cardData.location && Array.isArray(cardData.location) && cardData.location.length > 0) {
-    formData.value.location = cardData.location
-    formData.value.location_text = cardData.location_text || []
+    formData.location = cardData.location
+    formData.location_text = cardData.location_text || []
     // 根据location_text设置city
     if (cardData.location_text && cardData.location_text.length > 0) {
-      formData.value.city = cardData.location_text[cardData.location_text.length - 1] || ''
+      formData.city = cardData.location_text[cardData.location_text.length - 1] || ''
     } else {
-      formData.value.city = cardData.city || ''
+      formData.city = cardData.city || ''
     }
   } else {
     // 兼容旧数据
-    formData.value.city = cardData.city || ''
-    formData.value.location = []
-    formData.value.location_text = []
+    formData.city = cardData.city || ''
+    formData.location = []
+    formData.location_text = []
   }
   
   // 技能信息
-  formData.value.skills = cardData.skills || []
-  formData.value.categorie_tags = cardData.categorie_tags || []
-  formData.value.strengths = cardData.strengths || ''
+  formData.skills = cardData.skills || []
+  formData.categorie_tags = cardData.categorie_tags || []
+  formData.custom_skills = cardData.custom_skills || [] // 填充自定义技能
+  formData.strengths = cardData.strengths || ''
   
   // 照片信息
-  formData.value.photos = cardData.photos || []
-  formData.value.diploma_photos = cardData.diploma_photos || []
-  formData.value.certificate_photos = cardData.certificate_photos || []
+  formData.photos = cardData.photos || []
+  formData.certificate_photos = cardData.certificate_photos || []
   
   // 展示设置
-  formData.value.show_fields = cardData.show_fields || {
+  formData.show_fields = cardData.show_fields || {
     age: true,
-    gender: true,
     education: true,
     city: true,
     skills: true,
-    strengths: true,
     categorie_tags: true,
+    custom_skills: true, // 填充自定义技能显示字段
+    strengths: true,
     photos: true
   }
-  formData.value.is_active = cardData.is_active === undefined ? true : cardData.is_active
-  formData.value.allow_homepage_view = cardData.allow_homepage_view === undefined ? false : cardData.allow_homepage_view
+  formData.is_active = cardData.is_active === undefined ? true : cardData.is_active
+  formData.allow_homepage_view = cardData.allow_homepage_view === undefined ? false : cardData.allow_homepage_view
 }
 
 // 用默认用户信息填充表单
 function fillFormWithDefaultUserInfo() {
-  formData.value.avatar = userInfo.value.avatar_file?.url || '/static/default-avatar.png'
-  formData.value.nickname = userInfo.value.nickname || '未设置'
-  formData.value.gender = userInfo.value.gender || 0
+  formData.avatar = userInfo.value.avatar_file?.url || '/static/default-avatar.png'
+  formData.nickname = userInfo.value.nickname || '未设置'
+  formData.gender = userInfo.value.gender || 0
   // 其他字段保持默认值
 }
 
@@ -995,5 +1141,138 @@ function fillFormWithDefaultUserInfo() {
 .disabled-scroll {
   pointer-events: none;
   user-select: none;
+}
+
+.skill-selector-wrapper,
+.categorie-tags-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 15rpx;
+}
+
+.selected-skills,
+.selected-categorie-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.selected-skill-tag,
+.selected-categorie-tag {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background: #f0f8ff;
+  color: #007aff;
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+}
+
+.selected-categorie-tag {
+  background: #fff0f0;
+  color: #ff4444;
+}
+
+.skill-text,
+.categorie-text {
+  font-size: 24rpx;
+}
+
+.skill-selector-btn,
+.categorie-selector-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 80rpx;
+  border: 1rpx solid #e5e5e5;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  background: #fff;
+  transition: all 0.3s ease;
+}
+
+.skill-selector-btn:active,
+.categorie-selector-btn:active {
+  background: #f8f9fa;
+}
+
+.btn-text {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.custom-skill-section {
+  margin-top: 20rpx;
+  padding: 20rpx;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  border: 1rpx solid #e5e5e5;
+}
+
+.custom-input-container {
+  display: flex;
+  gap: 15rpx;
+  margin-bottom: 15rpx;
+}
+
+.custom-input {
+  flex: 1;
+  height: 60rpx;
+  border: 1rpx solid #e5e5e5;
+  border-radius: 8rpx;
+  padding: 0 15rpx;
+  font-size: 26rpx;
+  transition: all 0.3s ease;
+}
+
+.custom-input:focus {
+  border-color: #007aff;
+  box-shadow: 0 0 0 2rpx rgba(0, 122, 255, 0.1);
+}
+
+.add-custom-btn {
+  width: 120rpx;
+  height: 60rpx;
+  background: #007aff;
+  color: #fff;
+  border: none;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  transition: all 0.3s ease;
+}
+
+.add-custom-btn:active {
+  background: #0056cc;
+  transform: scale(0.95);
+}
+
+.custom-skill-tip {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 10rpx;
+  padding-left: 15rpx;
+}
+
+.selected-custom-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 10rpx;
+}
+
+.selected-custom-skill-tag {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background: #f0f8ff;
+  color: #007aff;
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+}
+
+.custom-skill-text {
+  font-size: 24rpx;
 }
 </style>
