@@ -173,6 +173,9 @@ function initializeSkills() {
 
   // 根据技能自动设置分类
   updateSelectedCategories()
+  
+  // 确保擅长领域与技能保持一致
+  updateAutoCategorieTags()
 }
 
 // 初始化数据
@@ -195,24 +198,33 @@ function initData(options) {
   }
   
   if (options.selected) {
-    try {
-      const selectedData = JSON.parse(decodeURIComponent(options.selected))
-      if (mode.value === 'filter') {
-        if (Array.isArray(selectedData)) { // Old format
-          selectedSkills.value = selectedData
-        } else if (selectedData.skills) { // New format
-          selectedSkills.value = selectedData.skills || []
-          selectedCategorieTags.value = selectedData.categorieTags || []
-          customSkills.value = selectedData.customSkills || [] // 接收自定义技能
+          try {
+        const selectedData = JSON.parse(decodeURIComponent(options.selected))
+        
+        if (mode.value === 'filter') {
+          if (Array.isArray(selectedData)) { // Old format
+            selectedSkills.value = selectedData
+          } else if (selectedData.skills) { // New format
+            selectedSkills.value = selectedData.skills || []
+            selectedCategorieTags.value = selectedData.categorieTags || []
+            customSkills.value = selectedData.customSkills || [] // 接收自定义技能
+          }
+        } else { // Edit mode
+          if (selectedData.skills) { selectedSkills.value = selectedData.skills }
+          if (selectedData.customSkills) { customSkills.value = selectedData.customSkills } // 接收自定义技能
+          
+          // 处理擅长领域：如果有传入的数据就使用，否则根据技能自动生成
+          if (selectedData.categorieTags && selectedData.categorieTags.length > 0) {
+            selectedCategorieTags.value = selectedData.categorieTags
+          } else {
+            // 没有擅长领域数据，根据技能自动生成
+            updateAutoCategorieTags()
+          }
         }
-      } else { // Edit mode
-        if (selectedData.skills) { selectedSkills.value = selectedData.skills }
-        if (selectedData.categorieTags) { selectedCategorieTags.value = selectedData.categorieTags }
-        if (selectedData.customSkills) { customSkills.value = selectedData.customSkills } // 接收自定义技能
+      } catch (error) {
+        console.error('skill-selector parse error:', error)
+        selectedSkills.value = options.selected.split(',').filter(Boolean) // Fallback
       }
-    } catch (error) {
-      selectedSkills.value = options.selected.split(',').filter(Boolean) // Fallback
-    }
   }
   
   initializeSkills() // Call initializeSkills after parsing options
@@ -248,7 +260,23 @@ function confirmSelection() {
       categorieTags: selectedCategorieTags.value,
       customSkills: customSkills.value // 包含自定义技能
     }
+    
+    // 尝试多种方式发送事件
     uni.$emit('skillSelected', result)
+    
+    // 延迟发送，确保页面跳转完成
+    setTimeout(() => {
+      uni.$emit('skillSelected', result)
+    }, 100)
+    
+    // 使用 getApp() 的全局事件总线
+    const app = getApp()
+    if (app && app.$emit) {
+      app.$emit('skillSelected', result)
+    }
+    
+    // 使用 Storage 作为备选方案
+    uni.setStorageSync('skillSelectorResult', result)
   } else {
     // 编辑模式：返回完整对象
     const result = {
@@ -256,7 +284,23 @@ function confirmSelection() {
       categorieTags: selectedCategorieTags.value,
       customSkills: customSkills.value // 包含自定义技能
     }
+    
+    // 尝试多种方式发送事件，确保数据能正确传递
     uni.$emit('skillSelected', result)
+    
+    // 延迟发送，确保页面跳转完成
+    setTimeout(() => {
+      uni.$emit('skillSelected', result)
+    }, 100)
+    
+    // 使用 getApp() 的全局事件总线
+    const app = getApp()
+    if (app && app.$emit) {
+      app.$emit('skillSelected', result)
+    }
+    
+    // 使用 Storage 作为备选方案
+    uni.setStorageSync('skillSelectorResult', result)
   }
   
   uni.navigateBack()

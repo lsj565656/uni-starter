@@ -99,6 +99,8 @@
           <uni-icons type="right" size="16" color="#fff" />
         </view>
       </uni-card>
+
+
     </view>
 
     <!-- 底部统计 -->
@@ -822,6 +824,8 @@ function startSmartRecommend() {
   })
 }
 
+
+
 // 获取屏幕信息
 function getScreenInfo() {
   const systemInfo = uni.getSystemInfoSync()
@@ -904,8 +908,26 @@ defineExpose({
   updateUserInActiveList
 })
 
-// 监听页面显示事件，用于处理从编辑页面返回时的数据更新
+// 监听页面显示事件，用于处理从编辑页面返回时的数据更新和弹窗状态
 onShow(() => {
+  // 检查抽屉状态
+  checkDrawerState()
+  
+  // 重新设置事件监听器，确保在页面重新显示时监听器是活跃的
+  setupEventListeners()
+  
+  // 检查是否有技能选择器返回的数据
+  const skillSelectorResult = uni.getStorageSync('skillSelectorResult')
+  if (skillSelectorResult) {
+    if (skillSelectorResult.skills) {
+      tempFilterSkills.value = skillSelectorResult.skills || []
+      tempFilterCategorieTags.value = skillSelectorResult.categorieTags || []
+      tempFilterCustomSkills.value = skillSelectorResult.customSkills || []
+    }
+    // 清除 Storage 中的数据
+    uni.removeStorageSync('skillSelectorResult')
+  }
+  
   // 检查是否需要更新数据
   const lastEditTime = uni.getStorageSync('lastEditTime')
   const currentUserId = store.userInfo?._id
@@ -992,12 +1014,6 @@ async function loadFilterData() {
   }
 }
 
-// 监听页面显示事件，用于处理弹窗状态
-onShow(() => {
-  // 检查抽屉状态
-  checkDrawerState()
-})
-
 // 页面卸载时移除事件监听
 onUnmounted(() => {
   uni.$off('skillSelected')
@@ -1006,33 +1022,41 @@ onUnmounted(() => {
 
 // 设置事件监听器
 function setupEventListeners() {
+  // 先移除可能存在的旧监听器
+  uni.$off('skillSelected')
+  uni.$off('citySelected')
+  
   // 监听技能选择结果
   uni.$on('skillSelected', (result) => {
-    console.log('接收到 skillSelected 事件:', result)
-
-    if (Array.isArray(result)) {
-      // 筛选模式：只接收技能数组
-      console.log('筛选模式 - 设置技能:', result)
+    if (result && result.skills) {
+      // 新格式：接收技能和擅长领域对象
+      tempFilterSkills.value = result.skills || []
+      tempFilterCategorieTags.value = result.categorieTags || []
+      tempFilterCustomSkills.value = result.customSkills || [] // 处理自定义技能
+    } else if (Array.isArray(result)) {
+      // 旧格式兼容：只接收技能数组
       tempFilterSkills.value = result
       // 根据技能自动生成擅长领域
       updateTempCategorieTags()
-    } else if (result && result.skills) {
-      // 编辑模式：接收技能和擅长领域对象
-      console.log('编辑模式 - 设置技能和擅长领域:', result)
-      tempFilterSkills.value = result.skills
-      tempFilterCategorieTags.value = result.categorieTags || []
-      tempFilterCustomSkills.value = result.customSkills || [] // 处理自定义技能
-    } else {
-      console.warn('接收到无效的技能选择数据:', result)
     }
   })
 
   // 监听城市选择结果
   uni.$on('citySelected', (cities) => {
-    console.log('citySelected event received:', cities)
     tempFilterCities.value = cities
-    console.log('tempFilterCities after update:', tempFilterCities.value)
   })
+  
+  // 尝试使用 app 全局事件总线
+  const app = getApp()
+  if (app && app.$on) {
+    app.$on('skillSelected', (result) => {
+      if (result && result.skills) {
+        tempFilterSkills.value = result.skills || []
+        tempFilterCategorieTags.value = result.categorieTags || []
+        tempFilterCustomSkills.value = result.customSkills || []
+      }
+    })
+  }
 }
 
 // 根据技能更新擅长领域
@@ -1161,6 +1185,8 @@ function checkDrawerState() {
 .smart-recommend-card .block-icon {
   background: linear-gradient(135deg, #4facfe, #00f2fe);
 }
+
+
 
 .block-content {
   flex: 1;

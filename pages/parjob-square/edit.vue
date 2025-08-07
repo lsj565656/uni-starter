@@ -113,7 +113,7 @@
               >
                 <!-- 擅长领域标签展示 -->
                  <template #left>
-                  <view class="selected-categorie-tags" v-if="formData.categorie_tags.length > 0">
+                  <view class="selected-categorie-tags">
                     <view v-for="(tag, index) in formData.categorie_tags" :key="index" class="selected-categorie-tag">
                       <text class="categorie-text">{{ tag }}</text>
                       <uni-icons type="close" size="12" color="#666" @click="removeCategorieTag(index)" />
@@ -228,6 +228,7 @@ import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { onMounted, ref, reactive, computed, onUnmounted } from 'vue'
 import { categorySkillsMapping } from '@/utils/category-skills-mapping.js'
 import MediaUploader from '@/components/media-uploader/media-uploader.vue'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 
 // 校验规则常量
 const ALLOWED_DESC_REGEX = /[\w!"#$%&'()*+,./:;<=>?@[\\\]^{|}~·\u2013\u2014—\u2018'\u2019'\u201C"\u201D"\u2026…\u3001、\u3002。\u3008-\u300B\u300E-\u3011\u4E00-\u9FA5\uFF01！\uFF0C，\uFF1A\uFF1B\uFF1F？￥-]/g
@@ -323,7 +324,38 @@ const educationSelectData = [
   { value: '博士', text: '博士' }
 ]
 
-const areaPickerData = areaList
+// 三级联动数据适配
+function parseAreaList(areaList) {
+  // 省
+  const provinces = Object.entries(areaList.provinces).map(([code, name]) => ({
+    text: name,
+    value: code,
+    children: []
+  }))
+  // 市
+  const cities = Object.entries(areaList.cities).map(([code, name]) => ({
+    text: name,
+    value: code,
+    provinceCode: code.slice(0, 2) + '0000', // 前2位+0000
+    children: []
+  }))
+  // 区
+  // const areas = Object.entries(areaList.counties).map(([code, name]) => ({
+  //   text: name,
+  //   value: code,
+  //   cityCode: code.slice(0, 4) + '00' // 前4位+00
+  // }))
+  // 组装
+  for (const province of provinces) {
+    province.children = cities.filter(city => city.provinceCode === province.value)
+    // for (const city of province.children) {
+    //   city.children = areas.filter(area => area.cityCode === city.value)
+    // }
+  }
+  return provinces
+}
+
+const areaPickerData = parseAreaList(areaList)
 
 const showFields = [
   { key: 'age', label: '年龄' },
@@ -360,8 +392,9 @@ function onAreaChange(e) {
     formData.city = ''
     return
   }
-  // 存储 value 数组和文本数组
-  formData.location = e.detail.value.map(item => item.value)
+  
+  // 存储对象数组（用于 uni-data-picker 显示）和文本数组（用于保存）
+  formData.location = e.detail.value
   formData.location_text = e.detail.value.map(item => item.text)
 
   // 根据选择级别设置城市文本
@@ -405,6 +438,7 @@ function toggleShowField(key, value) {
 
 // 技能选择相关
 function showSkillSelector() {
+  // 传递当前的技能状态，包括用户可能已经修改但未保存的数据
   const selectedData = {
     skills: formData.skills,
     categorieTags: formData.categorie_tags,
@@ -417,37 +451,43 @@ function showSkillSelector() {
   })
 }
 
+// 页面显示时检查是否有技能选择结果
+function checkSkillSelectorResult() {
+  try {
+    const result = uni.getStorageSync('skillSelectorResult')
+    if (result && result.skills) {
+      // 更新表单数据
+      formData.skills = result.skills || []
+      formData.custom_skills = result.customSkills || []
+      formData.categorie_tags = result.categorieTags || []
+      
+      // 清除Storage中的数据
+      uni.removeStorageSync('skillSelectorResult')
+    }
+  } catch (error) {
+    console.error('edit.vue checkSkillSelectorResult error:', error)
+  }
+}
+
 function removeSkill(index) {
   const skill = formData.skills[index]
   formData.skills.splice(index, 1)
   
-  // 检查是否需要清除相关的擅长领域
-  removeRelatedCategorieTag(skill)
+  // 不再直接修改擅长领域，让技能选择器根据剩余技能重新计算
+  // removeRelatedCategorieTag(skill)
 }
 
 function removeCustomSkill(index) {
   formData.custom_skills.splice(index, 1)
 }
 
-// 移除相关的擅长领域
+// 移除相关的擅长领域 - 不再直接修改，让技能选择器处理
 function removeRelatedCategorieTag(skill) {
-  const category = getCategoryBySkill(skill)
-  if (category) {
-    const remainingSkills = formData.skills.filter(s => {
-      const skillCategory = getCategoryBySkill(s)
-      return skillCategory && skillCategory.name === category.name
-    })
-    
-    if (remainingSkills.length === 0) {
-      const tagIndex = formData.categorie_tags.indexOf(category.name)
-      if (tagIndex > -1) {
-        formData.categorie_tags.splice(tagIndex, 1)
-      }
-    }
-  }
+  // 不再直接修改 categorie_tags，让技能选择器根据技能重新计算
+  // 这样可以避免在未保存状态下修改数据导致的问题
 }
 
-// 移除擅长领域及其相关技能
+// 移除擅长领域及其相关技能 - 不立即更新缓存
 function removeCategorieTag(index) {
   const tagName = formData.categorie_tags[index]
   formData.categorie_tags.splice(index, 1)
@@ -457,6 +497,10 @@ function removeCategorieTag(index) {
     const category = getCategoryBySkill(skill)
     return !category || category.name !== tagName
   })
+  
+  // 注意：这里仍然需要移除技能，因为用户明确删除了擅长领域
+  // 但擅长领域的重新计算会由技能选择器处理
+  // 不立即更新缓存，等到保存时才更新
 }
 
 // 获取技能所属分类
@@ -482,6 +526,8 @@ function addCustomSkill() {
   if (canAddCustomSkill.value) {
     formData.custom_skills.push(customSkillInput.value)
     customSkillInput.value = ''
+  } else {
+    // 不能添加自定义技能
   }
 }
 
@@ -506,6 +552,15 @@ async function saveProfile() {
     formData.photos = formData.photos_detail.map(item => item.url)
     formData.diploma_photos = formData.diploma_photos_detail.map(item => item.url)
     formData.certificate_photos = formData.certificate_photos_detail.map(item => item.url)
+    
+    // 处理地区数据：将对象数组转换为字符串数组用于保存
+    if (Array.isArray(formData.location) && formData.location.length > 0) {
+      // 如果是对象数组，提取 value 值
+      if (typeof formData.location[0] === 'object' && formData.location[0].value) {
+        formData.location = formData.location.map(item => item.value)
+      }
+      // 如果不是对象数组，保持原样
+    }
     
     // 设置保存状态
     isSaving.value = true
@@ -562,33 +617,10 @@ async function saveProfile() {
 // 监听技能选择结果
 function setupEventListeners() {
   uni.$on('skillSelected', (result) => {
-    console.log('接收到 skillSelected 事件:', result)
-    
     if (result && result.skills) {
-      // 分离系统技能和自定义技能
-      const systemSkills = []
-      const customSkills = []
-      
-      result.skills.forEach(skill => {
-        // 检查是否是系统预定义的技能
-        const isSystemSkill = Object.values(categorySkillsMapping).some(category => 
-          category.skills.includes(skill)
-        )
-        
-        if (isSystemSkill) {
-          if (!systemSkills.includes(skill)) {
-            systemSkills.push(skill)
-          }
-        } else {
-          // 不是系统技能，添加到自定义技能
-          if (!customSkills.includes(skill)) {
-            customSkills.push(skill)
-          }
-        }
-      })
-      
-      formData.skills = systemSkills
-      formData.custom_skills = customSkills
+      // 直接使用返回的数据，让技能选择器负责正确的数据格式
+      formData.skills = result.skills || []
+      formData.custom_skills = result.customSkills || []
       formData.categorie_tags = result.categorieTags || []
     }
   })
@@ -605,6 +637,11 @@ onMounted(() => {
   loadUserParjobCard()
 })
 
+// 页面显示时检查技能选择结果
+onShow(() => {
+  checkSkillSelectorResult()
+})
+
 // 页面卸载时移除事件监听
 onUnmounted(() => {
   cleanupEventListeners()
@@ -613,8 +650,16 @@ onUnmounted(() => {
 // 加载用户趴活信息卡
 async function loadUserParjobCard() {
   try {
-    // 使用工具函数获取用户信息卡
-    const cardData = await getUserParCard(userInfo.value._id)
+    // 强制从数据库重新加载数据，不使用缓存
+    const result = await uniCloud.callFunction({
+      name: 'getUserParCard',
+      data: { user_id: userInfo.value._id }
+    })
+    
+    let cardData = null
+    if (result.result && result.result.code === 0 && result.result.data) {
+      cardData = result.result.data
+    }
     
     if (cardData) {
       // 找到用户信息卡，填充表单
@@ -642,11 +687,16 @@ function fillFormWithCardData(cardData) {
   
   // 地区信息（优先使用新的location字段，兼容旧的city字段）
   if (cardData.location && Array.isArray(cardData.location) && cardData.location.length > 0) {
-    formData.location = cardData.location
-    formData.location_text = cardData.location_text || []
+    // 将字符串数组转换为对象数组，以便 uni-data-picker 正确显示
+    const locationText = cardData.location_text || []
+    formData.location = cardData.location.map((value, index) => ({
+      value: value,
+      text: locationText[index] || ''
+    }))
+    formData.location_text = locationText
     // 根据location_text设置city
-    if (cardData.location_text && cardData.location_text.length > 0) {
-      formData.city = cardData.location_text[cardData.location_text.length - 1] || ''
+    if (locationText.length > 0) {
+      formData.city = locationText[locationText.length - 1] || ''
     } else {
       formData.city = cardData.city || ''
     }
@@ -701,21 +751,24 @@ function fillFormWithCardData(cardData) {
   const diplomaPhotos = cardData.diploma_photos || []
   const certificatePhotos = cardData.certificate_photos || []
   
-  // 将URL数组转换为详情数组格式
+  // 将URL数组转换为详情数组格式，添加缩略图信息
   formData.photos_detail = photos.map(url => ({
     url: url,
+    thumbnail: url, // 使用原图作为缩略图
     type: 'image',
     is_main: false
   }))
   
   formData.diploma_photos_detail = diplomaPhotos.map(url => ({
     url: url,
+    thumbnail: url, // 使用原图作为缩略图
     type: 'image',
     is_main: false
   }))
   
   formData.certificate_photos_detail = certificatePhotos.map(url => ({
     url: url,
+    thumbnail: url, // 使用原图作为缩略图
     type: 'image',
     is_main: false
   }))

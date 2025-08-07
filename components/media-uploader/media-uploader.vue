@@ -5,11 +5,12 @@
         <view class="media-item" :class="{ 'is-video': item.type === 'video' }">
           <image
             v-if="item.type === 'image'"
-            :src="item.url"
+            :src="item.thumbnail || item.url"
             class="media-thumb"
             @click="onPreview(idx)"
             :draggable="true"
             mode="aspectFill"
+            @error="onImageError($event, idx)"
           />
           <view v-else class="video-thumb" @click="onPreview(idx)">
             <image
@@ -143,6 +144,7 @@ function chooseImage() {
       const imgs = properties.modelValue.filter(f => f.type === 'image')
       const addImgs = valid.slice(0, remain).map(f => ({
         url: f.tempFilePath || f.path,
+        thumbnail: f.tempFilePath || f.path, // 使用原图作为缩略图
         type: 'image',
         is_main: false
       }))
@@ -286,8 +288,16 @@ function getVideoCover(videoPath) {
   })
 }
 function onImageError(e, index) {
-  if (mediaList.value[index] && mediaList.value[index].type === 'video') {
-    mediaList.value[index].cover = defaultVideoCover.value
+  const item = mediaList.value[index]
+  if (item) {
+    if (item.type === 'video') {
+      item.cover = defaultVideoCover.value
+    } else if (item.type === 'image') {
+      // 如果缩略图加载失败，使用原图
+      if (item.thumbnail && item.thumbnail !== item.url) {
+        item.thumbnail = item.url
+      }
+    }
   }
 }
 function onDelete(index) {
