@@ -416,7 +416,7 @@ function filterUsers(users, filters) {
 
     // 年龄筛选
     if (filters.ageRange) {
-      const userAge = parseInt(user.age)
+      const userAge = Number.parseInt(user.age)
       if (userAge < filters.ageRange.min || userAge > filters.ageRange.max) {
         return false
       }

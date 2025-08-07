@@ -65,6 +65,28 @@
           <!-- 技能标签 -->
           <uni-forms-item label="技能标签" name="skills">
             <view class="skill-section">
+              <!-- 技能输入框 -->
+              <view class="skill-input-container">
+                <input 
+                  v-model="customSkillInput" 
+                  class="skill-input" 
+                  placeholder="自定义技能（2-5字符）" 
+                  maxlength="5"
+                  @input="onCustomInputChange"
+                />
+                <button 
+                  class="search-skill-btn" 
+                  :disabled="!canAddCustomSkill"
+                  @click="addCustomSkill"
+                >
+                <uni-icons type="plus" size="16" color="#666" />
+                </button>
+                <button class="search-skill-btn" @click="showSkillSelector">
+                  <uni-icons type="search" size="16" color="#666" />
+                </button>
+              </view>
+              
+              <!-- 已选择的技能展示 -->
               <view class="selected-skills" v-if="formData.skills.length > 0">
                 <view v-for="(skill, index) in formData.skills" :key="index" class="selected-skill-tag">
                   <text class="skill-text">{{ skill }}</text>
@@ -72,65 +94,33 @@
                 </view>
               </view>
               
-              <!-- 自定义 -->
+              <!-- 自定义技能展示 -->
               <view class="selected-custom-skills" v-if="formData.custom_skills.length > 0">
                 <view v-for="(skill, index) in formData.custom_skills" :key="'custom-' + index" class="selected-custom-skill-tag">
                   <text class="custom-skill-text">自定义：{{ skill }}</text>
                   <uni-icons type="close" size="12" color="#666" @click="removeCustomSkill(index)" />
                 </view>
               </view>
-              
-              <!-- 擅长领域展示 -->
-              <view class="selected-categorie-tags" v-if="formData.categorie_tags.length > 0">
-                <view v-for="(tag, index) in formData.categorie_tags" :key="index" class="selected-categorie-tag">
-                  <text class="categorie-text">{{ tag }}</text>
-                  <uni-icons type="close" size="12" color="#666" @click="removeCategorieTag(index)" />
-                </view>
-              </view>
-              
-              <button class="skill-selector-btn" @click="showSkillSelector">
-                <text class="btn-text">{{ formData.skills.length > 0 ? '已选择' + formData.skills.length + '个技能' : '选择技能标签' }}</text>
-                <uni-icons type="arrowright" size="14" color="#666" />
-              </button>
-            </view>
-          </uni-forms-item>
-
-          <!-- 自定义技能 -->
-          <uni-forms-item label="自定义" name="custom_skills">
-            <view class="custom-skill-section">
-              <view class="custom-input-container">
-                <input 
-                  v-model="customSkillInput" 
-                  class="custom-input" 
-                  placeholder="请输入自定义技能" 
-                  maxlength="5"
-                  @input="onCustomInputChange"
-                />
-                <button 
-                  class="add-custom-btn" 
-                  :disabled="!canAddCustomSkill"
-                  @click="addCustomSkill"
-                >
-                  添加
-                </button>
-              </view>
-              <text class="custom-skill-tip">最多添加{{ maxCustomSkills }}个自定义技能</text>
             </view>
           </uni-forms-item>
 
           <!-- 擅长领域 -->
           <uni-forms-item label="擅长领域" name="categorie_tags">
             <view class="categorie-tags-wrapper">
-              <view class="selected-categorie-tags" v-if="formData.categorie_tags.length > 0">
-                <view v-for="(tag, index) in formData.categorie_tags" :key="index" class="selected-categorie-tag">
-                  <text class="categorie-text">{{ tag }}</text>
-                  <uni-icons type="close" size="12" color="#666" @click="removeCategorieTag(index)" />
-                </view>
-              </view>
-              <view class="categorie-selector-btn" @click="showCategorieSelector">
-                <text class="btn-text">{{ formData.categorie_tags.length > 0 ? '已选择' + formData.categorie_tags.length + '个领域' : '选择擅长领域' }}</text>
-                <uni-icons type="arrowright" size="14" color="#666" />
-              </view>
+              <uni-easyinput 
+                :disabled="true"
+                :clearable="false"
+              >
+                <!-- 擅长领域标签展示 -->
+                 <template #left>
+                  <view class="selected-categorie-tags" v-if="formData.categorie_tags.length > 0">
+                    <view v-for="(tag, index) in formData.categorie_tags" :key="index" class="selected-categorie-tag">
+                      <text class="categorie-text">{{ tag }}</text>
+                      <uni-icons type="close" size="12" color="#666" @click="removeCategorieTag(index)" />
+                    </view>
+                  </view>
+                 </template>
+              </uni-easyinput>
             </view>
           </uni-forms-item>
 
@@ -254,6 +244,7 @@ import { areaList } from '@/common/areaList.js'
 import { getUserParCard, updateUserParCardCache } from '@/utils/user-parcard.js'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { onMounted, ref, reactive, computed, onUnmounted } from 'vue'
+import { categorySkillsMapping } from '@/utils/category-skills-mapping.js'
 
 // 校验规则常量
 const ALLOWED_DESC_REGEX = /[\w!"#$%&'()*+,./:;<=>?@[\\\]^{|}~·\u2013\u2014—\u2018'\u2019'\u201C"\u201D"\u2026…\u3001、\u3002。\u3008-\u300B\u300E-\u3011\u4E00-\u9FA5\uFF01！\uFF0C，\uFF1A\uFF1B\uFF1F？￥-]/g
@@ -485,19 +476,6 @@ function showSkillSelector() {
   })
 }
 
-function showCategorieSelector() {
-  // 擅长领域选择器（复用技能选择页面）
-  const selectedData = {
-    skills: formData.skills,
-    categorieTags: formData.categorie_tags
-  }
-  const selectedDataJson = encodeURIComponent(JSON.stringify(selectedData))
-  
-  uni.navigateTo({
-    url: `/pages/parjob-square/skill-selector?selected=${selectedDataJson}&mode=edit`
-  })
-}
-
 function removeSkill(index) {
   const skill = formData.skills[index]
   formData.skills.splice(index, 1)
@@ -542,7 +520,7 @@ function removeCategorieTag(index) {
 
 // 获取技能所属分类
 function getCategoryBySkill(skill) {
-  for (const [key, category] of Object.entries()) {
+  for (const [key, category] of Object.entries(categorySkillsMapping)) {
     if (category.skills.includes(skill)) {
       return {
         key,
@@ -564,6 +542,12 @@ function addCustomSkill() {
     formData.custom_skills.push(customSkillInput.value)
     customSkillInput.value = ''
   }
+}
+
+// 清空所有擅长领域
+function clearAllCategorieTags() {
+  formData.categorie_tags = []
+  formData.skills = [] // 移除所有与擅长领域相关的技能
 }
 
 // 保存数据
@@ -1170,8 +1154,7 @@ function fillFormWithDefaultUserInfo() {
 }
 
 .selected-categorie-tag {
-  background: #fff0f0;
-  color: #ff4444;
+  color: #009400;
 }
 
 .skill-text,
@@ -1179,27 +1162,10 @@ function fillFormWithDefaultUserInfo() {
   font-size: 24rpx;
 }
 
-.skill-selector-btn,
-.categorie-selector-btn {
+.skill-input-container {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 80rpx;
-  border: 1rpx solid #e5e5e5;
-  border-radius: 12rpx;
-  padding: 0 20rpx;
-  background: #fff;
-  transition: all 0.3s ease;
-}
-
-.skill-selector-btn:active,
-.categorie-selector-btn:active {
-  background: #f8f9fa;
-}
-
-.btn-text {
-  font-size: 28rpx;
-  color: #333;
+  gap: 15rpx;
+  margin-bottom: 15rpx;
 }
 
 .custom-skill-section {
@@ -1275,4 +1241,37 @@ function fillFormWithDefaultUserInfo() {
 .custom-skill-text {
   font-size: 24rpx;
 }
+
+.skill-input {
+  flex: 1;
+  height: 60rpx;
+  border: 1rpx solid #e5e5e5;
+  border-radius: 8rpx;
+  padding: 0 15rpx;
+  font-size: 26rpx;
+  transition: all 0.3s ease;
+}
+
+.skill-input:focus {
+  border-color: #007aff;
+  box-shadow: 0 0 0 2rpx rgba(0, 122, 255, 0.1);
+}
+
+.search-skill-btn {
+  width: 80rpx;
+  height: 60rpx;
+  background: #f0f0f0;
+  border: 1rpx solid #e5e5e5;
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.search-skill-btn:active {
+  background: #e0e0e0;
+  transform: scale(0.95);
+}
+
 </style>
