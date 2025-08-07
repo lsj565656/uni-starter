@@ -133,7 +133,7 @@
             <text class="filter-label">性别</text>
             <view class="filter-options">
               <view v-for="option in genderOptions" :key="option.value" class="filter-option"
-                :class="{ active: filterGender === option.value }" @click="filterGender = option.value">
+                :class="{ active: tempFilterGender === option.value }" @click="tempFilterGender = option.value">
                 {{ option.label }}
               </view>
             </view>
@@ -143,16 +143,16 @@
           <view class="filter-section">
             <text class="filter-label">年龄范围</text>
             <view class="age-range">
-              <picker :value="filterAgeMin" :range="ageOptions" range-key="label" @change="onAgeMinChange">
+              <picker :value="tempFilterAgeMin" :range="ageOptions" range-key="label" @change="onTempAgeMinChange">
                 <view class="age-picker">
-                  <text>{{ getAgeLabel(filterAgeMin) }}</text>
+                  <text>{{ getAgeLabel(tempFilterAgeMin) }}</text>
                   <uni-icons type="arrowdown" size="14" color="#666" />
                 </view>
               </picker>
               <text class="age-separator">-</text>
-              <picker :value="filterAgeMax" :range="ageOptions" range-key="label" @change="onAgeMaxChange">
+              <picker :value="tempFilterAgeMax" :range="ageOptions" range-key="label" @change="onTempAgeMaxChange">
                 <view class="age-picker">
-                  <text>{{ getAgeLabel(filterAgeMax) }}</text>
+                  <text>{{ getAgeLabel(tempFilterAgeMax) }}</text>
                   <uni-icons type="arrowdown" size="14" color="#666" />
                 </view>
               </picker>
@@ -164,7 +164,7 @@
             <text class="filter-label">技能标签 (最多4个)</text>
             <view class="skill-filter">
               <view v-for="skill in displaySkills" :key="skill" class="skill-filter-item"
-                :class="{ active: filterSkills.includes(skill) }" @click="toggleSkillFilter(skill)">
+                :class="{ active: tempFilterSkills.includes(skill) }" @click="toggleTempSkillFilter(skill)">
                 {{ skill }}
               </view>
             </view>
@@ -175,7 +175,7 @@
             <text class="filter-label">城市 (最多4个)</text>
             <view class="city-filter">
               <view v-for="city in allCities" :key="city" class="city-filter-item"
-                :class="{ active: filterCities.includes(city) }" @click="toggleCityFilter(city)">
+                :class="{ active: tempFilterCities.includes(city) }" @click="toggleTempCityFilter(city)">
                 {{ city }}
               </view>
             </view>
@@ -184,8 +184,8 @@
 
         <!-- 操作按钮 -->
         <view class="filter-actions">
-          <button class="filter-reset" @click="resetFilter">重置</button>
-          <button class="filter-apply" @click="applyFilter">应用筛选</button>
+          <button class="filter-reset" :class="{ disabled: isDefaultFilterState }" @click="resetTempFilter" :disabled="isDefaultFilterState">重置</button>
+          <button class="filter-apply" @click="applyTempFilter">应用筛选</button>
         </view>
       </view>
     </uni-popup>
@@ -258,7 +258,7 @@ import { getAvailableCities, getAvailableSkills, getFilteredParjobCards, getAllA
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { getUserParCard } from '@/utils/user-parcard.js'
 import { onBackPress, onShow } from '@dcloudio/uni-app'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, nextTick } from 'vue'
 
 // 响应式数据
 const activeUsers = ref([])
@@ -268,6 +268,11 @@ const totalUsers = ref(0)
 const totalSkills = ref(0)
 const totalCities = ref(0)
 
+// 添加筛选弹窗状态管理
+const isFilterModalOpen = ref(false)
+const drawerStates = ref({
+  filterDrawer: false
+})
 
 // 屏幕信息
 const screenInfo = ref({
@@ -315,6 +320,13 @@ const filterAgeMin = ref(null)
 const filterAgeMax = ref(null)
 const filterSkills = ref([])
 const filterCities = ref([])
+
+// 添加临时筛选状态，用于弹窗中的临时筛选条件
+const tempFilterGender = ref('')
+const tempFilterAgeMin = ref(null)
+const tempFilterAgeMax = ref(null)
+const tempFilterSkills = ref([])
+const tempFilterCities = ref([])
 
 // 性别选项
 const genderOptions = [
@@ -386,6 +398,15 @@ const activeFilterTags = computed(() => {
   }
 
   return tags
+})
+
+// 检查是否为默认筛选状态（无任何筛选条件）
+const isDefaultFilterState = computed(() => {
+  return !tempFilterGender.value &&
+    tempFilterAgeMin.value === null &&
+    tempFilterAgeMax.value === null &&
+    tempFilterSkills.value.length === 0 &&
+    tempFilterCities.value.length === 0
 })
 
 // 计算固定展示区域的样式，与3D球体位置完全一致
@@ -472,32 +493,68 @@ function getAgeLabel(ageIndex) {
 
 function onAgeMinChange(e) {
   const index = Number.parseInt(e.detail.value)
-  filterAgeMin.value = index
+  tempFilterAgeMin.value = index
 
   // 联动校验：最小年龄不能大于最大年龄
-  if (filterAgeMax.value !== null && filterAgeMax.value !== '' &&
-    ageOptions[index].value > ageOptions[filterAgeMax.value].value) {
-    filterAgeMax.value = index
+  if (tempFilterAgeMax.value !== null && tempFilterAgeMax.value !== '' &&
+    ageOptions[index].value > ageOptions[tempFilterAgeMax.value].value) {
+    tempFilterAgeMax.value = index
   }
 }
 
 function onAgeMaxChange(e) {
   const index = Number.parseInt(e.detail.value)
-  filterAgeMax.value = index
+  tempFilterAgeMax.value = index
 
   // 联动校验：最大年龄不能小于最小年龄
-  if (filterAgeMin.value !== null && filterAgeMin.value !== '' &&
-    ageOptions[index].value < ageOptions[filterAgeMin.value].value) {
-    filterAgeMin.value = index
+  if (tempFilterAgeMin.value !== null && tempFilterAgeMin.value !== '' &&
+    ageOptions[index].value < ageOptions[tempFilterAgeMin.value].value) {
+    tempFilterAgeMin.value = index
+  }
+}
+
+// 临时年龄选择函数
+function onTempAgeMinChange(e) {
+  const index = Number.parseInt(e.detail.value)
+  tempFilterAgeMin.value = index
+
+  // 联动校验：最小年龄不能大于最大年龄
+  if (tempFilterAgeMax.value !== null && tempFilterAgeMax.value !== '' &&
+    ageOptions[index].value > ageOptions[tempFilterAgeMax.value].value) {
+    tempFilterAgeMax.value = index
+  }
+}
+
+function onTempAgeMaxChange(e) {
+  const index = Number.parseInt(e.detail.value)
+  tempFilterAgeMax.value = index
+
+  // 联动校验：最大年龄不能小于最小年龄
+  if (tempFilterAgeMin.value !== null && tempFilterAgeMin.value !== '' &&
+    ageOptions[index].value < ageOptions[tempFilterAgeMin.value].value) {
+    tempFilterAgeMin.value = index
   }
 }
 
 function showFilterModal() {
+  // 复制当前筛选状态到临时状态
+  tempFilterGender.value = filterGender.value
+  tempFilterAgeMin.value = filterAgeMin.value
+  tempFilterAgeMax.value = filterAgeMax.value
+  tempFilterSkills.value = [...filterSkills.value]
+  tempFilterCities.value = [...filterCities.value]
+  
   filterPopup.value.open()
+  isFilterModalOpen.value = true
+  drawerStates.value.filterDrawer = true
 }
 
 function hideFilterModal() {
+  // 只关闭弹窗，不应用筛选条件
+  // 临时筛选状态会被丢弃，保持原有的筛选状态
   filterPopup.value.close()
+  isFilterModalOpen.value = false
+  drawerStates.value.filterDrawer = false
 }
 
 function goToEdit() {
@@ -573,6 +630,42 @@ function toggleCityFilter(city) {
   }
 }
 
+// 临时技能筛选
+function toggleTempSkillFilter(skill) {
+  const index = tempFilterSkills.value.indexOf(skill)
+  if (index > -1) {
+    tempFilterSkills.value.splice(index, 1)
+  } else {
+    // 限制最多选4个技能
+    if (tempFilterSkills.value.length < 4) {
+      tempFilterSkills.value.push(skill)
+    } else {
+      uni.showToast({
+        title: '最多只能选择4个技能',
+        icon: 'none'
+      })
+    }
+  }
+}
+
+// 临时城市筛选
+function toggleTempCityFilter(city) {
+  const index = tempFilterCities.value.indexOf(city)
+  if (index > -1) {
+    tempFilterCities.value.splice(index, 1)
+  } else {
+    // 限制最多选4个城市
+    if (tempFilterCities.value.length < 4) {
+      tempFilterCities.value.push(city)
+    } else {
+      uni.showToast({
+        title: '最多只能选择4个城市',
+        icon: 'none'
+      })
+    }
+  }
+}
+
 function resetFilter() {
   filterGender.value = ''
   filterAgeMin.value = null
@@ -582,6 +675,29 @@ function resetFilter() {
 
   // 重置后直接应用筛选
   applyFilter()
+}
+
+// 临时重置筛选
+function resetTempFilter() {
+  tempFilterGender.value = ''
+  tempFilterAgeMin.value = null
+  tempFilterAgeMax.value = null
+  tempFilterSkills.value = []
+  tempFilterCities.value = []
+}
+
+// 应用临时筛选
+function applyTempFilter() {
+  // 将临时筛选状态应用到实际筛选状态
+  filterGender.value = tempFilterGender.value
+  filterAgeMin.value = tempFilterAgeMin.value
+  filterAgeMax.value = tempFilterAgeMax.value
+  filterSkills.value = [...tempFilterSkills.value]
+  filterCities.value = [...tempFilterCities.value]
+
+  // 应用筛选并关闭弹窗
+  applyFilter()
+  hideFilterModal()
 }
 
 async function applyFilter() {
@@ -789,6 +905,12 @@ function onSphereResume() {
 
 // 页面返回拦截
 onBackPress(() => {
+  // 检查筛选弹窗是否打开
+  if (isFilterModalOpen.value || drawerStates.value.filterDrawer) {
+    hideFilterModal()
+    return true // 阻止页面返回
+  }
+  
   // 检查用户详情弹窗是否打开
   if (isUserDetailOpen.value) {
     hideUserDetail()
@@ -802,6 +924,26 @@ onMounted(() => {
   getScreenInfo() // 获取屏幕信息
   loadActiveUsers()
 })
+
+// 监听页面显示事件，用于处理弹窗状态
+onShow(() => {
+  // 检查抽屉状态
+  checkDrawerState()
+})
+
+// 检查抽屉状态
+function checkDrawerState() {
+  // 监听筛选弹窗状态变化
+  nextTick(() => {
+    if (filterPopup.value) {
+      filterPopup.value.$on('change', (e) => {
+        console.log('筛选弹窗状态变化:', e)
+        isFilterModalOpen.value = e
+        drawerStates.value.filterDrawer = e
+      })
+    }
+  })
+}
 </script>
 
 <style scoped>
@@ -1119,6 +1261,16 @@ onMounted(() => {
 .filter-reset {
   background: #f5f5f5;
   color: #666;
+}
+
+.filter-reset.disabled {
+  background: #e0e0e0;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.filter-reset:not(.disabled):active {
+  background: #d0d0d0;
 }
 
 .filter-apply {

@@ -12,9 +12,9 @@ export const parjobCards = [
     age: 25,
     education: '本科',
     city: '北京',
-    skills: ['摄影', '设计', '文案', '翻译'],
+    skills: ['摄影指导'],
     strengths: '擅长创意设计和文案策划，有丰富的摄影经验，能够快速理解客户需求并提供专业解决方案。',
-    categorie_tags: ['创意设计', '摄影摄像', '文案策划', '外语翻译'],
+    categorie_tags: ['旅行'],
     photos: [
       'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400',
       'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400'
@@ -46,9 +46,9 @@ export const parjobCards = [
     age: 28,
     education: '硕士',
     city: '上海',
-    skills: ['前端开发', 'UI设计', '产品经理', '数据分析'],
-    strengths: '5年前端开发经验，熟悉Vue、React、uni-app等技术栈，具备产品思维和数据分析能力。',
-    categorie_tags: ['前端开发', 'UI设计', '产品设计', '数据分析'],
+    skills: ['修手机', '修电脑'],
+    strengths: '手机电脑上门维修',
+    categorie_tags: ['维修'],
     photos: [
       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
       'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400'
@@ -79,9 +79,9 @@ export const parjobCards = [
     age: 23,
     education: '大专',
     city: '广州',
-    skills: ['烹饪', '烘焙', '美食摄影', '营养搭配'],
+    skills: ['烘焙师', '美食探店'],
     strengths: '专业厨师出身，擅长中西餐制作，有丰富的美食摄影经验，能够提供营养搭配建议。',
-    categorie_tags: ['烹饪制作', '烘焙甜点', '美食摄影', '营养咨询'],
+    categorie_tags: ['吃喝', '旅行'],
     photos: [
       'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400',
       'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400'
@@ -112,9 +112,9 @@ export const parjobCards = [
     age: 30,
     education: '本科',
     city: '深圳',
-    skills: ['健身指导', '瑜伽', '营养规划', '康复训练'],
+    skills: ['羽毛球', '力量训练', '晨跑夜跑'],
     strengths: '专业健身教练，持有国际认证，擅长制定个性化训练计划，帮助学员科学健身。',
-    categorie_tags: ['健身指导', '瑜伽教学', '营养规划', '康复训练'],
+    categorie_tags: ['健身'],
     photos: [
       'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400',
       'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400'
@@ -145,9 +145,9 @@ export const parjobCards = [
     age: 26,
     education: '本科',
     city: '杭州',
-    skills: ['钢琴教学', '声乐指导', '音乐制作', '乐理培训'],
+    skills: ['音乐', '乐理培训'],
     strengths: '音乐学院毕业，有8年教学经验，擅长钢琴和声乐教学，能够根据学生特点制定教学计划。',
-    categorie_tags: ['钢琴教学', '声乐指导', '音乐制作', '乐理培训'],
+    categorie_tags: ['约玩'],
     photos: [
       'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=400',
       'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400'
@@ -172,15 +172,15 @@ export const parjobCards = [
   {
     _id: '687f3456a7c43263da471566',
     user_id: '687f3456a7c43263da471566',
-    nickname: '翻译官',
+    nickname: '地陪翻译官',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200',
     gender: 1,
     age: 29,
     education: '硕士',
     city: '成都',
-    skills: ['英语翻译', '日语翻译', '商务翻译', '口译'],
+    skills: ['地陪', '翻译服务'],
     strengths: '海外留学背景，精通英语和日语，有丰富的商务翻译和口译经验，能够提供专业翻译服务。',
-    categorie_tags: ['英语翻译', '日语翻译', '商务翻译', '口译服务'],
+    categorie_tags: ['旅行','邻帮'],
     photos: [
       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
       'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400'
@@ -211,9 +211,9 @@ export const parjobCards = [
     age: 24,
     education: '本科',
     city: '武汉',
-    skills: ['插画设计', '手绘', '数字绘画', '角色设计'],
+    skills: ['绘画'],
     strengths: '专业插画师，擅长手绘和数字绘画，有丰富的角色设计和场景插画经验，能够快速完成各种风格的作品。',
-    categorie_tags: ['插画设计', '手绘艺术', '数字绘画', '角色设计'],
+    categorie_tags: ['约玩'],
     photos: [
       'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
       'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400'
@@ -244,9 +244,9 @@ export const parjobCards = [
     age: 32,
     education: '硕士',
     city: '南京',
-    skills: ['心理咨询', '认知行为疗法', '情绪管理', '压力疏导'],
+    skills: ['心理咨询'],
     strengths: '专业心理咨询师，持有国家心理咨询师证书，擅长认知行为疗法和情绪管理，有丰富的个案咨询经验。',
-    categorie_tags: ['心理咨询', '认知行为疗法', '情绪管理', '压力疏导'],
+    categorie_tags: ['邻帮'],
     photos: [
       'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400',
       'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400'
@@ -271,15 +271,15 @@ export const parjobCards = [
   {
     _id: '688c9012a7c43263da471569',
     user_id: '688c9012a7c43263da471569',
-    nickname: '摄影师',
+    nickname: '吃不胖的摄影师',
     avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200',
     gender: 1,
     age: 27,
     education: '本科',
     city: '西安',
-    skills: ['人像摄影', '商业摄影', '后期修图', '视频拍摄'],
+    skills: ['户外探险', '旅游策划', '摄影指导'],
     strengths: '专业摄影师，擅长人像和商业摄影，有丰富的后期修图经验，能够提供从拍摄到后期的完整服务。',
-    categorie_tags: ['人像摄影', '商业摄影', '后期修图', '视频拍摄'],
+    categorie_tags: ['旅行'],
     photos: [
       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
       'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400'
@@ -304,15 +304,15 @@ export const parjobCards = [
   {
     _id: '688d3456a7c43263da471570',
     user_id: '688d3456a7c43263da471570',
-    nickname: '程序员',
+    nickname: '勤劳小蜜蜂',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200',
     gender: 1,
     age: 31,
-    education: '本科',
+    education: '专科',
     city: '重庆',
-    skills: ['Java开发', 'Spring Boot', '微服务', '数据库设计'],
-    strengths: '资深Java开发工程师，有6年开发经验，精通Spring Boot和微服务架构，擅长数据库设计和性能优化。',
-    categorie_tags: ['Java开发', 'Spring Boot', '微服务架构', '数据库设计'],
+    skills: ['生活收纳师', '管家服务'],
+    strengths: '资深生活收纳师，有2年从业经验，吃苦耐劳，有责任心。',
+    categorie_tags: ['家政'],
     photos: [
       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
       'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400'
