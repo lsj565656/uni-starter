@@ -267,9 +267,10 @@ const formData = reactive({
   city: '',
   skills: [],
   categorie_tags: [],
-  custom_skills: [], // 新增自定义技能数组
+  custom_skills: [],
   strengths: '',
   photos: [],
+  diploma_photos: [],
   certificate_photos: [],
   is_active: true,
   allow_homepage_view: false,
@@ -279,7 +280,7 @@ const formData = reactive({
     city: true,
     skills: true,
     categorie_tags: true,
-    custom_skills: true, // 新增自定义技能显示字段
+    custom_skills: true,
     strengths: true,
     photos: true
   }
@@ -434,17 +435,17 @@ function removePhoto(index) {
 
 function chooseDiploma() {
   uni.chooseImage({
-    count: 3 - formData.certificate_photos.length,
+    count: 3 - formData.diploma_photos.length,
     sizeType: ['compressed'],
     sourceType: ['album', 'camera'],
     success: (res) => {
-      formData.certificate_photos.push(...res.tempFilePaths)
+      formData.diploma_photos.push(...res.tempFilePaths)
     }
   })
 }
 
 function removeDiploma(index) {
-  formData.certificate_photos.splice(index, 1)
+  formData.diploma_photos.splice(index, 1)
 }
 
 function chooseCertificate() {
@@ -752,6 +753,7 @@ function fillFormWithCardData(cardData) {
   
   // 照片信息
   formData.photos = cardData.photos || []
+  formData.diploma_photos = cardData.diploma_photos || []
   formData.certificate_photos = cardData.certificate_photos || []
   
   // 展示设置
@@ -774,7 +776,30 @@ function fillFormWithDefaultUserInfo() {
   formData.avatar = userInfo.value.avatar_file?.url || '/static/default-avatar.png'
   formData.nickname = userInfo.value.nickname || '未设置'
   formData.gender = userInfo.value.gender || 0
-  // 其他字段保持默认值
+  formData.age = ''
+  formData.education = ''
+  formData.location = []
+  formData.location_text = []
+  formData.city = ''
+  formData.skills = []
+  formData.categorie_tags = []
+  formData.custom_skills = []
+  formData.strengths = ''
+  formData.photos = []
+  formData.diploma_photos = []
+  formData.certificate_photos = []
+  formData.is_active = true
+  formData.allow_homepage_view = false
+  formData.show_fields = {
+    age: true,
+    education: true,
+    city: true,
+    skills: true,
+    categorie_tags: true,
+    custom_skills: true,
+    strengths: true,
+    photos: true
+  }
 }
 
 </script>
