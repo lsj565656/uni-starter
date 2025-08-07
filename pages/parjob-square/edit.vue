@@ -11,7 +11,7 @@
     </uni-nav-bar>
 
     <uni-forms ref="formRef" :modelValue="formData" :disabled="isSaving" :rules="rules" label-width="90">
-      <scroll-view class="content-scroll" scroll-y :class="{ 'disabled-scroll': isSaving }">
+      <scroll-view class="content-scroll" scroll-y :class="{ 'disabled-scroll': isSaving || isUploading }">
         <!-- 基本信息 -->
         <uni-section title="基本信息" type="line"></uni-section>
         <view class="section">
@@ -212,10 +212,10 @@
     </uni-forms>
     
     <!-- 保存状态遮罩层 -->
-    <view v-if="isSaving" class="saving-overlay" @click.stop>
+    <view v-if="isSaving || isUploading" class="saving-overlay" @click.stop>
       <view class="saving-content">
         <uni-icons type="spinner-cycle" size="40" color="#007aff" class="saving-icon" />
-        <text class="saving-text">保存中...</text>
+        <text class="saving-text">{{ isUploading ? '上传中...' : '保存中...' }}</text>
       </view>
     </view>
   </view>
@@ -223,12 +223,12 @@
 
 <script setup>
 import { areaList } from '@/common/areaList.js'
-import { getUserParCard, updateUserParCardCache } from '@/utils/user-parcard.js'
+import { updateUserParCardCache } from '@/utils/user-parcard.js'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { onMounted, ref, reactive, computed, onUnmounted } from 'vue'
 import { categorySkillsMapping } from '@/utils/category-skills-mapping.js'
 import MediaUploader from '@/components/media-uploader/media-uploader.vue'
-import { onLoad, onShow } from '@dcloudio/uni-app'
+import { onShow } from '@dcloudio/uni-app'
 
 // 校验规则常量
 const ALLOWED_DESC_REGEX = /[\w!"#$%&'()*+,./:;<=>?@[\\\]^{|}~·\u2013\u2014—\u2018'\u2019'\u201C"\u201D"\u2026…\u3001、\u3002。\u3008-\u300B\u300E-\u3011\u4E00-\u9FA5\uFF01！\uFF0C，\uFF1A\uFF1B\uFF1F？￥-]/g
@@ -237,6 +237,7 @@ const formRef = ref(null)
 const areaPickerRef = ref(null)
 const isSaving = ref(false)
 const isDataPickerOpen = ref(false)
+const isUploading = ref(false)
 
 // 表单数据
 const formData = reactive({
@@ -298,6 +299,41 @@ const rules = {
 // 自定义技能输入
 const customSkillInput = ref('')
 const maxCustomSkills = ref(3)
+
+// 获取文件扩展名
+function getExtension(url) {
+  const index = url.lastIndexOf('.')
+  return index === -1 ? '' : url.slice(index)
+}
+
+// 批量上传所有本地媒体文件，返回全部为云端url的media_detail
+async function uploadAllMedia(mediaDetailArray) {
+  const uploaded = []
+  for (const item of mediaDetailArray) {
+    if (
+      typeof item.url === 'string' &&
+      (item.url.startsWith('http') || item.url.startsWith('https'))
+    ) {
+      uploaded.push(item)
+    } else {
+      try {
+        const res = await uniCloud.uploadFile({
+          filePath: item.url,
+          cloudPath:
+            'kl-parjob-cards/' +
+            Date.now() +
+            '_' +
+            Math.random().toString(36).slice(2) +
+            getExtension(item.url)
+        })
+        uploaded.push({ ...item, url: res.fileID || res.url })
+      } catch {
+        throw new Error('文件上传失败: ' + (item.url || '未知文件'))
+      }
+    }
+  }
+  return uploaded
+}
 
 // 计算属性
 const canAddCustomSkill = computed(() => {
@@ -470,7 +506,7 @@ function checkSkillSelectorResult() {
 }
 
 function removeSkill(index) {
-  const skill = formData.skills[index]
+  // const skill = formData.skills[index]
   formData.skills.splice(index, 1)
   
   // 不再直接修改擅长领域，让技能选择器根据剩余技能重新计算
@@ -479,12 +515,6 @@ function removeSkill(index) {
 
 function removeCustomSkill(index) {
   formData.custom_skills.splice(index, 1)
-}
-
-// 移除相关的擅长领域 - 不再直接修改，让技能选择器处理
-function removeRelatedCategorieTag(skill) {
-  // 不再直接修改 categorie_tags，让技能选择器根据技能重新计算
-  // 这样可以避免在未保存状态下修改数据导致的问题
 }
 
 // 移除擅长领域及其相关技能 - 不立即更新缓存
@@ -533,7 +563,7 @@ function addCustomSkill() {
 
 // 保存数据
 async function saveProfile() {
-  if (isSaving.value) return // 防止重复提交
+  if (isSaving.value || isUploading.value) return // 防止重复提交
   
   try {
     // 表单校验
@@ -548,6 +578,19 @@ async function saveProfile() {
     })
     formData.skills = allSkills
     
+    // 设置上传状态
+    isUploading.value = true
+    
+    // 1. 批量上传所有本地文件到云存储
+    const uploadedPhotosDetail = await uploadAllMedia(formData.photos_detail)
+    const uploadedDiplomaPhotosDetail = await uploadAllMedia(formData.diploma_photos_detail)
+    const uploadedCertificatePhotosDetail = await uploadAllMedia(formData.certificate_photos_detail)
+    
+    // 更新详情数组为云端URL
+    formData.photos_detail = uploadedPhotosDetail
+    formData.diploma_photos_detail = uploadedDiplomaPhotosDetail
+    formData.certificate_photos_detail = uploadedCertificatePhotosDetail
+    
     // 同步照片数据：从详情数组提取URL数组
     formData.photos = formData.photos_detail.map(item => item.url)
     formData.diploma_photos = formData.diploma_photos_detail.map(item => item.url)
@@ -558,12 +601,15 @@ async function saveProfile() {
       // 如果是对象数组，提取 value 值
       if (typeof formData.location[0] === 'object' && formData.location[0].value) {
         formData.location = formData.location.map(item => item.value)
+      } else {
+        console.log('如果不是对象数组，保持原样')
       }
       // 如果不是对象数组，保持原样
     }
     
     // 设置保存状态
     isSaving.value = true
+    isUploading.value = false
 
     // 这里应该调用云函数保存数据
     const result = await uniCloud.callFunction({
@@ -611,6 +657,7 @@ async function saveProfile() {
   } finally {
     // 无论成功失败都要重置保存状态
     isSaving.value = false
+    isUploading.value = false
   }
 }
 

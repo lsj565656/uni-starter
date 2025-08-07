@@ -56,7 +56,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { onBackPress } from '@dcloudio/uni-app'
 
 const properties = defineProps({
@@ -71,6 +71,11 @@ const emit = defineEmits(['update:modelValue'])
 const defaultVideoCover = ref('/static/icons/videoCover.png')
 
 const mediaList = computed(() => {
+  // 如果不允许视频上传，只返回图片
+  if (properties.maxVideo <= 0) {
+    return (properties.modelValue || []).filter(f => f.type === 'image')
+  }
+  
   // 视频优先
   const video = (properties.modelValue || []).find(f => f.type === 'video')
   const images = (properties.modelValue || []).filter(f => f.type === 'image')
@@ -79,19 +84,31 @@ const mediaList = computed(() => {
 const canAdd = computed(() => {
   const imgCount = mediaList.value.filter(f => f.type === 'image').length
   const hasVideo = mediaList.value.some(f => f.type === 'video')
+  
+  // 如果不允许视频上传，只检查图片数量
+  if (properties.maxVideo <= 0) {
+    return imgCount < properties.maxImages
+  }
+  
   return imgCount < properties.maxImages || (!hasVideo && properties.maxVideo > 0)
 })
-const ruleText = computed(
-  () =>
-    `图片最多${properties.maxImages}张，单张≤${Math.round(properties.maxImageSize / 1024 / 1024)}MB；视频1个，≤${Math.round(properties.maxVideoSize / 1024 / 1024)}MB，≤${properties.maxVideoDuration}秒`
-)
+const ruleText = computed(() => {
+  const imageText = `图片最多${properties.maxImages}张，单张≤${Math.round(properties.maxImageSize / 1024 / 1024)}MB`
+  
+  // 如果不允许视频上传，只显示图片规则
+  if (properties.maxVideo <= 0) {
+    return imageText
+  }
+  
+  return `${imageText}；视频1个，≤${Math.round(properties.maxVideoSize / 1024 / 1024)}MB，≤${properties.maxVideoDuration}秒`
+})
 
 // 全屏video播放相关
 const showVideo = ref(false)
 const currentVideoUrl = ref('')
 
 onMounted(() => {
-  onBackPress(e => {
+  onBackPress(() => {
     if (showVideo.value) {
       showVideo.value = false
       return true // 拦截返回
@@ -106,6 +123,13 @@ onBeforeUnmount(() => {
 function onAddClick() {
   const imgCount = mediaList.value.filter(f => f.type === 'image').length
   const hasVideo = mediaList.value.some(f => f.type === 'video')
+  
+  // 如果不允许视频上传，直接选择图片
+  if (properties.maxVideo <= 0) {
+    chooseImage()
+    return
+  }
+  
   // 只剩图片名额
   if (imgCount < properties.maxImages && hasVideo) {
     chooseImage()
@@ -148,6 +172,14 @@ function chooseImage() {
         type: 'image',
         is_main: false
       }))
+      
+      // 如果不允许视频上传，只处理图片
+      if (properties.maxVideo <= 0) {
+        const newArray = [...imgs, ...addImgs].slice(0, properties.maxImages)
+        emit('update:modelValue', newArray)
+        return
+      }
+      
       const video = properties.modelValue.find(f => f.type === 'video')
       let newArray = video ? [video, ...imgs, ...addImgs] : [...imgs, ...addImgs]
       // 最终图片数不超过maxImages
@@ -159,6 +191,12 @@ function chooseImage() {
   })
 }
 function chooseVideo() {
+  // 如果不允许视频上传，直接返回
+  if (properties.maxVideo <= 0) {
+    uni.showToast({ title: '不支持视频上传', icon: 'none' })
+    return
+  }
+  
   const hasVideo = mediaList.value.some(f => f.type === 'video')
   console.log('[chooseVideo] hasVideo:', hasVideo)
   if (hasVideo) {
@@ -296,6 +334,8 @@ function onImageError(e, index) {
       // 如果缩略图加载失败，使用原图
       if (item.thumbnail && item.thumbnail !== item.url) {
         item.thumbnail = item.url
+      } else {
+        console.log('onImageError')
       }
     }
   }
