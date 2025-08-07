@@ -145,53 +145,35 @@
 
           <!-- 个人照片 -->
           <uni-forms-item label="个人照片" name="photos">
-            <view class="photo-grid">
-              <view v-for="(photo, index) in formData.photos" :key="index" class="photo-item">
-                <image :src="photo" class="photo-image" mode="aspectFill" />
-                <view class="photo-delete" @click="removePhoto(index)">
-                  <uni-icons type="close" size="16" color="#fff" />
-                </view>
-              </view>
-              <view v-if="formData.photos.length < 3" class="photo-add" @click="choosePhotos">
-                <uni-icons type="plus" size="30" color="#999" />
-                <text class="add-text">添加照片</text>
-              </view>
-            </view>
-            <text class="photo-tip">最多可上传3张个人照片</text>
+            <media-uploader 
+              v-model="formData.photos_detail" 
+              :maxImages="3" 
+              :maxImageSize="10 * 1024 * 1024"
+              :maxVideo="0"
+            />
+            <text class="photo-tip">最多可上传3张个人照片，单张不超过10MB</text>
           </uni-forms-item>
 
           <!-- 毕业证书 -->
           <uni-forms-item label="毕业证书" name="diploma_photos">
-            <view class="photo-grid">
-              <view v-for="(cert, index) in formData.diploma_photos" :key="index" class="photo-item">
-                <image :src="cert" class="photo-image" mode="aspectFill" />
-                <view class="photo-delete" @click="removeDiploma(index)">
-                  <uni-icons type="close" size="16" color="#fff" />
-                </view>
-              </view>
-              <view v-if="formData.diploma_photos.length < 3" class="photo-add" @click="chooseDiploma">
-                <uni-icons type="plus" size="30" color="#999" />
-                <text class="add-text">上传证书</text>
-              </view>
-            </view>
-            <text class="photo-tip">证书仅用于平台认证，不会对外展示</text>
+            <media-uploader 
+              v-model="formData.diploma_photos_detail" 
+              :maxImages="2" 
+              :maxImageSize="10 * 1024 * 1024"
+              :maxVideo="0"
+            />
+            <text class="photo-tip">最多可上传2张毕业证书，单张不超过10MB，仅用于平台认证</text>
           </uni-forms-item>
 
           <!-- 职业证书 -->
           <uni-forms-item label="职业证书" name="certificate_photos">
-            <view class="photo-grid">
-              <view v-for="(cert, index) in formData.certificate_photos" :key="index" class="photo-item">
-                <image :src="cert" class="photo-image" mode="aspectFill" />
-                <view class="photo-delete" @click="removeCertificate(index)">
-                  <uni-icons type="close" size="16" color="#fff" />
-                </view>
-              </view>
-              <view v-if="formData.certificate_photos.length < 3" class="photo-add" @click="chooseCertificate">
-                <uni-icons type="plus" size="30" color="#999" />
-                <text class="add-text">上传证书</text>
-              </view>
-            </view>
-            <text class="photo-tip">证书仅用于平台认证，不会对外展示</text>
+            <media-uploader 
+              v-model="formData.certificate_photos_detail" 
+              :maxImages="2" 
+              :maxImageSize="10 * 1024 * 1024"
+              :maxVideo="0"
+            />
+            <text class="photo-tip">最多可上传2张职业证书，单张不超过10MB，仅用于平台认证</text>
           </uni-forms-item>
         </view>
 
@@ -245,6 +227,7 @@ import { getUserParCard, updateUserParCardCache } from '@/utils/user-parcard.js'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { onMounted, ref, reactive, computed, onUnmounted } from 'vue'
 import { categorySkillsMapping } from '@/utils/category-skills-mapping.js'
+import MediaUploader from '@/components/media-uploader/media-uploader.vue'
 
 // 校验规则常量
 const ALLOWED_DESC_REGEX = /[\w!"#$%&'()*+,./:;<=>?@[\\\]^{|}~·\u2013\u2014—\u2018'\u2019'\u201C"\u201D"\u2026…\u3001、\u3002。\u3008-\u300B\u300E-\u3011\u4E00-\u9FA5\uFF01！\uFF0C，\uFF1A\uFF1B\uFF1F？￥-]/g
@@ -270,8 +253,11 @@ const formData = reactive({
   custom_skills: [],
   strengths: '',
   photos: [],
+  photos_detail: [], // 新增：个人照片详情数组
   diploma_photos: [],
+  diploma_photos_detail: [], // 新增：毕业证书详情数组
   certificate_photos: [],
+  certificate_photos_detail: [], // 新增：职业证书详情数组
   is_active: true,
   allow_homepage_view: false,
   show_fields: {
@@ -417,52 +403,6 @@ function toggleShowField(key, value) {
   formData.show_fields[key] = value
 }
 
-
-function choosePhotos() {
-  uni.chooseImage({
-    count: 6 - formData.photos.length,
-    sizeType: ['compressed'],
-    sourceType: ['album', 'camera'],
-    success: (res) => {
-      formData.photos.push(...res.tempFilePaths)
-    }
-  })
-}
-
-function removePhoto(index) {
-  formData.photos.splice(index, 1)
-}
-
-function chooseDiploma() {
-  uni.chooseImage({
-    count: 3 - formData.diploma_photos.length,
-    sizeType: ['compressed'],
-    sourceType: ['album', 'camera'],
-    success: (res) => {
-      formData.diploma_photos.push(...res.tempFilePaths)
-    }
-  })
-}
-
-function removeDiploma(index) {
-  formData.diploma_photos.splice(index, 1)
-}
-
-function chooseCertificate() {
-  uni.chooseImage({
-    count: 3 - formData.certificate_photos.length,
-    sizeType: ['compressed'],
-    sourceType: ['album', 'camera'],
-    success: (res) => {
-      formData.certificate_photos.push(...res.tempFilePaths)
-    }
-  })
-}
-
-function removeCertificate(index) {
-  formData.certificate_photos.splice(index, 1)
-}
-
 // 技能选择相关
 function showSkillSelector() {
   const selectedData = {
@@ -561,6 +501,11 @@ async function saveProfile() {
       }
     })
     formData.skills = allSkills
+    
+    // 同步照片数据：从详情数组提取URL数组
+    formData.photos = formData.photos_detail.map(item => item.url)
+    formData.diploma_photos = formData.diploma_photos_detail.map(item => item.url)
+    formData.certificate_photos = formData.certificate_photos_detail.map(item => item.url)
     
     // 设置保存状态
     isSaving.value = true
@@ -751,10 +696,29 @@ function fillFormWithCardData(cardData) {
   formData.categorie_tags = cardData.categorie_tags || []
   formData.strengths = cardData.strengths || ''
   
-  // 照片信息
-  formData.photos = cardData.photos || []
-  formData.diploma_photos = cardData.diploma_photos || []
-  formData.certificate_photos = cardData.certificate_photos || []
+  // 照片信息处理 - 兼容旧数据格式
+  const photos = cardData.photos || []
+  const diplomaPhotos = cardData.diploma_photos || []
+  const certificatePhotos = cardData.certificate_photos || []
+  
+  // 将URL数组转换为详情数组格式
+  formData.photos_detail = photos.map(url => ({
+    url: url,
+    type: 'image',
+    is_main: false
+  }))
+  
+  formData.diploma_photos_detail = diplomaPhotos.map(url => ({
+    url: url,
+    type: 'image',
+    is_main: false
+  }))
+  
+  formData.certificate_photos_detail = certificatePhotos.map(url => ({
+    url: url,
+    type: 'image',
+    is_main: false
+  }))
   
   // 展示设置
   formData.show_fields = cardData.show_fields || {
@@ -785,9 +749,9 @@ function fillFormWithDefaultUserInfo() {
   formData.categorie_tags = []
   formData.custom_skills = []
   formData.strengths = ''
-  formData.photos = []
-  formData.diploma_photos = []
-  formData.certificate_photos = []
+  formData.photos_detail = []
+  formData.diploma_photos_detail = []
+  formData.certificate_photos_detail = []
   formData.is_active = true
   formData.allow_homepage_view = false
   formData.show_fields = {
@@ -1080,64 +1044,10 @@ function fillFormWithDefaultUserInfo() {
   transform: scale(0.95);
 }
 
-.photo-grid,
-.cert-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15rpx;
-  margin-bottom: 15rpx;
-}
-
-.photo-item,
-.cert-item {
-  position: relative;
-  aspect-ratio: 1;
-  border-radius: 8rpx;
-  overflow: hidden;
-}
-
-.photo-image,
-.cert-image {
-  width: 100%;
-  height: 100%;
-}
-
-.photo-delete,
-.cert-delete {
-  position: absolute;
-  top: 5rpx;
-  right: 5rpx;
-  width: 40rpx;
-  height: 40rpx;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.photo-add,
-.cert-add {
-  aspect-ratio: 1;
-  border: 2rpx dashed #ddd;
-  border-radius: 8rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #f9f9f9;
-}
-
-.add-text {
-  font-size: 22rpx;
-  color: #999;
-  margin-top: 8rpx;
-}
-
-.photo-tip,
-.cert-tip {
+.photo-tip {
   font-size: 24rpx;
   color: #999;
+  margin-top: 8rpx;
 }
 
 .switch-list {
