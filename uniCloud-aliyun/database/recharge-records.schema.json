@@ -1,0 +1,62 @@
+{
+  "bsonType": "object",
+  "required": ["user_id", "amount", "order_no"],
+  "permission": {
+    "read": "auth.uid != null",
+    "create": "auth.uid != null",
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": {
+      "description": "ID，系统自动生成"
+    },
+    "user_id": {
+      "bsonType": "string",
+      "description": "用户ID",
+      "title": "用户",
+      "foreignKey": "uni-id-users._id"
+    },
+    "amount": {
+      "bsonType": "number",
+      "description": "充值金额（元）",
+      "title": "金额"
+    },
+    "order_no": {
+      "bsonType": "string",
+      "description": "关联的支付订单号",
+      "title": "订单号"
+    },
+    "status": {
+      "bsonType": "string",
+      "description": "充值状态",
+      "title": "状态",
+      "enum": ["pending", "success", "failed"],
+      "defaultValue": "pending"
+    },
+    "payment_method": {
+      "bsonType": "string",
+      "description": "支付方式",
+      "title": "支付方式",
+      "enum": ["weixin", "alipay"]
+    },
+    "create_time": {
+      "bsonType": "timestamp",
+      "description": "创建时间",
+      "title": "创建时间",
+      "forceDefaultValue": {
+        "$env": "now"
+      }
+    },
+    "success_time": {
+      "bsonType": "timestamp",
+      "description": "充值成功时间",
+      "title": "成功时间"
+    },
+    "remark": {
+      "bsonType": "string",
+      "description": "备注",
+      "title": "备注"
+    }
+  }
+} 
