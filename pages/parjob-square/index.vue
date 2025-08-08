@@ -824,8 +824,6 @@ function startSmartRecommend() {
   })
 }
 
-
-
 // 获取屏幕信息
 function getScreenInfo() {
   const systemInfo = uni.getSystemInfoSync()
@@ -1185,8 +1183,6 @@ function checkDrawerState() {
 .smart-recommend-card .block-icon {
   background: linear-gradient(135deg, #4facfe, #00f2fe);
 }
-
-
 
 .block-content {
   flex: 1;
