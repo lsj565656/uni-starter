@@ -100,6 +100,78 @@
         </view>
       </uni-card>
 
+    <!-- 智能推荐弹窗 -->
+    <uni-popup ref="smartRecommendPopup" type="bottom" class="smart-recommend-popup">
+      <view class="smart-recommend-modal">
+        <view class="smart-recommend-header">
+          <text class="smart-recommend-title">智能推荐</text>
+          <view class="smart-recommend-actions">
+            <view class="smart-recommend-refresh" @click="refreshSmartRecommendTasks">
+              <uni-icons type="refresh" size="20" color="#666" />
+            </view>
+            <text v-if="lastCacheTime" class="smart-recommend-update-time">
+              {{ formatLastUpdateTime(lastCacheTime) }}
+            </text>
+            <view class="smart-recommend-close" @click="hideSmartRecommendModal">
+              <uni-icons type="close" size="20" color="#333" />
+            </view>
+          </view>
+        </view>
+
+        <view class="smart-recommend-content">
+          <!-- 加载状态 -->
+          <view v-if="smartRecommendLoading" class="smart-recommend-loading">
+            <uni-load-state :state="{ loading: true }" />
+          </view>
+
+          <!-- 任务列表 -->
+          <view v-else-if="smartRecommendTasks.length > 0" class="smart-recommend-tasks">
+            <view v-for="task in smartRecommendTasks" :key="task._id" class="task-item">
+              <view class="task-info">
+                <text class="task-name">{{ task.name }}</text>
+                <text class="task-desc">{{ task.description || '无描述' }}</text>
+                <view class="task-meta">
+                  <text class="task-category">{{ task.category_name }}</text>
+                  <text class="task-location">{{ task.location_text ? task.location_text.join(' ') : '' }}</text>
+                </view>
+              </view>
+              <button class="match-btn" @click="matchUsersForTask(task)">
+                {{ getMatchButtonText(task) }}
+              </button>
+            </view>
+
+            <!-- 匹配结果 -->
+            <view v-if="selectedTaskForRecommend && matchedUsers.length > 0" class="matched-users-section">
+              <text class="matched-users-title">匹配结果</text>
+              <view class="matched-users-list">
+                <view v-for="user in matchedUsers.slice(0, 3)" :key="user.user_id" 
+                      class="matched-user-item" @click="showUserDetail(user)">
+                  <image :src="user.avatar" class="matched-user-avatar" mode="aspectFill" />
+                  <view class="matched-user-info">
+                    <text class="matched-user-name">{{ user.nickname }}</text>
+                    <text class="matched-user-city">{{ user.city }}</text>
+                    <text class="matched-user-skills-text">{{ user.skills ? user.skills.slice(0, 2).join(' · ') : '' }}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+
+            <!-- 无匹配结果 -->
+            <view v-else-if="selectedTaskForRecommend && matchedUsers.length === 0" class="no-matched-users">
+              <text class="no-matched-users-title">暂无匹配用户</text>
+              <text class="no-matched-users-desc">请尝试调整任务类型或地区</text>
+            </view>
+          </view>
+
+          <!-- 无任务状态 -->
+          <view v-else class="no-tasks">
+            <text class="no-tasks-title">暂无可用任务</text>
+            <text class="no-tasks-desc">请先发布一些任务</text>
+          </view>
+        </view>
+      </view>
+    </uni-popup>
+
 
     </view>
 
@@ -389,6 +461,23 @@ const ageOptions = Array.from({ length: 43 }, (_, i) => ({
 // 添加ref引用
 const userDetailPopup = ref(null)
 const filterPopup = ref(null)
+const smartRecommendPopup = ref(null)
+
+// 智能推荐相关状态
+const isSmartRecommendModalOpen = ref(false)
+const smartRecommendTasks = ref([])
+const smartRecommendLoading = ref(false)
+const selectedTaskForRecommend = ref(null)
+const matchedUsers = ref([])
+
+// 缓存相关状态
+const smartRecommendCache = ref(null)
+const lastCacheTime = ref(0)
+const CACHE_DURATION = 10 * 60 * 1000 // 10分钟缓存
+
+// 匹配结果状态
+const currentMatchedTaskId = ref(null)
+const matchedUsersCount = ref(0)
 
 // 城市和技能数据
 const allCities = ref([])
@@ -762,7 +851,7 @@ async function applyFilter() {
     }
 
     // 使用重构后的工具函数，支持筛选和多种数据模式 mock-cloud full-mock 和 full-cloud
-    const formattedUsers = await getFilteredParjobCards(filters, 'mock-cloud')
+    const formattedUsers = await getFilteredParjobCards(filters, 'full-mock')
 
     activeUsers.value = formattedUsers
     hideFilterModal()
@@ -803,11 +892,220 @@ function contactUser() {
   }
 }
 
+// 智能推荐相关方法
 function startSmartRecommend() {
+  showSmartRecommendModal()
+}
+
+function showSmartRecommendModal() {
+  smartRecommendPopup.value.open()
+  isSmartRecommendModalOpen.value = true
+  
+  // 检查缓存是否有效
+  if (isCacheValid()) {
+    smartRecommendTasks.value = smartRecommendCache.value
+    console.log('使用缓存数据，任务数量:', smartRecommendTasks.value.length)
+  } else {
+    loadSmartRecommendTasks()
+  }
+}
+
+function hideSmartRecommendModal() {
+  smartRecommendPopup.value.close()
+  isSmartRecommendModalOpen.value = false
+  selectedTaskForRecommend.value = null
+  matchedUsers.value = []
+  // 重置匹配状态
+  currentMatchedTaskId.value = null
+  matchedUsersCount.value = 0
+}
+
+// 格式化更新时间
+function formatLastUpdateTime(timestamp) {
+  if (!timestamp) return ''
+  
+  const now = Date.now()
+  const diff = now - timestamp
+  
+  if (diff < 60 * 1000) {
+    return '刚刚'
+  } else if (diff < 60 * 60 * 1000) {
+    const minutes = Math.floor(diff / (60 * 1000))
+    return `${minutes}分钟前`
+  } else if (diff < 24 * 60 * 60 * 1000) {
+    const hours = Math.floor(diff / (60 * 60 * 1000))
+    return `${hours}小时前`
+  } else {
+    const date = new Date(timestamp)
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hour = String(date.getHours()).padStart(2, '0')
+    const minute = String(date.getMinutes()).padStart(2, '0')
+    return `${month}-${day} ${hour}:${minute}`
+  }
+}
+
+// 检查缓存是否有效
+function isCacheValid() {
+  return smartRecommendCache.value && 
+         (Date.now() - lastCacheTime.value) < CACHE_DURATION
+}
+
+// 刷新智能推荐任务（强制重新获取）
+async function refreshSmartRecommendTasks() {
+  // 清除缓存
+  smartRecommendCache.value = null
+  lastCacheTime.value = 0
+  
+  // 重置匹配状态
+  currentMatchedTaskId.value = null
+  matchedUsersCount.value = 0
+  selectedTaskForRecommend.value = null
+  matchedUsers.value = []
+  
+  // 显示加载状态
+  smartRecommendLoading.value = true
+  
+  // 重新获取数据
+  await loadSmartRecommendTasks()
+  
+  // 显示刷新成功提示
   uni.showToast({
-    title: '智能推荐功能开发中',
-    icon: 'none'
+    title: '刷新成功',
+    icon: 'success',
+    duration: 1500
   })
+}
+
+// 加载智能推荐任务
+async function loadSmartRecommendTasks() {
+  try {
+    smartRecommendLoading.value = true
+    
+    // 调用云函数获取已发布的任务
+    const result = await uniCloud.callFunction({
+      name: 'getMyPublishedTasks',
+      data: {
+        page: 1,
+        pageSize: 50,
+        filter: '全部',
+        extra: '全部',
+        userId: store.userInfo._id // 手动传递用户ID
+      }
+    })
+
+    if (result.result && result.result.code === 0) {
+      const tasks = result.result.data || []
+      
+      // 筛选未过期且未失效的任务
+      const currentTime = Date.now()
+      const validTasks = tasks.filter(task => {
+        // 检查任务是否未过期（当前时间早于开始时间）
+        const isNotExpired = task.start_time && currentTime < task.start_time
+        // 检查任务是否未失效
+        const isNotInvalid = task.status !== 'invalid'
+        
+        return isNotExpired && isNotInvalid
+      })
+
+      // 更新缓存
+      smartRecommendCache.value = validTasks
+      lastCacheTime.value = Date.now()
+      
+      smartRecommendTasks.value = validTasks
+      console.log('获取新数据，任务数量:', validTasks.length)
+    } else {
+      smartRecommendTasks.value = []
+      smartRecommendCache.value = []
+      lastCacheTime.value = Date.now()
+    }
+  } catch (error) {
+    console.error('加载智能推荐任务失败:', error)
+    smartRecommendTasks.value = []
+    smartRecommendCache.value = []
+    lastCacheTime.value = Date.now()
+  } finally {
+    smartRecommendLoading.value = false
+  }
+}
+
+// 获取匹配按钮文本
+function getMatchButtonText(task) {
+  // 如果当前任务有匹配结果，显示数量
+  if (currentMatchedTaskId.value === task._id) {
+    return `匹配(${matchedUsersCount.value})`
+  }
+  // 否则显示默认文本
+  return '匹配'
+}
+
+// 根据任务匹配用户
+async function matchUsersForTask(task) {
+  try {
+    selectedTaskForRecommend.value = task
+    matchedUsers.value = []
+
+    // 构建匹配条件
+    const matchConditions = {
+      // 根据任务类型匹配擅长领域
+      categorieTags: [task.category_name],
+      // 根据任务地区匹配用户城市
+      city: task.location_text ? [task.location_text[task.location_text.length - 1]] : []
+    }
+
+    // 优化城市匹配逻辑：如果任务位置是区级，尝试匹配对应的市级
+    if (task.location_text && task.location_text.length > 0) {
+      const lastLocation = task.location_text[task.location_text.length - 1]
+      
+      // 如果是区级（通常以"区"、"县"、"市"结尾），尝试找到对应的市级
+      if (lastLocation.endsWith('区') || lastLocation.endsWith('县') || lastLocation.endsWith('市')) {
+        // 尝试从 location_text 中找到市级
+        const cityLevel = task.location_text.find(loc => 
+          loc.endsWith('市') && !loc.endsWith('区') && !loc.endsWith('县')
+        )
+        
+        if (cityLevel) {
+          matchConditions.city = [cityLevel]
+        } else {
+          // 如果找不到市级，使用原来的逻辑
+          matchConditions.city = [lastLocation]
+        }
+      } else {
+        // 如果已经是市级，直接使用
+        matchConditions.city = [lastLocation]
+      }
+    }
+
+    console.log('匹配条件:', matchConditions)
+    console.log('任务位置信息:', task.location_text)
+    console.log('优化后的城市匹配:', matchConditions.city)
+
+    // 调用筛选函数获取匹配的用户
+    const matchedUsersList = await getFilteredParjobCards(matchConditions, 'full-mock')
+    
+    console.log('匹配到的用户数量:', matchedUsersList.length)
+    
+    // 按匹配度排序（这里可以根据需要实现更复杂的排序逻辑）
+    matchedUsers.value = matchedUsersList.slice(0, 10) // 取前10个
+
+    // 更新匹配状态
+    currentMatchedTaskId.value = task._id
+    matchedUsersCount.value = matchedUsers.value.length
+
+    if (matchedUsers.value.length === 0) {
+      uni.showToast({
+        title: '暂无匹配用户',
+        icon: 'none'
+      })
+    }
+
+  } catch (error) {
+    console.error('匹配用户失败:', error)
+    uni.showToast({
+      title: '匹配失败',
+      icon: 'error'
+    })
+  }
 }
 
 // 获取屏幕信息
@@ -960,17 +1258,24 @@ function onSphereResume() {
 
 // 页面返回拦截
 onBackPress(() => {
+  // 检查用户详情弹窗是否打开
+  if (isUserDetailOpen.value) {
+    hideUserDetail()
+    return true // 阻止页面返回
+  }
+
+  // 检查智能推荐弹窗是否打开
+  if (isSmartRecommendModalOpen.value) {
+    hideSmartRecommendModal()
+    return true // 阻止页面返回
+  }
+
   // 检查筛选弹窗是否打开
   if (isFilterModalOpen.value || drawerStates.value.filterDrawer) {
     hideFilterModal()
     return true // 阻止页面返回
   }
 
-  // 检查用户详情弹窗是否打开
-  if (isUserDetailOpen.value) {
-    hideUserDetail()
-    return true // 阻止页面返回
-  }
   return false // 允许页面正常返回
 })
 
@@ -1792,5 +2097,257 @@ function checkDrawerState() {
 .no-users-desc {
   font-size: 26rpx;
   color: rgba(255, 255, 255, 0.6);
+}
+
+/* 智能推荐弹窗样式 */
+.smart-recommend-popup {
+  z-index: 1000 !important;
+}
+
+.smart-recommend-modal {
+  background: #fff;
+  border-radius: 20rpx 20rpx 0 0;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.smart-recommend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30rpx 30rpx 20rpx 30rpx;
+  border-bottom: 1rpx solid #eee;
+  flex-shrink: 0;
+}
+
+.smart-recommend-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.smart-recommend-actions {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.smart-recommend-refresh {
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+.smart-recommend-refresh:active {
+  transform: rotate(180deg);
+}
+
+.smart-recommend-update-time {
+  font-size: 22rpx;
+  color: #999;
+  margin: 0 10rpx;
+  white-space: nowrap;
+}
+
+.smart-recommend-close {
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.smart-recommend-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 30rpx;
+}
+
+.smart-recommend-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60rpx 0;
+}
+
+.smart-recommend-tasks {
+  padding: 20rpx 0;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+  transition: all 0.3s ease;
+}
+
+.task-item:active {
+  background: #f8f9fa;
+}
+
+.task-info {
+  flex: 1;
+  margin-right: 20rpx;
+}
+
+.task-name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.task-desc {
+  display: block;
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 8rpx;
+  line-height: 1.4;
+}
+
+.task-meta {
+  display: flex;
+  gap: 15rpx;
+}
+
+.task-category,
+.task-location {
+  font-size: 22rpx;
+  color: #999;
+  background: #f5f5f5;
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+}
+
+.match-btn {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  border: none;
+  border-radius: 8rpx;
+  padding: 12rpx 24rpx;
+  font-size: 24rpx;
+  min-width: 80rpx;
+}
+
+.match-btn:active {
+  transform: scale(0.95);
+}
+
+.matched-users-section {
+  margin-top: 30rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #eee;
+}
+
+.matched-users-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.matched-users-list {
+  display: flex;
+  flex-direction: row;
+  gap: 20rpx;
+  justify-content: flex-start;
+}
+
+.matched-user-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15rpx;
+  min-width: 120rpx;
+  max-width: 150rpx;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  transition: all 0.3s ease;
+}
+
+.matched-user-item:active {
+  background: #e9ecef;
+}
+
+.matched-user-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  margin-bottom: 8rpx;
+}
+
+.matched-user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.matched-user-name {
+  font-size: 24rpx;
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 4rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120rpx;
+}
+
+.matched-user-city {
+  font-size: 20rpx;
+  color: #666;
+  margin-bottom: 4rpx;
+}
+
+.matched-user-skills-text {
+  font-size: 18rpx;
+  color: #999;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.no-matched-users {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40rpx 0;
+}
+
+.no-matched-users-title {
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.no-matched-users-desc {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.no-tasks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 0;
+}
+
+.no-tasks-title {
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.no-tasks-desc {
+  font-size: 24rpx;
+  color: #666;
 }
 </style>

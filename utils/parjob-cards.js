@@ -381,14 +381,14 @@ export const parjobCards = [
     gender: 1,
     age: 31,
     education: '专科',
-    city: '重庆市',
+    city: '郑州市',
     location: [
-      '500000',
-      '500100'
+      '410000',
+      '410100'
     ],
     location_text: [
-      '重庆市',
-      '重庆市'
+      '河南省',
+      '郑州市'
     ],
     skills: ['生活收纳师', '管家服务'],
     strengths: '资深生活收纳师，有2年从业经验，吃苦耐劳，有责任心。',
@@ -532,7 +532,44 @@ function filterUsers(users, filters) {
     // 城市筛选
     if (filters.city && filters.city.length > 0) {
       const userCity = user.city
-      if (!userCity || !filters.city.includes(userCity)) {
+      const userLocationText = user.location_text
+      
+      // 检查用户城市是否匹配
+      let cityMatched = false
+      
+      // 直接匹配城市名
+      if (userCity && filters.city.includes(userCity)) {
+        cityMatched = true
+      }
+      
+      // 检查用户的位置信息是否包含目标城市
+      if (!cityMatched && userLocationText && Array.isArray(userLocationText)) {
+        for (const targetCity of filters.city) {
+          if (userLocationText.includes(targetCity)) {
+            cityMatched = true
+            break
+          }
+        }
+      }
+      
+      // 如果用户有市级信息，检查是否匹配目标城市
+      if (!cityMatched && userCity) {
+        for (const targetCity of filters.city) {
+          // 如果目标城市是区级，尝试匹配用户所在市级
+          if (targetCity.endsWith('区') || targetCity.endsWith('县')) {
+            // 从用户的位置信息中找到对应的市级
+            const userCityLevel = userLocationText?.find(loc => 
+              loc.endsWith('市') && !loc.endsWith('区') && !loc.endsWith('县')
+            )
+            if (userCityLevel && userCityLevel === userCity) {
+              cityMatched = true
+              break
+            }
+          }
+        }
+      }
+      
+      if (!cityMatched) {
         return false
       }
     }

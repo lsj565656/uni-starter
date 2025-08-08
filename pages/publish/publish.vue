@@ -228,8 +228,13 @@ const rules = {
           }
           const now = new Date()
           const minStart = new Date(now.getTime() + 15 * 60 * 1000)
-          let start = new Date(value[0].replaceAll('-', '/'))
-          let end = new Date(value[1].replaceAll('-', '/'))
+          
+          // 安全地处理日期字符串
+          const startStr = String(value[0] || '').replace(/-/g, '/')
+          const endStr = String(value[1] || '').replace(/-/g, '/')
+          
+          let start = new Date(startStr)
+          let end = new Date(endStr)
           let fixed = false
           if (start < minStart) {
             start = minStart
@@ -363,7 +368,7 @@ const maxParticipantsProxy = computed({
     if (value === '' || value === null) {
       form.max_participants = null
     } else {
-      const number_ = Number(value.toString().replaceAll(/\D/g, ''))
+      const number_ = Number(value.toString().replace(/\D/g, ''))
       form.max_participants = Number.isNaN(number_) ? null : number_
     }
   }
@@ -376,7 +381,7 @@ const scoreProxy = computed({
     if (value === '' || value === null) {
       form.score = null
     } else {
-      const number_ = Number(value.toString().replaceAll(/\D/g, ''))
+      const number_ = Number(value.toString().replace(/\D/g, ''))
       form.score = Number.isNaN(number_) ? null : number_
     }
   }
@@ -389,7 +394,7 @@ const priceProxy = computed({
     if (value === '' || value === null) {
       form.price = null
     } else {
-      let number_ = value.toString().replaceAll(/[^\d.]/g, '')
+      let number_ = value.toString().replace(/[^\d.]/g, '')
       number_ = number_.replace(/^0+(?=\d)/, '')
       if (number_.includes('.')) {
         number_ = number_.split('.').slice(0, 2).join('.')
@@ -404,7 +409,7 @@ function onTitleInput() {
 }
 function onDescInput() {
   let string_ = (form.description.match(ALLOWED_DESC_REGEX) || []).join('')
-  string_ = string_.replaceAll(/^\s+|\s+$/g, '').replaceAll(/\s{2,}/g, ' ')
+  string_ = string_.replace(/^\s+|\s+$/g, '').replace(/\s{2,}/g, ' ')
   form.description = string_.slice(0, 80)
 }
 function setMode(mode) {
@@ -418,8 +423,14 @@ function onTimeRangeChange(value) {
   if (Array.isArray(value) && value.length === 2) {
     const now = new Date()
     const minStart = new Date(now.getTime() + 15 * 60 * 1000)
-    const start = new Date(value[0].replaceAll('-', '/'))
-    const end = new Date(value[1].replaceAll('-', '/'))
+    
+    // 安全地处理日期字符串
+    const startStr = String(value[0] || '').replace(/-/g, '/')
+    const endStr = String(value[1] || '').replace(/-/g, '/')
+    
+    const start = new Date(startStr)
+    const end = new Date(endStr)
+    
     let fixed = false
     if (start < minStart) {
       fixed = true
