@@ -12,13 +12,13 @@ export const parjobCards = [
     age: 25,
     education: '本科',
     city: '北京市',
-    "location": [
-      "110000",
-      "110100"
+    location: [
+      '110000',
+      '110100'
     ],
-    "location_text": [
-      "北京市",
-      "北京市"
+    location_text: [
+      '北京市',
+      '北京市'
     ],
     skills: ['摄影指导'],
     strengths: '擅长创意设计和文案策划，有丰富的摄影经验，能够快速理解客户需求并提供专业解决方案。',
@@ -55,12 +55,12 @@ export const parjobCards = [
     education: '硕士',
     city: '上海市',
     location: [
-      "310000",
-      "310100"
+      '310000',
+      '310100'
     ],
     location_text: [
-      "上海市",
-      "上海市"
+      '上海市',
+      '上海市'
     ],
     skills: ['修手机', '修电脑'],
     strengths: '手机电脑上门维修',
@@ -96,12 +96,12 @@ export const parjobCards = [
     education: '大专',
     city: '广州市',
     location: [
-      "440000",
-      "440100"
+      '440000',
+      '440100'
     ],
     location_text: [
-      "广东省",
-      "广州市"
+      '广东省',
+      '广州市'
     ],
     skills: ['烘焙师', '美食探店'],
     strengths: '专业厨师出身，擅长中西餐制作，有丰富的美食摄影经验，能够提供营养搭配建议。',
@@ -137,12 +137,12 @@ export const parjobCards = [
     education: '本科',
     city: '深圳市',
     location: [
-      "440000",
-      "440300"
+      '440000',
+      '440300'
     ],
     location_text: [
-      "广东省",
-      "深圳市"
+      '广东省',
+      '深圳市'
     ],
     skills: ['羽毛球', '力量训练', '晨跑夜跑'],
     strengths: '专业健身教练，持有国际认证，擅长制定个性化训练计划，帮助学员科学健身。',
@@ -178,16 +178,16 @@ export const parjobCards = [
     education: '本科',
     city: '杭州市',
     location: [
-      "330000",
-      "330100"
+      '330000',
+      '330100'
     ],
     location_text: [
-      "浙江省",
-      "杭州市"
+      '浙江省',
+      '杭州市'
     ],
     skills: ['音乐', '乐理培训'],
     strengths: '音乐学院毕业，有8年教学经验，擅长钢琴和声乐教学，能够根据学生特点制定教学计划。',
-    categorie_tags: ['约玩'],
+    categorie_tags: ['更多'],
     photos: [
       'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=400',
       'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400'
@@ -219,12 +219,12 @@ export const parjobCards = [
     education: '硕士',
     city: '成都市',
     location: [
-      "510000",
-      "510100"
+      '510000',
+      '510100'
     ],
     location_text: [
-      "四川省",
-      "成都市"
+      '四川省',
+      '成都市'
     ],
     skills: ['地陪', '翻译服务'],
     strengths: '海外留学背景，精通英语和日语，有丰富的商务翻译和口译经验，能够提供专业翻译服务。',
@@ -260,16 +260,16 @@ export const parjobCards = [
     education: '本科',
     city: '武汉市',
     location: [
-      "420000",
-      "420100"
+      '420000',
+      '420100'
     ],
     location_text: [
-      "湖北省",
-      "武汉市"
+      '湖北省',
+      '武汉市'
     ],
     skills: ['绘画'],
     strengths: '专业插画师，擅长手绘和数字绘画，有丰富的角色设计和场景插画经验，能够快速完成各种风格的作品。',
-    categorie_tags: ['约玩'],
+    categorie_tags: ['更多'],
     photos: [
       'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
       'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400'
@@ -301,12 +301,12 @@ export const parjobCards = [
     education: '硕士',
     city: '南京市',
     location: [
-      "320000",
-      "320100"
+      '320000',
+      '320100'
     ],
     location_text: [
-      "江苏省",
-      "南京市"
+      '江苏省',
+      '南京市'
     ],
     skills: ['心理咨询'],
     strengths: '专业心理咨询师，持有国家心理咨询师证书，擅长认知行为疗法和情绪管理，有丰富的个案咨询经验。',
@@ -342,12 +342,12 @@ export const parjobCards = [
     education: '本科',
     city: '西安市',
     location: [
-      "610000",
-      "610100"
+      '610000',
+      '610100'
     ],
     location_text: [
-      "陕西省",
-      "西安市"
+      '陕西省',
+      '西安市'
     ],
     skills: ['户外探险', '旅游策划', '摄影指导'],
     strengths: '专业摄影师，擅长人像和商业摄影，有丰富的后期修图经验，能够提供从拍摄到后期的完整服务。',
@@ -383,12 +383,12 @@ export const parjobCards = [
     education: '专科',
     city: '重庆市',
     location: [
-      "500000",
-      "500100"
+      '500000',
+      '500100'
     ],
     location_text: [
-      "重庆市",
-      "重庆市"
+      '重庆市',
+      '重庆市'
     ],
     skills: ['生活收纳师', '管家服务'],
     strengths: '资深生活收纳师，有2年从业经验，吃苦耐劳，有责任心。',
