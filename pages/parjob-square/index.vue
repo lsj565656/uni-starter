@@ -298,7 +298,7 @@ import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { getUserParCard } from '@/utils/user-parcard.js'
 import { onBackPress, onShow } from '@dcloudio/uni-app'
 import { computed, onMounted, ref, nextTick, onUnmounted } from 'vue'
-import { categorySkillsMapping } from '@/utils/category-skills-mapping.js'
+import { getCategoryBySkill } from '@/utils/category-skills-mapping.js'
 
 // 响应式数据
 const activeUsers = ref([])
@@ -670,20 +670,6 @@ function removeTempCategorieTag(index) {
     const category = getCategoryBySkill(skill)
     return !category || category.name !== tagName
   })
-}
-
-// 获取技能所属分类
-function getCategoryBySkill(skill) {
-  for (const [key, category] of Object.entries(categorySkillsMapping)) {
-    if (category.skills.includes(skill)) {
-      return {
-        key,
-        name: category.name,
-        description: category.description
-      }
-    }
-  }
-  return null
 }
 
 // 城市选择器相关

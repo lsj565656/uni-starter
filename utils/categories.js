@@ -6,6 +6,7 @@ export const categories = [
     sort_order: 0 },
   {
     catId: 1,
+    key: 'neighborhood',
     text: '邻帮',
     name: '邻帮',
     description: '邻里之间互相帮助的服务',
@@ -36,6 +37,7 @@ export const categories = [
   },
   {
     catId: 2,
+    key: 'errand',
     text: '跑腿',
     name: '跑腿',
     description: '日常跑腿配送服务',
@@ -61,6 +63,7 @@ export const categories = [
   },
   {
     catId: 3,
+    key: 'housekeeping',
     text: '家政',
     name: '家政',
     description: '家庭生活相关服务',
@@ -93,6 +96,7 @@ export const categories = [
   },
   {
     catId: 4,
+    key: 'pet',
     text: '宠物',
     name: '宠物',
     description: '宠物相关服务',
@@ -125,6 +129,7 @@ export const categories = [
   },
   {
     catId: 5,
+    key: 'maintenance',
     text: '维修',
     name: '维修',
     description: '各类设备维修服务',
@@ -152,6 +157,7 @@ export const categories = [
   },
   {
     catId: 6,
+    key: 'medical',
     text: '陪诊',
     name: '陪诊',
     description: '医疗陪护相关服务',
@@ -179,6 +185,7 @@ export const categories = [
   },
   {
     catId: 7,
+    key: 'job-market',
     text: '趴活广场',
     name: '趴活广场',
     description: '趴活广场',
@@ -193,6 +200,7 @@ export const categories = [
   },
   {
     catId: 8,
+    key: 'fitness',
     text: '健身',
     name: '健身',
     description: '运动健身相关服务',
@@ -227,6 +235,7 @@ export const categories = [
   },
   {
     catId: 9,
+    key: 'travel',
     text: '旅行',
     name: '旅行',
     description: '旅游出行相关服务',
@@ -234,7 +243,7 @@ export const categories = [
     route: '/pages/category-tasks/index?catId=9&catName=旅行',
     use_home_grid: true,
     use_list: true,
-    is_map_skill: false,
+    is_map_skill: true,
     skills: [
       '打卡攻略',
       '爬山',
@@ -257,6 +266,7 @@ export const categories = [
   },
   {
     catId: 10,
+    key: 'food',
     text: '吃喝',
     name: '吃喝',
     description: '美食餐饮相关服务',
@@ -264,7 +274,7 @@ export const categories = [
     route: '/pages/category-tasks/index?catId=10&catName=吃喝',
     use_home_grid: true,
     use_list: true,
-    is_map_skill: false,
+    is_map_skill: true,
     skills: [
       '特色美食',
       '上门做菜',
@@ -287,6 +297,7 @@ export const categories = [
   },
   {
     catId: 99,
+    key: 'entertainment',
     text: '更多',
     name: '更多',
     description: '大家一起娱乐活动',
@@ -294,7 +305,7 @@ export const categories = [
     route: '/pages/category-tasks/index?catId=99&catName=更多',
     use_home_grid: true,
     use_list: true,
-    is_map_skill: false,
+    is_map_skill: true,
     skills: [
       '出游',
       '打球',

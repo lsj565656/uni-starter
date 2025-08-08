@@ -57,16 +57,21 @@
     <!-- 技能分类列表 -->
     <view class="skill-content">
       <view v-for="category in filteredCategories" :key="category.key" class="category-section">
-        <uni-section :title="category.name" type="line">
-          <view class="skills-grid">
-            <view v-for="skill in category.skills" :key="skill" class="skill-item" :class="{
-              'selected': selectedSkills.includes(skill),
-              'disabled': isSkillDisabled(skill, category.key)
-            }" @click="toggleSkill(skill, category.key)">
-              <text class="skill-item-text">{{ skill }}</text>
-            </view>
+        <view class="category-header">
+          <view class="category-info">
+            <image v-if="category.icon" :src="category.icon" class="category-icon" mode="aspectFit" />
+            <text class="category-name">{{ category.name }}</text>
           </view>
-        </uni-section>
+          <text class="category-desc">{{ category.description }}</text>
+        </view>
+        <view class="skills-grid">
+          <view v-for="skill in category.skills" :key="skill" class="skill-item" :class="{
+            'selected': selectedSkills.includes(skill),
+            'disabled': isSkillDisabled(skill, category.key)
+          }" @click="toggleSkill(skill, category.key)">
+            <text class="skill-item-text">{{ skill }}</text>
+          </view>
+        </view>
       </view>
     </view>
 
@@ -599,13 +604,48 @@ onBackPress(() => {
 
 .category-section {
   margin-bottom: 25rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.category-header {
+  padding: 20rpx 24rpx;
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.category-info {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+}
+
+.category-icon {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 8rpx;
+}
+
+.category-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.category-desc {
+  font-size: 24rpx;
+  color: #666;
+  line-height: 1.4;
 }
 
 .skills-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 12rpx;
-  padding: 15rpx 0;
+  padding: 20rpx 24rpx;
 }
 
 .skill-item {
