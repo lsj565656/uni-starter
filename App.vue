@@ -52,7 +52,9 @@ export default {
 
 <style lang="scss">
 /*每个页面公共css */
+/* #ifndef APP-NVUE */
 @import 'static/iconfont.css';
+/* #endif */
 
 /* 全局CSS变量定义 */
 /* #ifndef APP-NVUE */
@@ -118,6 +120,7 @@ export default {
   /* #endif */
 }
 /* 登录提示导航栏 */
+/* #ifndef APP-NVUE */
 .login-notice-bar {
   position: fixed;
   width: 50vw;
@@ -137,4 +140,22 @@ export default {
 .login-notice-bar:active {
   background: #fd6767dc;
 }
+/* #endif */
+
+/* #ifdef APP-NVUE */
+.login-notice-bar {
+  position: fixed;
+  width: 50vw;
+  border-radius: 5px;
+  right: 0 !important;
+  z-index: 9999;
+  background: #0000009c;
+  color: #ffba31;
+  text-align: center;
+  padding: 4px 8px !important;
+  font-size: 16px;
+  margin-top: 80px !important;
+  top: 0 !important;
+}
+/* #endif */
 </style>
