@@ -112,3 +112,10 @@ config.local.json
 # ===== 其他 =====
 *.orig
 *.rej 
+
+# 支付宝证书文件（包含敏感信息，不应提交）
+uni_modules/uni-config-center/uniCloud/cloudfunctions/common/uni-config-center/uni-pay/certificates/
+*.crt
+*.pem
+*_private_key.txt
+*_public_key.txt 

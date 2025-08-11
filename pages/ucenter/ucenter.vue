@@ -73,7 +73,7 @@
         >
           <template v-slot:footer>
             <!-- 我的积分项：未登录时不显示刷新按钮和积分 -->
-            <view v-if="item.showRefresh && hasLogin" class="item-footer" @click.stop>
+            <view v-if="item.showRefresh && hasLogin && item.title === this.$t('mine.myScore')" class="item-footer" @click.stop>
               <text class="item-footer-text" @click="refreshScore">{{
                 (userInfo.score || 0) + ' 积分'
               }}</text>
@@ -82,6 +82,19 @@
                 size="22"
                 color="#1976d2"
                 @click="refreshScore"
+                style="margin-right: 12px"
+              />
+            </view>
+            <!-- 我的余额项：未登录时不显示刷新按钮和余额 -->
+            <view v-if="item.showRefresh && hasLogin && item.title === '我的余额'" class="item-footer" @click.stop>
+              <text class="item-footer-text" @click="refreshBalance">{{
+                formatBalance(userInfo.balance || 0) + ' 元'
+              }}</text>
+              <uni-icons
+                type="reload"
+                size="22"
+                color="#1976d2"
+                @click="refreshBalance"
                 style="margin-right: 12px"
               />
             </view>
@@ -168,6 +181,14 @@ export default {
             title: this.$t('mine.myScore'),
             to: '/pages/ucenter/point/index',
             icon: 'paperplane',
+            showRefresh: true,
+            showArrow: false,
+            rightText: 0
+          },
+          {
+            title: '我的余额',
+            to: '/pages/ucenter/balance/index',
+            icon: 'wallet',
             showRefresh: true,
             showArrow: false,
             rightText: 0
@@ -510,6 +531,30 @@ export default {
         }
       } catch (error) {
         console.error('获取任务数量失败:', error)
+      }
+    },
+    // 格式化余额显示
+    formatBalance(balance) {
+      return Number(balance || 0).toFixed(2)
+    },
+    // 刷新余额
+    async refreshBalance() {
+      if (this.hasLogin) {
+        try {
+          const res = await database
+            .collection('uni-id-users')
+            .where('_id == $env.uid')
+            .field('balance')
+            .get()
+          
+          const balance = res.result.data[0]?.balance || 0
+          // 使用 mutations 方法更新 store 中的余额，确保持久化
+          mutations.setUserInfo({ balance })
+          uni.showToast({ title: '余额已刷新', icon: 'success' })
+        } catch (error) {
+          console.error('刷新余额失败:', error)
+          uni.showToast({ title: '刷新余额失败', icon: 'none' })
+        }
       }
     }
   }

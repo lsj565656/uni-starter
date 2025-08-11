@@ -37,9 +37,30 @@
 		},
 		// 监听 - 页面每次【加载时】执行(如：前进)
 		onLoad(options = {}) {
-			options = JSON.parse(decodeURI(options.options));
-			//console.log('options: ', options)
-			this.options = options;
+			try {
+				if (options.options) {
+					// 先解码URL编码
+					const decodedOptions = decodeURIComponent(options.options);
+					// 解析JSON
+					const parsedOptions = JSON.parse(decodedOptions);
+					this.options = parsedOptions;
+				} else {
+					console.warn('没有接收到options参数');
+					this.options = {};
+				}
+			} catch (error) {
+				// 显示错误提示
+				uni.showToast({
+					title: '参数解析失败',
+					icon: 'none',
+					duration: 2000
+				});
+				
+				// 延迟返回上一页
+				setTimeout(() => {
+					uni.navigateBack();
+				}, 2000);
+			}
 		},
 		// 监听 - 页面【首次渲染完成时】执行。注意如果渲染速度快，会在页面进入动画完成前触发
 		onReady(){},
@@ -55,20 +76,63 @@
 			},
 			// 发起支付
 			createOrder(provider){
-				Object.assign(this.options, provider);
-				this.$refs.uniPay.createOrder(this.options);
+				// 确保所有必要的参数都被传递
+				const orderData = {
+					...this.options,
+					...provider
+				};
+				
+				// 验证必要参数
+				if (!orderData.order_no) {
+					uni.showToast({
+						title: '订单号不能为空',
+						icon: 'none'
+					});
+					return;
+				}
+				
+				if (!orderData.description) {
+					uni.showToast({
+						title: '支付描述不能为空',
+						icon: 'none'
+					});
+					return;
+				}
+				
+				if (!orderData.type) {
+					uni.showToast({
+						title: '支付类型不能为空',
+						icon: 'none'
+					});
+					return;
+				}
+				
+				console.log('创建支付订单，参数：', orderData);
+				this.$refs.uniPay.createOrder(orderData);
 			},
 			// 监听事件 - 支付成功
 			onSuccess(res){
-				console.log('success: ', res);
+				console.log('支付成功回调:', res);
+				
 				if (res.user_order_success) {
 					// 代表用户已付款，且你自己写的回调成功并正确执行了
+					const provider = res.provider || 'alipay'; // 获取支付方式
 					uni.redirectTo({
-						url:`/uni_modules/uni-pay/pages/success/success?out_trade_no=${res.out_trade_no}&order_no=${res.pay_order.order_no}&pay_date=${res.pay_order.pay_date}&total_fee=${res.pay_order.total_fee}&adpid=${this.adpid}&return_url=${this.return_url}&main_color=${this.main_color}`
+						url:`/uni_modules/uni-pay/pages/success/success?out_trade_no=${res.out_trade_no}&order_no=${res.pay_order?.order_no || ''}&pay_date=${res.pay_order?.pay_date || Date.now()}&total_fee=${res.pay_order?.total_fee || this.options.total_fee}&adpid=${this.adpid}&return_url=${this.return_url}&main_color=${this.main_color}&provider=${provider}`
 					});
 				} else {
-					// 代表用户已付款，但你自己写的回调执行成功（通常是因为你的回调代码有问题）
-				
+					// 代表用户已付款，但你自己写的回调执行失败
+					console.error('支付成功但回调执行失败:', res);
+					uni.showToast({
+						title: '支付成功，但处理失败，请联系客服',
+						icon: 'none',
+						duration: 3000
+					});
+					
+					// 延迟返回上一页
+					// setTimeout(() => {
+					// 	uni.navigateBack();
+					// }, 3000);
 				}
 			},
 		},

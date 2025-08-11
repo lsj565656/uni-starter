@@ -1,0 +1,37 @@
+# Cursor 忽略文件配置
+
+# 忽略常见的构建和依赖目录
+node_modules/
+unpackage/
+dist/
+build/
+
+# 忽略日志文件
+*.log
+
+# 忽略临时文件
+*.tmp
+*.temp
+
+# 忽略系统文件
+.DS_Store
+Thumbs.db
+
+# 忽略大部分 .crt 文件（安全考虑）
+*.crt
+
+# 但允许支付宝证书文件被读取（支付功能必需）
+!uni_modules/uni-config-center/uniCloud/cloudfunctions/common/uni-config-center/uni-pay/alipay/*.crt
+
+# 允许微信支付证书文件被读取
+!uni_modules/uni-config-center/uniCloud/cloudfunctions/common/uni-config-center/uni-pay/wxpay/*.pem
+!uni_modules/uni-config-center/uniCloud/cloudfunctions/common/uni-config-center/uni-pay/wxpay/*.p12
+
+# 忽略其他敏感文件
+*.key
+*.pem
+*.p12
+
+# 但允许支付相关的证书文件
+!uni_modules/uni-config-center/uniCloud/cloudfunctions/common/uni-config-center/uni-pay/**/*.pem
+!uni_modules/uni-config-center/uniCloud/cloudfunctions/common/uni-config-center/uni-pay/**/*.p12 
