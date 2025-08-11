@@ -88,7 +88,7 @@
             <!-- 我的余额项：未登录时不显示刷新按钮和余额 -->
             <view v-if="item.showRefresh && hasLogin && item.title === '我的余额'" class="item-footer" @click.stop>
               <text class="item-footer-text" @click="refreshBalance">{{
-                formatBalance(userInfo.balance || 0) + ' 元'
+                currentBalance + ' 元'
               }}</text>
               <uni-icons
                 type="reload"
@@ -257,10 +257,20 @@ export default {
     this.userScore = store.userInfo.score || 0
     // 统计任务数量
     await this.fetchTaskCounts()
+    this.checkBalanceCache() // 页面加载时检查余额缓存
+    
+    // 监听充值成功事件，实时更新余额显示
+    uni.$on('rechargeSuccess', this.handleRechargeSuccess)
   },
   async onShow() {
     // this.userScore = await fetchUserScore()
     this.userScore = store.userInfo.score || 0
+    // 页面显示时检查余额缓存
+    this.checkBalanceCache()
+  },
+  onUnload() {
+    // 页面卸载时移除事件监听
+    uni.$off('rechargeSuccess', this.handleRechargeSuccess)
   },
   computed: {
     userInfo() {
@@ -268,6 +278,10 @@ export default {
     },
     hasLogin() {
       return store.hasLogin
+    },
+    // 实时余额显示
+    currentBalance() {
+      return this.formatBalance(store.userInfo.balance || 0)
     },
     // #ifdef APP-PLUS
     appVersion() {
@@ -332,7 +346,6 @@ export default {
     },
     async checkVersion() {
       const res = await callCheckVersion()
-      console.log(res)
       if (res.result.code > 0) {
         checkUpdate()
       } else {
@@ -537,24 +550,101 @@ export default {
     formatBalance(balance) {
       return Number(balance || 0).toFixed(2)
     },
-    // 刷新余额
+    // 刷新余额 - 从 kl-id-balance 表获取最新余额
     async refreshBalance() {
       if (this.hasLogin) {
         try {
-          const res = await database
-            .collection('uni-id-users')
-            .where('_id == $env.uid')
-            .field('balance')
-            .get()
+          // 并行获取余额和充值记录
+          const [balanceRes, recordsRes] = await Promise.all([
+            database
+              .collection('kl-id-balance')
+              .where('user_id == $env.uid')
+              .orderBy('create_date', 'desc')
+              .limit(1)
+              .get(),
+            database
+              .collection('kl-id-balance')
+              .where('user_id == $env.uid && type == 5')
+              .orderBy('create_date', 'desc')
+              .limit(20)
+              .get()
+          ])
           
-          const balance = res.result.data[0]?.balance || 0
+          let balance = 0
+          if (balanceRes.result.data && balanceRes.result.data.length > 0) {
+            balance = (balanceRes.result.data[0].balance || 0) / 100 // 转换为元
+          }
+          
+          // 处理充值记录
+          let rechargeRecords = []
+          if (recordsRes.result.data && recordsRes.result.data.length > 0) {
+            rechargeRecords = recordsRes.result.data.map(record => ({
+              ...record,
+              status: 'success',
+              create_time: record.create_date,
+              amount: record.amount / 100
+            }))
+          }
+          
           // 使用 mutations 方法更新 store 中的余额，确保持久化
           mutations.setUserInfo({ balance })
+          
+          // 同时更新本地存储缓存，包含余额和充值记录
+          try {
+            const cachedData = uni.getStorageSync('userBalanceCache') || {}
+            cachedData.balance = balance
+            cachedData.rechargeRecords = rechargeRecords
+            cachedData.timestamp = Date.now()
+            uni.setStorageSync('userBalanceCache', cachedData)
+          } catch (error) {
+            console.error('更新余额缓存失败:', error)
+          }
+          
           uni.showToast({ title: '余额已刷新', icon: 'success' })
         } catch (error) {
           console.error('刷新余额失败:', error)
           uni.showToast({ title: '刷新余额失败', icon: 'none' })
         }
+      }
+    },
+    
+    // 页面显示时检查余额缓存
+    checkBalanceCache() {
+      if (this.hasLogin) {
+        try {
+          const cachedData = uni.getStorageSync('userBalanceCache')
+          if (cachedData && cachedData.balance !== undefined) {
+            // 使用缓存数据更新store
+            mutations.setUserInfo({ balance: cachedData.balance })
+          }
+        } catch (error) {
+          console.error('读取余额缓存失败:', error)
+        }
+      }
+    },
+    // 充值成功事件处理
+    handleRechargeSuccess(data) {
+      console.log('个人中心收到充值成功通知:', data)
+      if (data && data.amount) {
+        // 计算新的余额（当前余额 + 充值金额）
+        const currentBalance = store.userInfo.balance || 0
+        const rechargeAmount = data.amount / 100 // 转换为元
+        const newBalance = currentBalance + rechargeAmount
+        
+        // 更新store中的余额
+        mutations.setUserInfo({ balance: newBalance })
+        
+        // 同时更新本地存储缓存
+        try {
+          const cachedData = uni.getStorageSync('userBalanceCache') || {}
+          cachedData.balance = newBalance
+          cachedData.timestamp = Date.now()
+          uni.setStorageSync('userBalanceCache', cachedData)
+        } catch (error) {
+          console.error('更新余额缓存失败:', error)
+        }
+        
+        console.log('个人中心余额已更新:', newBalance)
       }
     }
   }

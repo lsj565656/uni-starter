@@ -117,6 +117,26 @@
 				if (res.user_order_success) {
 					// 代表用户已付款，且你自己写的回调成功并正确执行了
 					const provider = res.provider || 'alipay'; // 获取支付方式
+					
+					// 如果是充值类型，触发充值成功事件
+					if (this.options.type === 'recharge') {
+						const rechargeData = {
+							order_no: res.pay_order?.order_no || this.options.order_no,
+							out_trade_no: res.out_trade_no,
+							total_fee: res.pay_order?.total_fee || this.options.total_fee,
+							user_id: this.options.custom?.user_id,
+							amount: res.pay_order?.total_fee || this.options.total_fee,
+							balance: res.pay_order?.total_fee || this.options.total_fee, // 这里可能需要从数据库获取实际余额
+							comment: `充值获得 ${((res.pay_order?.total_fee || this.options.total_fee) / 100).toFixed(2)} 元`,
+							create_date: new Date(),
+							transaction_id: res.out_trade_no
+						};
+						
+						console.log('触发充值成功事件:', rechargeData);
+						// 触发全局事件，通知余额页面更新
+						uni.$emit('rechargeSuccess', rechargeData);
+					}
+					
 					uni.redirectTo({
 						url:`/uni_modules/uni-pay/pages/success/success?out_trade_no=${res.out_trade_no}&order_no=${res.pay_order?.order_no || ''}&pay_date=${res.pay_order?.pay_date || Date.now()}&total_fee=${res.pay_order?.total_fee || this.options.total_fee}&adpid=${this.adpid}&return_url=${this.return_url}&main_color=${this.main_color}&provider=${provider}`
 					});

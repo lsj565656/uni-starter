@@ -32,8 +32,8 @@ module.exports = async (obj) => {
 		// 此处写你自己的支付成功逻辑开始-----------------------------------------------------------
 		
 		// 验证必要参数
-		if (!user_id || !total_fee) {
-			console.error("充值回调缺少必要参数", { user_id, total_fee });
+		if (!user_id || !total_fee || !order_no) {
+			console.error("充值回调缺少必要参数", { user_id, total_fee, order_no });
 			return false;
 		}
 
@@ -44,16 +44,15 @@ module.exports = async (obj) => {
 		// 检查是否已经处理过这个订单（防止重复处理）
 		const existingRecord = await balanceCollection
 			.where({
-				user_id: user_id,
-				comment: new RegExp(`充值获得 ${total_fee / 100} 元`)
+				order_no: order_no // 使用订单号判断，而不是金额描述
 			})
 			.get();
 
 		if (existingRecord.data && existingRecord.data.length > 0) {
 			console.log("该充值订单已处理过，跳过重复处理", {
+				order_no,
 				user_id,
-				total_fee,
-				existing_records: existingRecord.data.length
+				total_fee
 			});
 			return true; // 已处理过，返回成功
 		}
@@ -80,6 +79,8 @@ module.exports = async (obj) => {
 			type: 5, // 5: 充值获得
 			amount: total_fee,
 			balance: newBalance,
+			order_no: order_no, // 添加订单号
+			transaction_id: out_trade_no, // 添加支付流水号
 			comment: `充值获得 ${(total_fee / 100).toFixed(2)} 元`,
 			create_date: new Date()
 		});
@@ -89,6 +90,8 @@ module.exports = async (obj) => {
 			old_balance: currentBalance,
 			new_balance: newBalance,
 			amount: total_fee,
+			order_no: order_no,
+			transaction_id: out_trade_no,
 			record_id: addResult.id
 		});
 

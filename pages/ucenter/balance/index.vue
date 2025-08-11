@@ -8,12 +8,6 @@
     <view class="balance-card">
       <view class="balance-header">
         <text class="balance-title">我的余额</text>
-        <uni-icons 
-          type="reload" 
-          size="24" 
-          color="#007AFF" 
-          @click="refreshBalance"
-        />
       </view>
       <view class="balance-amount">
         <text class="amount-symbol">¥</text>
@@ -69,12 +63,17 @@
     <view class="recharge-records">
       <view class="records-header">
         <text class="records-title">充值记录</text>
-        <uni-icons 
-          type="reload" 
-          size="20" 
-          color="#007AFF" 
-          @click="refreshRecords"
-        />
+        <view class="records-right">
+          <text class="refresh-time" v-if="lastRefreshTime > 0">
+            最近刷新: {{ formatRefreshTime(lastRefreshTime) }}
+          </text>
+          <uni-icons 
+            type="reload" 
+            size="20" 
+            color="#007AFF" 
+            @click="refreshRecords"
+          />
+        </view>
       </view>
       <view class="records-list">
         <view 
@@ -111,7 +110,7 @@
 </template>
 
 <script>
-import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+import { store, mutations } from '@/uni_modules/uni-id-pages/common/store.js'
 
 const database = uniCloud.database()
 
@@ -125,7 +124,12 @@ export default {
       rechargeAmounts: [0.01, 10, 20, 50, 100, 200, 500],
       selectedAmount: 10,
       customAmount: '',
-      loading: false
+      loading: false,
+      // 缓存相关
+      dataLoaded: false,
+      lastRefreshTime: 0,
+      cacheExpireTime: 5 * 60 * 1000, // 5分钟缓存过期
+      isLoading: false
     }
   },
   computed: {
@@ -137,14 +141,174 @@ export default {
     }
   },
   onLoad() {
-    this.loadUserBalance()
-    this.loadRechargeRecords()
+    // 只在页面首次加载时调用
+    this.initData()
     this.checkH5Environment()
+    
+    // 监听充值成功事件
+    uni.$on('rechargeSuccess', this.handleRechargeSuccess)
   },
   onShow() {
-    this.loadUserBalance()
+    // 页面显示时，优先使用store中的持久化数据
+    if (this.hasLogin && store.userInfo.balance !== undefined) {
+      this.balance = store.userInfo.balance
+    }
+    
+    // 如果数据已加载且缓存未过期，则使用缓存
+    // 如果缓存过期或数据未加载，则重新加载
+    if (this.shouldRefreshData()) {
+      this.loadData()
+    }
+    // 检查是否有新的充值数据（无论缓存是否过期都要检查）
+    this.checkNewRechargeData()
+  },
+  onUnload() {
+    // 页面卸载时移除事件监听
+    uni.$off('rechargeSuccess', this.handleRechargeSuccess)
   },
   methods: {
+    // 判断是否需要刷新数据
+    shouldRefreshData() {
+      const now = Date.now()
+      
+      console.log('检查是否需要刷新数据 - 当前时间:', now, '最后刷新时间:', this.lastRefreshTime, '数据已加载:', this.dataLoaded)
+      
+      // 优先检查store中的持久化数据
+      if (this.hasLogin && store.userInfo.balance !== undefined) {
+        console.log('使用store中的持久化余额数据:', store.userInfo.balance)
+        this.balance = store.userInfo.balance
+        
+        // 如果store中有余额数据，尝试使用本地缓存中的充值记录
+        try {
+          const cachedData = uni.getStorageSync('userBalanceCache')
+          if (cachedData && cachedData.rechargeRecords && cachedData.timestamp && (now - cachedData.timestamp < this.cacheExpireTime)) {
+            this.rechargeRecords = cachedData.rechargeRecords || []
+            this.dataLoaded = true
+            this.lastRefreshTime = cachedData.timestamp
+            console.log('使用缓存的充值记录，记录数:', this.rechargeRecords.length)
+            return false // 不需要刷新
+          }
+        } catch (error) {
+          console.error('读取充值记录缓存失败:', error)
+        }
+      }
+      
+      // 检查本地存储中是否有完整缓存数据
+      try {
+        const cachedData = uni.getStorageSync('userBalanceCache')
+        if (cachedData && cachedData.timestamp && (now - cachedData.timestamp < this.cacheExpireTime)) {
+          // 如果缓存未过期，使用缓存数据
+          console.log('使用本地缓存数据，余额:', cachedData.balance, '记录数:', cachedData.rechargeRecords?.length || 0)
+          
+          // 确保缓存数据完整
+          if (cachedData.balance !== undefined && cachedData.rechargeRecords !== undefined) {
+            this.balance = cachedData.balance || 0
+            this.rechargeRecords = cachedData.rechargeRecords || []
+            this.dataLoaded = true
+            this.lastRefreshTime = cachedData.timestamp
+            console.log('缓存数据完整，使用缓存')
+            return false // 不需要刷新
+          } else {
+            console.log('缓存数据不完整，需要刷新')
+          }
+        } else if (cachedData && cachedData.timestamp) {
+          console.log('缓存已过期，需要刷新')
+        } else {
+          console.log('无缓存数据，需要刷新')
+        }
+      } catch (error) {
+        console.error('读取缓存数据失败:', error)
+      }
+      
+      // 如果数据未加载或缓存已过期，则需要刷新
+      const needRefresh = !this.dataLoaded || (now - this.lastRefreshTime) > this.cacheExpireTime
+      console.log('最终决定:', needRefresh ? '需要刷新' : '不需要刷新')
+      return needRefresh
+    },
+    
+    // 初始化数据
+    async initData() {
+      if (this.isLoading) return
+      this.isLoading = true
+      
+      try {
+        // 优先使用store中的持久化余额数据
+        if (this.hasLogin && store.userInfo.balance !== undefined) {
+          this.balance = store.userInfo.balance
+          // 尝试使用本地缓存中的充值记录
+          try {
+            const cachedData = uni.getStorageSync('userBalanceCache')
+            if (cachedData && cachedData.rechargeRecords && cachedData.timestamp) {
+              this.rechargeRecords = cachedData.rechargeRecords || []
+              this.dataLoaded = true
+              this.lastRefreshTime = cachedData.timestamp
+              return
+            }
+          } catch (error) {
+            console.error('读取充值记录缓存失败:', error)
+          }
+        }
+        
+        // 如果没有缓存数据，则加载数据
+        await this.loadData()
+      } finally {
+        this.isLoading = false
+      }
+    },
+    
+    // 统一数据加载方法
+    async loadData() {
+      if (this.isLoading) return
+      this.isLoading = true
+      
+      console.log('balance loadData!')
+      try {
+        // 并行加载余额和充值记录
+        const [balanceResult, recordsResult] = await Promise.all([
+          this.loadUserBalance(),
+          this.loadRechargeRecords()
+        ])
+        
+        console.log('数据加载结果 - 余额:', balanceResult, '记录:', recordsResult)
+        
+        // 更新缓存状态
+        this.dataLoaded = true
+        this.lastRefreshTime = Date.now()
+        
+        // 将数据存储到本地存储，供其他页面使用
+        try {
+          uni.setStorageSync('userBalanceCache', {
+            balance: this.balance,
+            rechargeRecords: this.rechargeRecords,
+            timestamp: this.lastRefreshTime
+          })
+          
+          console.log('缓存已更新 - 余额:', this.balance, '记录数:', this.rechargeRecords.length)
+        } catch (error) {
+          console.error('存储缓存数据失败:', error)
+        }
+        
+        console.log('数据加载完成，余额:', this.balance, '记录数:', this.rechargeRecords.length)
+      } catch (error) {
+        console.error('数据加载失败:', error)
+      } finally {
+        this.isLoading = false
+      }
+    },
+    
+    // 手动刷新数据（用户点击刷新按钮时）
+    async refreshData() {
+      // 强制刷新，忽略缓存
+      this.dataLoaded = false
+      this.lastRefreshTime = 0
+      
+      // 清除本地缓存数据，确保获取最新数据
+      this.balance = 0
+      this.rechargeRecords = []
+      await this.loadData()
+      uni.showToast({ title: '数据已刷新', icon: 'success' })
+    },
+    
     // 格式化余额显示
     formatBalance(balance) {
       return Number(balance || 0).toFixed(2)
@@ -153,7 +317,27 @@ export default {
     // 格式化时间显示
     formatTime(timestamp) {
       if (!timestamp) return ''
+      let date
+      if (timestamp instanceof Date) {
+        date = timestamp
+      } else if (typeof timestamp === 'string') {
+        date = new Date(timestamp)
+      } else if (typeof timestamp === 'number') {
+        date = new Date(timestamp)
+      } else {
+        return ''
+      }
+      
+      if (Number.isNaN(date.getTime())) return ''
+      
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+    },
+    
+    // 格式化刷新时间显示
+    formatRefreshTime(timestamp) {
+      if (!timestamp) return ''
       const date = new Date(timestamp)
+      if (Number.isNaN(date.getTime())) return ''
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
     },
     
@@ -167,49 +351,80 @@ export default {
       return statusMap[status] || '未知'
     },
     
-    // 加载用户余额
+    // 加载用户余额 - 从 kl-id-balance 表获取最新余额
     async loadUserBalance() {
-      if (!this.hasLogin) return
+      if (!this.hasLogin) return false
       try {
+        console.log('开始加载用户余额')
         const res = await database
-          .collection('uni-id-users')
-          .where('_id == $env.uid')
-          .field('balance')
+          .collection('kl-id-balance')
+          .where('user_id == $env.uid') // 确保查询条件格式一致
+          .orderBy('create_date', 'desc')
+          .limit(1)
           .get()
         
-        this.balance = res.result.data[0]?.balance || 0
+        console.log('余额查询结果:', res.result.data)
+        
+        if (res.result.data && res.result.data.length > 0) {
+          // 直接使用最新记录的 balance 字段，注意 balance 存储的是分，需要转换为元
+          const rawBalance = res.result.data[0].balance || 0
+          this.balance = rawBalance / 100
+          console.log('余额设置成功:', this.balance, '原始值:', rawBalance)
+          return true
+        } else {
+          this.balance = 0
+          console.log('无余额记录，设置为0')
+          return true
+        }
       } catch (error) {
         console.error('加载余额失败:', error)
+        return false
       }
     },
     
     // 刷新余额
     async refreshBalance() {
-      await this.loadUserBalance()
-      uni.showToast({ title: '余额已刷新', icon: 'success' })
+      await this.refreshData()
     },
     
-    // 加载充值记录
+    // 加载充值记录 - 从 kl-id-balance 表获取充值记录
     async loadRechargeRecords() {
-      if (!this.hasLogin) return
+      if (!this.hasLogin) return false
       try {
+        console.log('开始加载充值记录')
+        // 再查询充值记录
         const res = await database
-          .collection('recharge-records')
-          .where('user_id == $env.uid')
-          .orderBy('create_time', 'desc')
+          .collection('kl-id-balance')
+          .where('user_id == $env.uid && type == 5') // 修复查询条件
+          .orderBy('create_date', 'desc')
           .limit(20)
           .get()
         
-        this.rechargeRecords = res.result.data
+        console.log('充值记录查询结果:', res.result.data)
+        
+        if (res.result.data && res.result.data.length > 0) {
+          this.rechargeRecords = res.result.data.map(record => ({
+            ...record,
+            status: 'success', // 能查询到的记录都是成功的
+            create_time: record.create_date,
+            // 确保金额正确显示（amount 存储的是分，需要转换为元）
+            amount: record.amount / 100
+          }))
+        } else {
+          this.rechargeRecords = []
+        }
+        
+        console.log('充值记录加载完成，数量:', this.rechargeRecords.length)
+        return true
       } catch (error) {
         console.error('加载充值记录失败:', error)
+        return false
       }
     },
     
     // 刷新充值记录
     async refreshRecords() {
-      await this.loadRechargeRecords()
-      uni.showToast({ title: '记录已刷新', icon: 'success' })
+      await this.refreshData()
     },
     
     // 显示充值弹窗
@@ -277,16 +492,12 @@ export default {
           }
         }
         
-        console.log('支付参数:', options)
-        console.log('金额:', amount, 'total_fee:', options.total_fee)
-        
         // 关闭充值弹窗
         this.closeRechargeModal()
         
         // 跳转到uni-pay模块的支付页面
         const optionsStr = JSON.stringify(options)
         const url = `/uni_modules/uni-pay/pages/pay-desk/pay-desk?options=${encodeURIComponent(optionsStr)}`
-        console.log('跳转URL:', url)
         
         uni.navigateTo({
           url: url
@@ -296,6 +507,68 @@ export default {
         uni.showToast({ title: error.message || '充值失败', icon: 'none' })
       } finally {
         this.loading = false
+      }
+    },
+    
+    // 充值成功后更新本地缓存（供外部调用）
+    updateLocalCache(rechargeData) {
+      if (!rechargeData) return
+      
+      try {
+        // 更新余额 - 基于当前余额加上充值金额
+        if (rechargeData.amount) {
+          // 注意：rechargeData.amount 存储的是分，需要转换为元
+          const rechargeAmount = rechargeData.amount / 100
+          this.balance += rechargeAmount
+        }
+        
+        // 添加新的充值记录到列表顶部
+        if (rechargeData.order_no) {
+          const newRecord = {
+            _id: rechargeData._id || `temp_${Date.now()}`,
+            user_id: rechargeData.user_id,
+            type: 5,
+            amount: rechargeData.amount / 100, // 转换为元
+            balance: this.balance, // 使用更新后的余额
+            order_no: rechargeData.order_no,
+            transaction_id: rechargeData.transaction_id,
+            comment: rechargeData.comment,
+            create_date: rechargeData.create_date || new Date(),
+            create_time: rechargeData.create_date || new Date(),
+            status: 'success'
+          }
+          
+          // 添加到列表顶部
+          this.rechargeRecords.unshift(newRecord)
+          
+          // 限制记录数量，避免列表过长
+          if (this.rechargeRecords.length > 50) {
+            this.rechargeRecords = this.rechargeRecords.slice(0, 50)
+          }
+        }
+        
+        // 更新缓存状态
+        this.lastRefreshTime = Date.now()
+        
+        // 更新本地存储缓存，供其他页面使用
+        try {
+          uni.setStorageSync('userBalanceCache', {
+            balance: this.balance,
+            rechargeRecords: this.rechargeRecords,
+            timestamp: this.lastRefreshTime
+          })
+          
+          // 同时更新store中的余额，确保数据持久化
+          if (this.hasLogin) {
+            mutations.setUserInfo({ balance: this.balance })
+          }
+        } catch (error) {
+          console.error('更新缓存失败:', error)
+        }
+        
+        console.log('本地缓存已更新，新余额:', this.balance, '新记录数:', this.rechargeRecords.length)
+      } catch (error) {
+        console.error('更新本地缓存失败:', error)
       }
     },
     
@@ -334,6 +607,50 @@ export default {
       }
     },
 
+    // 处理充值成功通知
+    handleRechargeSuccess(rechargeData) { 
+      // 将充值数据存储到本地存储，供页面显示时使用
+      try {
+        uni.setStorageSync('lastRechargeData', {
+          ...rechargeData,
+          timestamp: Date.now()
+        })
+      } catch (error) {
+        console.error('存储充值数据失败:', error)
+      }
+      
+      // 立即更新本地缓存
+      this.updateLocalCache(rechargeData)
+      uni.showToast({ title: '充值成功', icon: 'success' })
+    },
+    
+    // 检查是否有新的充值数据
+    checkNewRechargeData() {
+      try {
+        const lastRechargeData = uni.getStorageSync('lastRechargeData')
+        if (lastRechargeData && lastRechargeData.timestamp) {
+          const now = Date.now()
+          // 如果充值数据是最近5分钟内的，则更新缓存
+          if (now - lastRechargeData.timestamp < 5 * 60 * 1000) {
+            // 检查是否已经处理过这个订单
+            const existingRecord = this.rechargeRecords.find(record => record.order_no === lastRechargeData.order_no)
+            if (existingRecord) {
+              console.log('该充值记录已存在，跳过重复添加')
+            } else {
+              this.updateLocalCache(lastRechargeData)
+            }
+            
+            // 清除已使用的数据
+            uni.removeStorageSync('lastRechargeData')
+          } else {
+            uni.removeStorageSync('lastRechargeData')
+          }
+        }
+      } catch (error) {
+        console.error('检查充值数据失败:', error)
+      }
+    },
+
     // 检查是否为H5环境
     checkH5Environment() {
       // #ifdef H5
@@ -343,12 +660,6 @@ export default {
       // #ifndef H5
       this.isH5Environment = false
       // #endif
-      
-      // 添加环境调试信息
-      console.log('=== 环境检测 ===')
-      console.log('isH5Environment:', this.isH5Environment)
-      console.log('当前平台:', uni.getSystemInfoSync().platform)
-      console.log('当前环境:', process.env.NODE_ENV)
       
       // #ifdef APP
       console.log('运行在APP环境')
@@ -572,6 +883,17 @@ export default {
   font-weight: 500;
 }
 
+.records-right {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.refresh-time {
+  font-size: 24rpx;
+  color: #999;
+}
+
 .records-list {
   min-height: 200rpx;
 }
@@ -678,4 +1000,4 @@ export default {
     font-weight: bold;
   }
 }
-</style> 
+</style>
