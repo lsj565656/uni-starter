@@ -515,6 +515,10 @@ export default {
         mutations.setUserInfo({ score: signInData.score })
         // 强制更新页面显示
         this.$forceUpdate()
+        
+        // 发送签到成功事件，供其他页面监听
+        uni.$emit('signInSuccess', signInData)
+        
         uni.showToast({
           title: '积分已更新',
           icon: 'success',

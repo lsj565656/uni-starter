@@ -18,7 +18,9 @@
         "modules" : {
             "Camera" : {},
             "OAuth" : {},
-            "Payment" : {}
+            "Payment" : {},
+            "Fingerprint" : {},
+            "VideoPlayer" : {}
         },
         "distribute" : {
             "android" : {
@@ -95,5 +97,15 @@
         "enable" : false
     },
     "vueVersion" : "3",
-    "locale" : "zh-Hans"
+    "locale" : "zh-Hans",
+    "app-harmony" : {
+        "distribute" : {
+            "modules" : {
+                "uni-payment" : {
+                    "alipay" : {}
+                },
+                "uni-verify" : {}
+            }
+        }
+    }
 }

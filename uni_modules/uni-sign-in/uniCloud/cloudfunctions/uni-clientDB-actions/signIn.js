@@ -33,14 +33,27 @@ module.exports = {
 			isDelete:false
 		}).get()
 		
+		// 按日期排序，确保时间顺序正确
+		signInData.sort((a, b) => a.date - b.date)
+		
 		let allDate = signInData.map(item=>item.date)
 		
 		//今天是本轮签到的第几天
-		const n = ( date - Math.min(...allDate) )/3600/24/1000+1;
-		//换成数字--第几天
-		let days = signInData.map(item=>{
-			return (n*10000 - (date - item.date)/3600/24/1000*10000)/10000  -1
-		})
+		const n = signInData.length + 1; // 简化计算：已签到天数 + 1
+		
+		// 计算已签到的天数索引（0-6，对应第1-7天）
+		let days = []
+		if (signInData.length > 0) {
+			// 如果这是第一轮签到，直接使用索引
+			if (signInData.length <= 7) {
+				days = signInData.map((item, index) => index)
+			} else {
+				// 如果超过7天，计算新的轮次
+				const currentRound = Math.floor(signInData.length / 7)
+				const dayInRound = signInData.length % 7
+				days = Array.from({length: dayInRound}, (_, i) => i)
+			}
+		}
 		
 		//查出来用户当前有多少积分
 		let {data: [userScore]} = await scoresTable
@@ -62,7 +75,7 @@ module.exports = {
 				console.log({setIsDeleteRes});
 			}
 			//给加积分
-			let score = n+days.length==14?60:10 //如果连续签到7天就多加50分，也就是60分
+			let score = n == 7 ? 60 : 10 //如果连续签到7天就多加50分，也就是60分
 			balance += score
 			let addScores = await scoresTable.add({
 				user_id:state.auth.uid,
@@ -73,18 +86,22 @@ module.exports = {
 			})
 			console.log({addScores});
 		}
+		
+		console.log('签到数据:', {signInData: signInData.length, n, days, balance})
 		return {...result,score:balance,signInData,n,days}
 	}
 }
 
 
 function todayTimestamp(){
-	//时区
-	let timeZone = new Date().getTimezoneOffset()/60
-	//获得相对于北京时间的时间戳
-	let timestamp = Date.now()+3600*1000*(8+timeZone)
-	//一天一共多少毫秒
-	const D = 3600*24*1000
-	//去掉余数，再减去东8区的8小时 得到当天凌晨的时间戳
-	return parseInt(timestamp/D)*D - 3600*1000*8
+	// 获取当前北京时间（UTC+8）的当天凌晨时间戳
+	const now = new Date()
+	const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000) // 转换为北京时间
+	const year = beijingTime.getUTCFullYear()
+	const month = beijingTime.getUTCMonth()
+	const day = beijingTime.getUTCDate()
+	
+	// 创建当天凌晨的UTC时间戳
+	const todayStart = new Date(Date.UTC(year, month, day))
+	return todayStart.getTime()
 }

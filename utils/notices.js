@@ -107,6 +107,79 @@ export const notices = [
   }
 ]
 
+// 抽奖相关数据
+export const lotteries = {
+  // 奖品列表
+  prizes: [
+    { id: 1, name: '积分+200', type: 'score', value: 200, weight: 5 },
+    { id: 2, name: '便民水卡', type: 'physical', value: 1, weight: 8 },
+    { id: 3, name: '积分+50', type: 'score', value: 50, weight: 10 },
+    { id: 4, name: '卡通手办', type: 'physical', value: 2, weight: 8 },
+    { id: 5, name: '毛绒玩具', type: 'physical', value: 3, weight: 8 },
+    { id: 6, name: '加油卡', type: 'physical', value: 4, weight: 8 },
+    { id: 7, name: '谢谢参与', type: 'empty', value: 0, weight: 20 }
+  ],
+  
+  // 用户列表（用于生成随机中奖用户）
+  users: [
+    '小明', '小红', '小李', '小王', '小张', '小赵', '小钱', '小孙', '小周', '小吴',
+    '小郑', '小陈', '小刘', '小黄', '小马', '小牛', '小虎', '小兔', '小龙', '小蛇',
+    '小羊', '小猴', '小鸡', '小狗', '小猪', '小鹿', '小象', '小狮', '小虎', '小豹'
+  ],
+  
+  // 抽奖中奖记录（模拟数据）
+  records: [
+    {
+      id: 1,
+      userId: 'user1',
+      nickname: '文文',
+      prize: '扭扭车',
+      time: Date.now() - 1000 * 60 * 5, // 5分钟前
+      type: 'lottery'
+    },
+    {
+      id: 2,
+      userId: 'user2',
+      nickname: '罡风啊',
+      prize: '遥控车',
+      time: Date.now() - 1000 * 60 * 12, // 12分钟前
+      type: 'lottery'
+    },
+    {
+      id: 3,
+      userId: 'user3',
+      nickname: '美满人生',
+      prize: '积分+200',
+      time: Date.now() - 1000 * 60 * 18, // 18分钟前
+      type: 'lottery'
+    },
+    {
+      id: 4,
+      userId: 'user4',
+      nickname: '赵四',
+      prize: '便民水卡',
+      time: Date.now() - 1000 * 60 * 25, // 25分钟前
+      type: 'lottery'
+    },
+    {
+      id: 5,
+      userId: 'user5',
+      nickname: '小明',
+      prize: '毛绒玩具',
+      time: Date.now() - 1000 * 60 * 35, // 35分钟前
+      type: 'lottery'
+    },
+    {
+      id: 6,
+      userId: 'user6',
+      nickname: '小红',
+      prize: '加油卡',
+      time: Date.now() - 1000 * 60 * 42, // 42分钟前
+      type: 'lottery'
+    }
+  ]
+}
+
 // 根据类型获取不同的图标
 export const getNoticeIcon = type => {
   switch (type) {
@@ -124,6 +197,9 @@ export const getNoticeIcon = type => {
     }
     case 'complete': {
       return 'checkmarkempty'
+    }
+    case 'lottery': {
+      return 'gift'
     }
     default: {
       return 'info'
@@ -149,9 +225,64 @@ export const getNoticeColor = type => {
     case 'complete': {
       return '#f56c6c'
     }
+    case 'lottery': {
+      return '#ff6b00'
+    }
     default: {
       return '#909399'
     }
+  }
+}
+
+// 格式化时间显示
+export const formatTimeAgo = (timestamp) => {
+  const now = Date.now()
+  const diff = now - timestamp
+  
+  if (diff < 1000 * 60) { // 1分钟内
+    return '刚刚'
+  } else if (diff < 1000 * 60 * 60) { // 1小时内
+    const minutes = Math.floor(diff / (1000 * 60))
+    return `${minutes}分钟前`
+  } else if (diff < 1000 * 60 * 60 * 24) { // 24小时内
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+    return `${hours}小时前`
+  } else if (diff < 1000 * 60 * 60 * 24 * 7) { // 7天内
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+    return `${days}天前`
+  } else {
+    const date = new Date(timestamp)
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${month}-${day}`
+  }
+}
+
+// 生成随机抽奖中奖通告
+export const generateRandomLotteryNotice = () => {
+  const user = lotteries.users[Math.floor(Math.random() * lotteries.users.length)]
+  const prize = lotteries.prizes[Math.floor(Math.random() * lotteries.prizes.length)]
+  
+  // 根据奖品类型生成不同的文本
+  let prizeText = prize.name
+  if (prize.type === 'score') {
+    prizeText = `积分+${prize.value}`
+  } else if (prize.type === 'physical') {
+    prizeText = prize.name
+  } else if (prize.type === 'empty') {
+    prizeText = '谢谢参与'
+  }
+  
+  return {
+    id: Date.now(),
+    text: `恭喜 ${user} 抽中了${prizeText}`,
+    type: 'lottery',
+    time: '刚刚',
+    timestamp: Date.now(),
+    userId: `user_${Math.floor(Math.random() * 1000)}`,
+    nickname: user,
+    prize: prizeText,
+    prizeType: prize.type
   }
 }
 
@@ -224,5 +355,15 @@ export const generateRandomNotice = () => {
     type: randomType.type,
     time: '刚刚',
     timestamp: Date.now() // 新生成的消息时间戳为当前时间
+  }
+}
+
+// 混合生成随机通告（包含抽奖和普通通告）
+export const generateMixedRandomNotice = () => {
+  // 30% 概率生成抽奖通告，70% 概率生成普通通告
+  if (Math.random() < 0.3) {
+    return generateRandomLotteryNotice()
+  } else {
+    return generateRandomNotice()
   }
 }

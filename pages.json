@@ -118,12 +118,27 @@
 		{
 			"path": "pages/ucenter/point/detail",
 			"style": {
-				"navigationBarTitleText": "积分明细"
+        "app-plus": {
+					"bounce": "none",
+					"scrollIndicator": "none"
+				},
+				"h5": {
+					"bounce": "none"
+				}
+				"navigationBarTitleText": "积分明细",
+				"enablePullDownRefresh": true
 			}
 		},
 		{
 			"path": "pages/ucenter/point/lottery",
 			"style": {
+        "app-plus": {
+					"bounce": "none",
+					"scrollIndicator": "none"
+				},
+				"h5": {
+					"bounce": "none"
+				}
 				"navigationBarTitleText": "积分抽奖"
 			}
 		},

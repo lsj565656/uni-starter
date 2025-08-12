@@ -1,0 +1,63 @@
+{
+  "bsonType": "object",
+  "required": ["user_id", "prize_name", "is_winner", "is_exchanged", "cost_score", "lottery_time"],
+  "permission": {
+    "read": "doc.user_id == auth.uid",
+    "create": "auth.uid != null",
+    "update": "doc.user_id == auth.uid",
+    "delete": false
+  },
+  "properties": {
+    "_id": {
+      "description": "ID，系统自动生成"
+    },
+    "user_id": {
+      "bsonType": "string",
+      "description": "用户ID，参考uni-id-users表"
+    },
+    "prize_name": {
+      "bsonType": "string",
+      "description": "奖品名称",
+      "trim": "both"
+    },
+    "prize_type": {
+      "bsonType": "int",
+      "enum": [1, 2, 3],
+      "title": "奖品类型",
+      "description": "1:积分 2:实物奖品 3:谢谢参与"
+    },
+    "prize_value": {
+      "bsonType": "int",
+      "description": "奖品价值（积分数量或奖品ID）"
+    },
+    "is_winner": {
+      "bsonType": "bool",
+      "description": "是否中奖"
+    },
+    "is_exchanged": {
+      "bsonType": "bool",
+      "description": "是否已兑换",
+      "defaultValue": false
+    },
+    "cost_score": {
+      "bsonType": "int",
+      "description": "消耗积分"
+    },
+    "lottery_time": {
+      "bsonType": "timestamp",
+      "description": "抽奖时间",
+      "forceDefaultValue": {
+        "$env": "now"
+      }
+    },
+    "exchange_time": {
+      "bsonType": "timestamp",
+      "description": "兑换时间"
+    },
+    "comment": {
+      "bsonType": "string",
+      "description": "备注信息",
+      "trim": "both"
+    }
+  }
+} 

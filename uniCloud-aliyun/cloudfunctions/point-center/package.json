@@ -1,0 +1,13 @@
+{
+  "name": "point-center",
+  "version": "1.0.0",
+  "description": "积分中心云函数",
+  "main": "index.js",
+  "dependencies": {},
+  "cloudfunction-config": {
+    "memorySize": 256,
+    "timeout": 10,
+    "triggers": [],
+    "path": "/point-center"
+  }
+} 
