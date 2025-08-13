@@ -82,6 +82,7 @@ module.exports = {
 				balance,
 				score,
 				type:1,
+        comment:'签到得积分',
 				create_date:Date.now()
 			})
 			console.log({addScores});

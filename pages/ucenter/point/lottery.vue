@@ -8,6 +8,11 @@
         <text class="score-value">{{ userScore }}</text>
         <text class="cost-text">抽奖消耗：10积分/次</text>
       </view>
+                
+      <!-- 重置抽奖次数按钮（仅用于测试） -->
+      <view class="reset-button" @click="resetDrawCount">
+        <text class="reset-text">重置次数</text>
+      </view>
       
       <!-- 抽奖中奖公告栏 -->
       <view class="notice-section">
@@ -45,24 +50,24 @@
             :class="{ 'active': currentIndex === 0, 'highlight': isHighlighted(0) }"
             :data-index="0"
           >
-            <image :src="prizes[0].img" mode="aspectFit" class="prize-image"/>
-            <text class="prize-name">{{ prizes[0].name }}</text>
+            <image :src="prizes[marqueeToPrizeMap[0]].img" mode="aspectFit" class="prize-image"/>
+            <text class="prize-name">{{ prizes[marqueeToPrizeMap[0]].name }}</text>
           </view>
           <view 
             class="prize-item" 
             :class="{ 'active': currentIndex === 1, 'highlight': isHighlighted(1) }"
             :data-index="1"
           >
-            <image :src="prizes[1].img" mode="aspectFit" class="prize-image"/>
-            <text class="prize-name">{{ prizes[1].name }}</text>
+            <image :src="prizes[marqueeToPrizeMap[1]].img" mode="aspectFit" class="prize-image"/>
+            <text class="prize-name">{{ prizes[marqueeToPrizeMap[1]].name }}</text>
           </view>
           <view 
             class="prize-item" 
             :class="{ 'active': currentIndex === 2, 'highlight': isHighlighted(2) }"
             :data-index="2"
           >
-            <image :src="prizes[2].img" mode="aspectFit" class="prize-image"/>
-            <text class="prize-name">{{ prizes[2].name }}</text>
+            <image :src="prizes[marqueeToPrizeMap[2]].img" mode="aspectFit" class="prize-image"/>
+            <text class="prize-name">{{ prizes[marqueeToPrizeMap[2]].name }}</text>
           </view>
 
           <!-- 中间行 -->
@@ -71,8 +76,8 @@
             :class="{ 'active': currentIndex === 7, 'highlight': isHighlighted(7) }"
             :data-index="7"
           >
-            <image :src="prizes[7].img" mode="aspectFit" class="prize-image"/>
-            <text class="prize-name">{{ prizes[7].name }}</text>
+            <image :src="prizes[marqueeToPrizeMap[7]].img" mode="aspectFit" class="prize-image"/>
+            <text class="prize-name">{{ prizes[marqueeToPrizeMap[7]].name }}</text>
           </view>
           <view 
             class="prize-item center-button" 
@@ -89,8 +94,8 @@
             :class="{ 'active': currentIndex === 3, 'highlight': isHighlighted(3) }"
             :data-index="3"
           >
-            <image :src="prizes[3].img" mode="aspectFit" class="prize-image"/>
-            <text class="prize-name">{{ prizes[3].name }}</text>
+            <image :src="prizes[marqueeToPrizeMap[3]].img" mode="aspectFit" class="prize-image"/>
+            <text class="prize-name">{{ prizes[marqueeToPrizeMap[3]].name }}</text>
           </view>
 
           <!-- 最后一行 -->
@@ -99,24 +104,24 @@
             :class="{ 'active': currentIndex === 6, 'highlight': isHighlighted(6) }"
             :data-index="6"
           >
-            <image :src="prizes[6].img" mode="aspectFit" class="prize-image"/>
-            <text class="prize-name">{{ prizes[6].name }}</text>
+            <image :src="prizes[marqueeToPrizeMap[6]].img" mode="aspectFit" class="prize-image"/>
+            <text class="prize-name">{{ prizes[marqueeToPrizeMap[6]].name }}</text>
           </view>
           <view 
             class="prize-item" 
             :class="{ 'active': currentIndex === 5, 'highlight': isHighlighted(5) }"
             :data-index="5"
           >
-            <image :src="prizes[5].img" mode="aspectFit" class="prize-image"/>
-            <text class="prize-name">{{ prizes[5].name }}</text>
+            <image :src="prizes[marqueeToPrizeMap[5]].img" mode="aspectFit" class="prize-image"/>
+            <text class="prize-name">{{ prizes[marqueeToPrizeMap[5]].name }}</text>
           </view>
           <view 
             class="prize-item" 
             :class="{ 'active': currentIndex === 4, 'highlight': isHighlighted(4) }"
             :data-index="4"
           >
-            <image :src="prizes[4].img" mode="aspectFit" class="prize-image"/>
-            <text class="prize-name">{{ prizes[4].name }}</text>
+            <image :src="prizes[marqueeToPrizeMap[4]].img" mode="aspectFit" class="prize-image"/>
+            <text class="prize-name">{{ prizes[marqueeToPrizeMap[4]].name }}</text>
           </view>
         </view>
       </view>
@@ -135,9 +140,7 @@
         <view v-if="currentTab === 0" class="rule-content">
           <uni-list>
             <uni-list-item title="抽奖费用" :rightText="'10积分/次'" />
-            <uni-list-item title="中奖概率" :rightText="'30%'" />
             <uni-list-item title="奖品类型" :rightText="'积分、实物奖品'" />
-            <uni-list-item title="积分奖励" :rightText="'50-200积分'" />
             <uni-list-item title="实物奖品" :rightText="'需联系客服兑换'" />
             <uni-list-item title="每日限制" :rightText="'3次'" />
           </uni-list>
@@ -185,7 +188,7 @@
 </template>
 
 <script>
-import { store } from '@/uni_modules/uni-id-pages/common/store.js's'
+import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 
 export default {
   computed: {
@@ -211,8 +214,8 @@ export default {
       resultDesc: '',
       currentTab: 0,
       lotteryRecords: [],
-      timesLeft: 10,
-      maxDraws: 10,
+      timesLeft: 3,
+      maxDraws: 3,
       lotteryNotices: [],
       // 简化公告管理
       displayCount: 5, // 显示5条公告
@@ -229,7 +232,17 @@ export default {
         { name: '毛绒玩具', img: '/static/lotteries/plushToy.png', type: 2, value: 3, weight: 8 },
         { name: '加油卡', img: '/static/lotteries/gasCard.png', type: 2, value: 4, weight: 8 },
         { name: '谢谢参与', img: '/static/lotteries/pointadd50.png', type: 3, value: 0, weight: 20 }
-      ]
+      ],
+      // 新增：奖品索引到跑马灯位置的映射
+      // 跑马灯布局：第一行[0,1,2], 中间行[7,中心,3], 最后行[6,5,4]
+      // 奖品数组索引: [0,1,2,3,4,5,6,7]
+      // 跑马灯位置索引: [0,1,2,3,4,5,6,7]
+      // 修复映射关系：确保位置5对应奖品4（谢谢参与）
+      prizeToMarqueeMap: [0, 1, 2, 3, 5, 4, 6, 7],
+      // 跑马灯位置到奖品索引的映射
+      marqueeToPrizeMap: [0, 1, 2, 3, 5, 4, 6, 7],
+      // 新增：保存中奖奖品索引
+      winningPrizeIndex: 0
     }
   },
   
@@ -282,6 +295,19 @@ export default {
         uni.setStorageSync('lastDrawDate', today)
         uni.setStorageSync('remainingDraws', this.maxDraws)
       }
+    },
+    
+    // 重置抽奖次数（用于测试或重置）
+    resetDrawCount() {
+      this.timesLeft = this.maxDraws
+      const today = this.formatDate(new Date())
+      uni.setStorageSync('lastDrawDate', today)
+      uni.setStorageSync('remainingDraws', this.maxDraws)
+      
+      uni.showToast({
+        title: '抽奖次数已重置',
+        icon: 'success'
+      })
     },
     
     // 获取用户积分
@@ -433,54 +459,98 @@ export default {
       // 更新本地存储
       uni.setStorageSync('remainingDraws', this.timesLeft)
       
-      // 开始跑马灯效果
+      // 开始跑马灯效果，跑马灯停止后会自动调用抽奖
       this.startMarquee()
-      
-      // 延迟后调用抽奖接口
-      setTimeout(async () => {
-        await this.doLottery()
-      }, 3000)
     },
     
     // 开始跑马灯效果
     startMarquee() {
       let index = 0
       const totalPrizes = 8
-      const targetIndex = this.getRandomPrizeIndex()
+      
+      // 随机时长：4-8秒
+      const minDuration = 4000 // 4秒
+      const maxDuration = 8000 // 8秒
+      const randomDuration = Math.random() * (maxDuration - minDuration) + minDuration
+      
+      // 计算转动次数，确保平滑转动
+      const totalTimes = Math.floor(randomDuration / 60) // 每60ms转动一次，更平滑
       let times = 0
-      const totalTimes = 40 + targetIndex // 增加转动次数，使动画更平滑
-      let speed = 80 // 初始速度稍慢
+      let currentSpeed = 60 // 初始速度
       
       this.lotteryTimer = setInterval(() => {
         times++
-        index = (index + 1) % totalPrizes
         
-        // 根据次数调整速度，使减速更自然
-        if (times > 25) {
-          speed += 20 // 逐渐减速
-        } else if (times > 15) {
-          speed += 10 // 中等减速
-        }
-        
-        this.currentIndex = index
-        
-        if (times >= totalTimes) {
+        // 正常转动阶段
+        if (times < totalTimes) {
+          // 计算当前位置，确保平滑转动
+          index = (index + 1) % totalPrizes
+          this.currentIndex = index
+          
+          // 根据进度动态调整速度，实现自然减速
+          if (times > totalTimes * 0.85) {
+            // 最后15%时间，快速减速
+            currentSpeed = 60 + (times - totalTimes * 0.85) * 40
+          } else if (times > totalTimes * 0.7) {
+            // 70%-85%时间，中等减速
+            currentSpeed = 60 + (times - totalTimes * 0.7) * 20
+          } else if (times > totalTimes * 0.5) {
+            // 50%-70%时间，轻微减速
+            currentSpeed = 60 + (times - totalTimes * 0.5) * 10
+          }
+          
+          // 动态调整定时器间隔，实现真正的减速效果
+          if (currentSpeed > 60) {
+            clearInterval(this.lotteryTimer)
+            this.lotteryTimer = setInterval(() => {
+              // 递归调用当前逻辑
+              this.continueMarquee(times, totalTimes, index, totalPrizes)
+            }, currentSpeed)
+          }
+        } else {
+          // 停止阶段：跑马灯自然停止在当前位置
+          const finalIndex = this.currentIndex
+          
+          // 根据实际停止位置确定中奖奖品
+          this.winningPrizeIndex = this.marqueeToPrizeMap[finalIndex]
+          
           clearInterval(this.lotteryTimer)
-          this.currentIndex = targetIndex
           this.isLotterying = false
           
-          // 添加一个小延迟，让用户看到最终结果
-          setTimeout(() => {
-            this.showLotteryResult()
-          }, 200)
+          // 跑马灯停止后，立即执行抽奖
+          this.$nextTick(() => {
+            this.executeLottery()
+          })
         }
-      }, speed)
+      }, currentSpeed)
     },
     
-    // 显示抽奖结果
-    showLotteryResult() {
-      // 这里可以添加结果展示逻辑
-      console.log('抽奖完成，最终位置:', this.currentIndex)
+    // 继续跑马灯转动（递归调用，实现动态减速）
+    continueMarquee(times, totalTimes, index, totalPrizes) {
+      if (times >= totalTimes) {
+        // 停止阶段
+        const finalIndex = this.currentIndex
+        
+        // 根据实际停止位置确定中奖奖品
+        this.winningPrizeIndex = this.marqueeToPrizeMap[finalIndex]
+        
+        clearInterval(this.lotteryTimer)
+        this.isLotterying = false
+        
+        // 跑马灯停止后，立即执行抽奖
+        this.$nextTick(() => {
+          this.executeLottery()
+        })
+        return
+      }
+      
+      // 继续转动
+      times++
+      index = (index + 1) % totalPrizes
+      this.currentIndex = index
+      
+      // 继续递归调用
+      this.continueMarquee(times, totalTimes, index, totalPrizes)
     },
     
     // 根据权重随机选择奖品索引
@@ -502,31 +572,44 @@ export default {
       return this.isLotterying && this.currentIndex === index
     },
     
-    // 执行抽奖
-    async doLottery() {
+    // 跑马灯停止后执行抽奖
+    async executeLottery() {
       try {
+        // 使用跑马灯停止位置确定的中奖奖品
+        const winningPrize = this.prizes[this.winningPrizeIndex]
+        // 调用云函数记录抽奖结果
         const res = await uniCloud.callFunction({
           name: 'point-center',
           data: { 
             action: 'doLottery',
             uid: store.userInfo._id || store.userInfo.uid,
-            data: { costScore: 10 }
+            data: { 
+              costScore: 10,
+              prizeIndex: this.winningPrizeIndex,
+              prizeName: winningPrize.name,
+              prizeType: winningPrize.type,
+              prizeValue: winningPrize.value
+            }
           }
         })
         
         if (res.result.code === 200) {
-          const { prize } = res.result.data
-          
           // 更新用户积分
           this.userScore -= 10
           
           // 显示中奖结果
-          this.resultTitle = prize.isWinner ? '恭喜中奖！' : '很遗憾'
-          this.resultDesc = prize.comment
+          const isWinner = winningPrize.type !== 3 // 不是"谢谢参与"就是中奖
+          this.resultTitle = isWinner ? '恭喜中奖！' : '很遗憾'
+          this.resultDesc = isWinner ? `恭喜您抽中了${winningPrize.name}` : '谢谢参与，下次再来！'
           this.$refs.resultPopup.open()
           
           // 向全局通告系统发送抽奖中奖信息
-          this.sendLotteryNotice(prize)
+          if (isWinner) {
+            this.sendLotteryNotice({
+              name: winningPrize.name,
+              isWinner: true
+            })
+          }
           
           // 刷新抽奖记录
           this.getLotteryRecords()
@@ -542,14 +625,13 @@ export default {
           title: '抽奖失败，请重试',
           icon: 'none'
         })
-      } finally {
-        this.isLotterying = false
       }
     },
     
     // 向全局通告系统发送抽奖中奖信息
     sendLotteryNotice(prize) {
-      if (prize.isWinner) {
+      // 只有真正中奖的奖品才发送通告，谢谢参与不发送
+      if (prize.isWinner && prize.type !== 3) {
         // 生成抽奖中奖通告
         const lotteryNotice = this.generateLotteryNotice(prize)
         
@@ -1024,6 +1106,37 @@ export default {
   font-size: 20rpx;
   color: rgba(255, 255, 255, 0.9);
   text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.2);
+}
+
+.reset-button {
+  grid-column: 2;
+  grid-row: 3;
+  background: #f0f0f0;
+  border-radius: 20rpx;
+  padding: 16rpx 24rpx;
+  font-size: 24rpx;
+  color: #333;
+  border: 1rpx solid #ccc;
+  text-align: center;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  margin-top: 20rpx; /* 调整位置，使其与抽奖按钮对齐 */
+}
+
+.reset-button:hover {
+  background: #e0e0e0;
+  border-color: #bbb;
+}
+
+.reset-button:active {
+  background: #d0d0d0;
+  border-color: #aaa;
+}
+
+.reset-text {
+  font-size: 24rpx;
+  font-weight: bold;
 }
 
 .result-content {

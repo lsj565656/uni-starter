@@ -502,7 +502,7 @@ export default {
     },
     goToMySchedule() {
       uni.showToast({
-        title: '时间表开发者 敬请期待',
+        title: '时间表开发中 敬请期待',
         icon: 'none',
         duration: 3000
       })

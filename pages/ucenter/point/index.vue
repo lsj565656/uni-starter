@@ -13,7 +13,7 @@
     <view class="lottery-card">
       <view class="lottery-header">
         <text>开箱赢好礼</text>
-        <text class="cost">100积分/次</text>
+        <text class="cost">10积分/次</text>
         <button class="point-detail-btn" @click="goLottery">GO</button>
       </view>
       <!-- 奖品轮播图 -->
@@ -47,8 +47,15 @@
             'today': index === signInData.n - 1 && !todaySigned 
           }"
         >
-          <text class="day-num">{{ index + 1 }}</text>
-          <text class="day-reward">+{{ getDayReward(index + 1) }}</text>
+          <!-- 使用简单的文本角标，确保能正确显示 -->
+          <view v-if="shouldShowBadge(index)" class="today-badge">
+            <!-- 移除文本，只显示圆点 -->
+          </view>
+          
+          <view class="sign-in-content">
+            <text class="day-num">{{ index + 1 }}</text>
+            <text class="day-reward">+{{ getDayReward(index + 1) }}</text>
+          </view>
         </view>
       </view>
       <view class="sign-in-actions">
@@ -68,11 +75,18 @@
       <uni-section type="line" class="section-title" title="精选任务" sub-title="每日更新"></uni-section>
       <view class="task-list">
         <view class="task-item" v-for="task in taskList" :key="task.id">
-          <view>
-            <text class="task-name">{{ task.name }}</text>
-            <text class="task-reward">+{{ task.reward }}</text>
+          <view class="task-info">
+            <view class="task-icon">
+              <uni-icons :type="getTaskIcon(task.id)" size="20" color="#ff9800" />
+            </view>
+            <view class="task-details">
+              <text class="task-name">{{ task.name }}</text>
+              <text class="task-reward">+{{ task.reward }}积分</text>
+            </view>
           </view>
-          <button class="point-detail-btn" @click="doTask(task)">去{{ task.actionText }}</button>
+          <button class="task-action-btn" @click="doTask(task)">
+            {{ task.actionText }}
+          </button>
         </view>
       </view>
     </view>
@@ -96,7 +110,7 @@ export default {
       todaySigned: false,
       signInData: {
         days: [], // 已签到的天数 [0,1,2,3,4,5,6] 对应第1-7天
-        n: 0,    // 本轮签到的第几天
+        n: 1,    // 修复：本轮签到的第几天，默认应该是1而不是0
         score: 0 // 当前积分
       },
       prizeList: [
@@ -127,13 +141,20 @@ export default {
   },
   
   onLoad() {
+    console.log('页面加载，开始初始化...')
     this.initUserScore()
     this.initSignInData()
   },
   
   onShow() {
+    console.log('页面显示，刷新签到状态...')
     // 页面显示时刷新签到状态
     this.refreshSignInStatus()
+    console.log('当前签到数据状态:', {
+      signInData: this.signInData,
+      todaySigned: this.todaySigned,
+      shouldShowBadge: this.signInData.n - 1 >= 0 && !this.todaySigned
+    })
   },
   
   mounted() {
@@ -201,10 +222,11 @@ export default {
     initDefaultSignInData() {
       this.signInData = {
         days: [],
-        n: 0,
+        n: 1, // 修复：默认应该是第1天，而不是0
         score: this.userScore
       }
       this.todaySigned = false
+      console.log('初始化默认签到数据:', this.signInData)
     },
     
     // 检查今天是否已签到
@@ -383,11 +405,91 @@ export default {
     },
     
     doTask(task) {
-      // 任务逻辑
-      uni.showToast({
-        title: `完成任务：${task.name}`,
-        icon: 'success'
+      // 根据任务ID执行不同的逻辑
+      switch (task.id) {
+        case 1: { // 观看广告
+          this.showAdTaskDialog()
+          break
+        }
+        case 2: { // 逛逛广场
+          this.goToParjobSquare()
+          break
+        }
+        case 3: { // 分享任务
+          this.showShareTaskDialog()
+          break
+        }
+        default: {
+          uni.showToast({
+            title: `完成任务：${task.name}`,
+            icon: 'success'
+          })
+        }
+      }
+    },
+    
+    // 显示广告任务弹窗
+    showAdTaskDialog() {
+      uni.showModal({
+        title: '🎬 广告任务',
+        content: '一大波精彩广告正在路上，敬请期待！\n\n完成任务可获得 2 积分奖励',
+        showCancel: false,
+        confirmText: '好的，我知道了',
+        confirmColor: '#ff9800'
       })
+    },
+    
+    // 跳转到趴活广场页面
+    goToParjobSquare() {
+      // 显示跳转提示
+      uni.showToast({
+        title: '正在跳转...',
+        icon: 'loading',
+        duration: 1000
+      })
+      
+      // 延迟跳转，让用户看到提示
+      setTimeout(() => {
+        uni.navigateTo({
+          url: '/pages/parjob-square/index'
+        })
+      }, 1000)
+    },
+    
+    // 显示分享任务弹窗
+    showShareTaskDialog() {
+      uni.showModal({
+        title: '📤 分享任务',
+        content: '分享功能正在紧锣密鼓地开发中，敬请期待！\n\n完成任务可获得 5 积分奖励',
+        showCancel: false,
+        confirmText: '期待上线',
+        confirmColor: '#ff9800'
+      })
+    },
+
+    // 根据任务ID获取图标类型
+    getTaskIcon(taskId) {
+      switch (taskId) {
+        case 1: {
+          return 'eye' // 观看广告
+        }
+        case 2: {
+          return 'map' // 逛逛广场
+        }
+        case 3: {
+          return 'paperplane' // 分享任务
+        }
+        default: {
+          return 'help' // 默认图标
+        }
+      }
+    },
+    
+    // 判断是否应该显示角标
+    shouldShowBadge(index) {
+      // 角标应该显示在"今天"的位置，不管是否已签到
+      const shouldShow = index === this.signInData.n - 1
+      return shouldShow
     }
   }
 }
@@ -520,10 +622,63 @@ export default {
   border: 2rpx solid #e0e0e0;
   border-radius: 50%;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   background: #f5f5f5;
+  position: relative; /* 添加相对定位，为角标定位做准备 */
+}
+
+/* 签到内容样式 */
+.sign-in-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* 确保角标能正确显示 */
+.sign-in-day :deep(.uni-badge) {
+  z-index: 1000 !important;
+  position: absolute !important;
+  top: -4rpx !important;
+  right: -4rpx !important;
+}
+
+/* 角标样式优化 */
+.sign-in-day :deep(.uni-badge--dot) {
+  width: 16rpx !important;
+  height: 16rpx !important;
+  border-radius: 50% !important;
+  background-color: #4caf50 !important; /* 改为绿色 */
+  border: none !important; /* 移除边框 */
+  box-shadow: none !important; /* 移除阴影 */
+}
+
+/* 今天的角标样式 */
+.today-badge {
+  position: absolute;
+  bottom: -24rpx; /* 调整到底部 */
+  left: 50%; /* 水平居中 */
+  transform: translateX(-50%); /* 精确居中 */
+  z-index: 1000;
+  background: #4caf50; /* 绿色 */
+  color: #fff;
+  border-radius: 50%;
+  width: 16rpx; /* 调整大小更合理 */
+  height: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none; /* 移除边框 */
+  box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.2); /* 轻微阴影 */
+}
+
+.badge-text {
+  font-size: 12rpx;
+  font-weight: bold;
+  line-height: 1;
 }
 
 .sign-in-day.signed {
@@ -593,22 +748,73 @@ export default {
 
 .task-item {
   background: #fff;
-  border-radius: 12rpx;
-  padding: 16rpx 12rpx;
+  border-radius: 16rpx;
+  padding: 24rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1rpx solid #e0e0e0;
+  border-bottom: 1rpx solid #f0f0f0;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.task-item:active {
+  transform: scale(0.98);
+  box-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.08);
+}
+
+.task-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.task-icon {
+  margin-right: 16rpx;
+  width: 40rpx;
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 152, 0, 0.1);
+  border-radius: 50%;
+}
+
+.task-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
 }
 
 .task-name {
   font-size: 28rpx;
   color: #333;
+  font-weight: 500;
 }
 
 .task-reward {
   color: #ff9800;
-  font-size: 28rpx;
-  margin-left: 8rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.task-action-btn {
+  width: 120rpx !important;
+  height: 56rpx;
+  font-size: 24rpx;
+  color: #fff;
+  background: linear-gradient(135deg, #1976d2, #1565c0) !important;
+  border: none;
+  padding: 0 !important;
+  border-radius: 28rpx;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.task-action-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 2rpx 8rpx rgba(25, 118, 210, 0.3);
 }
 </style>

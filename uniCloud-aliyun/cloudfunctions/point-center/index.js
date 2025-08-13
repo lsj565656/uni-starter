@@ -209,7 +209,7 @@ async function getScoreHistory(uid, { page = 1, pageSize = 20, type = 'all' } = 
 }
 
 // 执行抽奖
-async function doLottery(uid, { costScore = 10 } = {}) {
+async function doLottery(uid, { costScore = 10, prizeIndex, prizeName, prizeType, prizeValue } = {}) {
   try {
     // 检查用户积分是否足够 - 从积分变动表获取最新余额
     const scoreRes = await db.collection('uni-id-scores')
@@ -230,8 +230,23 @@ async function doLottery(uid, { costScore = 10 } = {}) {
       };
     }
     
-    // 生成奖品
-    const prize = generatePrize();
+    // 使用前端传递的奖品信息，而不是重新生成
+    let prize;
+    if (prizeIndex !== undefined && prizeName && prizeType !== undefined) {
+      // 前端传递了奖品信息，使用前端的
+      prize = {
+        name: prizeName,
+        type: prizeType,
+        value: prizeValue || 0,
+        isWinner: prizeType !== 3, // 不是"谢谢参与"就是中奖
+        comment: prizeType === 3 ? '很遗憾，下次再来' : `恭喜获得${prizeName}`
+      };
+      console.log('使用前端传递的奖品信息:', prize);
+    } else {
+      // 前端没有传递奖品信息，才使用随机生成（兼容性处理）
+      prize = generatePrize();
+      console.log('使用随机生成的奖品信息:', prize);
+    }
     
     // 记录积分变动 - 扣除积分
     const newBalance = currentBalance - costScore;
@@ -374,27 +389,37 @@ async function exchangePrize(uid, { recordId } = {}) {
 // 获取签到数据
 async function getSignInData(uid) {
   try {
-    // 获取当前北京时间（UTC+8）的当天凌晨时间戳
+    // 获取当前时间，使用本地时间而不是UTC时间
     const now = new Date()
-    const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000) // 转换为北京时间
-    const year = beijingTime.getUTCFullYear()
-    const month = beijingTime.getUTCMonth()
-    const day = beijingTime.getUTCDate()
     
-    // 创建当天凌晨的UTC时间戳
-    const todayStart = new Date(Date.UTC(year, month, day))
+    // 获取今天的开始时间（00:00:00）
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const todayTimestamp = todayStart.getTime()
     
-    // 查最近7天的签到情况（与uni-sign-in组件逻辑完全一致）
+    // 获取7天前的开始时间
+    const sevenDaysAgo = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const sevenDaysAgoTimestamp = sevenDaysAgo.getTime()
+    
+    console.log('签到时间计算:', {
+      now: now.toISOString(),
+      todayStart: todayStart.toISOString(),
+      todayTimestamp,
+      sevenDaysAgo: sevenDaysAgo.toISOString(),
+      sevenDaysAgoTimestamp
+    })
+    
+    // 查询最近7天的签到记录
     const { data: signInData } = await db.collection('opendb-sign-in')
       .where({
         user_id: uid,
-        date: dbCmd.gte(todayTimestamp - 3600 * 24 * 6 * 1000),
+        date: dbCmd.gte(sevenDaysAgoTimestamp),
         isDelete: false
       })
       .get()
     
-    // 按日期排序，确保时间顺序正确
+    console.log('查询到的签到数据:', signInData)
+    
+    // 按日期排序
     signInData.sort((a, b) => a.date - b.date)
     
     let signInResult = {
@@ -404,8 +429,22 @@ async function getSignInData(uid) {
     }
     
     if (signInData && signInData.length > 0) {
-      // 今天是本轮签到的第几天（与uni-sign-in组件逻辑完全一致）
-      const n = signInData.length + 1
+      // 计算今天是本轮签到的第几天
+      // 如果今天已经签到，n就是已签到的天数
+      // 如果今天还没签到，n就是已签到的天数+1
+      const todaySigned = signInData.some(record => {
+        const recordDate = new Date(record.date)
+        const recordDayStart = new Date(recordDate.getFullYear(), recordDate.getMonth(), recordDate.getDate())
+        return recordDayStart.getTime() === todayTimestamp
+      })
+      
+      if (todaySigned) {
+        // 今天已签到，n就是已签到的天数
+        signInResult.n = signInData.length
+      } else {
+        // 今天还没签到，n就是已签到的天数+1
+        signInResult.n = signInData.length + 1
+      }
       
       // 计算已签到的天数索引（0-6，对应第1-7天）
       let days = []
@@ -421,11 +460,17 @@ async function getSignInData(uid) {
         }
       }
       
-      signInResult = {
-        days: days,
-        n: n,
-        score: 0
-      }
+      signInResult.days = days
+      
+      console.log('签到结果计算:', {
+        todaySigned,
+        signInDataLength: signInData.length,
+        n: signInResult.n,
+        days: signInResult.days
+      })
+    } else {
+      // 没有签到记录，今天是第1天
+      signInResult.n = 1
     }
     
     // 获取用户当前积分
@@ -438,6 +483,8 @@ async function getSignInData(uid) {
     if (scoreRes.data && scoreRes.data.length > 0) {
       signInResult.score = scoreRes.data[0].balance || 0
     }
+    
+    console.log('最终签到结果:', signInResult)
     
     return {
       code: 200,

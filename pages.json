@@ -124,7 +124,7 @@
 				},
 				"h5": {
 					"bounce": "none"
-				}
+				},
 				"navigationBarTitleText": "积分明细",
 				"enablePullDownRefresh": true
 			}
@@ -138,7 +138,7 @@
 				},
 				"h5": {
 					"bounce": "none"
-				}
+				},
 				"navigationBarTitleText": "积分抽奖"
 			}
 		},
