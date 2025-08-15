@@ -37,6 +37,7 @@ const { t } = initVueI18n(messages)
 
 export default {
   name: 'uni-load-state',
+  emits: ['loadMore', 'networkResume'],
   computed: {
     noData() {
       return t('noData')

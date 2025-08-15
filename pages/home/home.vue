@@ -23,22 +23,36 @@
     <!-- #endif -->
 
     <!-- banner -->
-    <!-- <unicloud-db ref="bannerdb" v-slot:default="{data, loading, error, options}" collection="opendb-banner"
-			field="_id,bannerfile,open_url,title" @load="onqueryload" >
-			<image v-if="!(loading||data.length)" class="banner-image" src="/static/uni-center/headers.png" mode="aspectFill" :draggable="false" />
+    <unicloud-db ref="bannerdb" v-slot:default="{data, loading, error, options}" collection="opendb-banner"
+			field="_id,bannerfile,open_url,title,sort,status" 
+			where="status == true" 
+			orderby="sort asc, create_date desc" 
+			@load="onqueryload" >
 			
-			<swiper v-else class="swiper-box"  @change="changeSwiper" :current="current" indicator-dots>
-				<swiper-item v-for="(item, index) in data" :key="item._id">
-					<image class="banner-image" :src="item.bannerfile.url" mode="aspectFill" @click="clickBannerItem(item)" :draggable="false" />
-				</swiper-item>
-			</swiper>
-		</unicloud-db> -->
-    <swiper class="swiper-box" @change="changeSwiper" :current="current" indicator-dots>
+			<!-- 正常数据状态 -->
+			<uni-swiper-dot v-if="data && data.length > 0" 
+				:info="data" 
+				:current="current" 
+				mode="round" 
+				:dotsStyles="bannerDotsStyles"
+				class="banner-swiper-dot">
+				<swiper class="swiper-box" @change="changeSwiper" :current="current" :indicator-dots="false">
+					<swiper-item v-for="(item, index) in data" :key="item._id">
+						<image class="banner-image" :src="item.bannerfile.url" mode="aspectFill" @click="clickBannerItem(item)" :draggable="false" />
+						<!-- 可选：显示标题 -->
+						<view v-if="item.title" class="banner-title">{{ item.title }}</view>
+					</swiper-item>
+				</swiper>
+			</uni-swiper-dot>
+			<!-- 空数据状态 -->
+			<image v-else-if="!loading && (!data || data.length === 0)" class="banner-image" src="/static/uni-center/headers.png" mode="aspectFill" :draggable="false" />
+		</unicloud-db>
+    <!-- <swiper class="swiper-box" @change="changeSwiper" :current="current" indicator-dots>
       <swiper-item v-for="(item) in imageDatas" :key="item.id">
         <image class="banner-image" :src="item.image" mode="aspectFill" @click="clickBannerItem(item)"
           :draggable="false" />
       </swiper-item>
-    </swiper>
+    </swiper> -->
 
     <!-- 通告消息栏 -->
     <view class="notice-section">
@@ -267,6 +281,18 @@ const flourProcess = ref(flourProcessData)
 const noticeList = ref([...notices])
 const current = ref(0)
 
+// Banner指示点样式配置
+const bannerDotsStyles = {
+  backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  selectedBackgroundColor: '#fff',
+  width: 8,
+  height: 6,
+  selectedWidth: 24,
+  border: 'none',
+  selectedBorder: 'none',
+  bottom: 1
+}
+
 // 食材弹窗相关变量
 const evaluatedPopup = ref(null)
 const currentevaluated = ref(null)
@@ -424,9 +450,46 @@ function changeSwiper(e) {
   current.value = e.detail.current
 }
 
+// Banner数据加载完成回调
+function onqueryload(e) {
+  console.log('Banner数据加载完成:', e)
+}
+
 function clickBannerItem(item) {
   console.log('点击了banner:', item)
-  // 可以在这里添加banner点击逻辑
+  
+  // 处理banner点击跳转
+  if (item.open_url) {
+    // 判断URL类型并跳转
+    if (item.open_url.startsWith('http://') || item.open_url.startsWith('https://')) {
+      // Web地址，使用内置web-view打开
+      uni.navigateTo({
+        url: `/uni_modules/uni-id-pages/pages/webview/webview?url=${encodeURIComponent(item.open_url)}`
+      })
+    } else if (item.open_url.startsWith('/')) {
+      // 本地页面，直接跳转
+      uni.navigateTo({
+        url: item.open_url
+      })
+    } else if (item.open_url.startsWith('@/')) {
+      // 本地页面，去掉@符号
+      uni.navigateTo({
+        url: item.open_url.slice(1)
+      })
+    } else {
+      // 其他情况，显示提示
+      uni.showToast({
+        title: '暂不支持此链接类型',
+        icon: 'none'
+      })
+    }
+  } else {
+    // 没有跳转链接，显示banner信息
+    uni.showToast({
+      title: item.title || 'Banner',
+      icon: 'none'
+    })
+  }
 }
 
 const isevaluatedsScrolledLeft = ref(false)
@@ -1275,4 +1338,19 @@ onPageScroll(e => {
   margin-top: 10px !important;
   right: 0;
 }
+
+.banner-title {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+  color: #fff;
+  padding: 20rpx 16rpx 16rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  text-align: center;
+  border-radius: 0 0 12px 12px;
+}
+
 </style>
