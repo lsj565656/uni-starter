@@ -36,7 +36,7 @@
 				mode="round" 
 				:dotsStyles="bannerDotsStyles"
 				class="banner-swiper-dot">
-				<swiper class="swiper-box" @change="changeSwiper" :current="current" :indicator-dots="false">
+				<swiper class="swiper-box" @change="changeSwiper" :current="current" :indicator-dots="false" :circular="true">
 					<swiper-item v-for="(item, index) in data" :key="item._id">
 						<image class="banner-image" :src="item.bannerfile.url" mode="aspectFill" @click="clickBannerItem(item)" :draggable="false" />
 						<!-- 可选：显示标题 -->
@@ -827,11 +827,6 @@ onPageScroll(e => {
   /* #endif */
 }
 
-.banner-image {
-  width: 100%;
-  height: 400rpx;
-}
-
 .swiper-box {
   height: 400rpx;
 }
@@ -1344,7 +1339,7 @@ onPageScroll(e => {
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.2));
   color: #fff;
   padding: 20rpx 16rpx 16rpx;
   font-size: 28rpx;
