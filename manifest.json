@@ -61,6 +61,20 @@
                         "appid" : "wxa63d9e386df1c1cf",
                         "UniversalLinks" : ""
                     }
+                },
+                "ad" : {
+                    "fl" : {},
+                    "ks-content" : {},
+                    "sigmob" : {},
+                    "ks" : {},
+                    "jl" : {},
+                    "zy" : {}
+                },
+                "share" : {
+                    "weixin" : {
+                        "appid" : "wxa63d9e386df1c1cf",
+                        "UniversalLinks" : ""
+                    }
                 }
             },
             "icons" : {

@@ -214,13 +214,13 @@ export default {
           }
         ],
         // #ifdef APP
-        [
-          {
-            title: this.$t('mine.about'),
-            to: '/pages/ucenter/about/about',
-            icon: 'info'
-          }
-        ]
+        // [
+        //   {
+        //     title: this.$t('mine.about'),
+        //     to: '/pages/ucenter/about/about',
+        //     icon: 'info'
+        //   }
+        // ]
         // #endif
       ],
       listStyles: {

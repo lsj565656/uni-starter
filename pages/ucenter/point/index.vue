@@ -141,20 +141,13 @@ export default {
   },
   
   onLoad() {
-    console.log('页面加载，开始初始化...')
     this.initUserScore()
     this.initSignInData()
   },
   
   onShow() {
-    console.log('页面显示，刷新签到状态...')
     // 页面显示时刷新签到状态
     this.refreshSignInStatus()
-    console.log('当前签到数据状态:', {
-      signInData: this.signInData,
-      todaySigned: this.todaySigned,
-      shouldShowBadge: this.signInData.n - 1 >= 0 && !this.todaySigned
-    })
   },
   
   mounted() {
@@ -174,10 +167,8 @@ export default {
       // 优先使用store中的缓存积分
       if (store.userInfo && (store.userInfo.score !== undefined && store.userInfo.score !== null)) {
         this.userScore = store.userInfo.score
-        console.log('使用缓存积分:', this.userScore)
       } else {
         // 缓存中没有积分，去请求云函数
-        console.log('缓存中无积分，请求云函数')
         this.getUserScore()
       }
     },
@@ -199,7 +190,6 @@ export default {
           if (store.userInfo) {
             store.userInfo.score = this.userScore
           }
-          console.log('云函数获取积分成功:', this.userScore)
         }
       } catch (error) {
         console.error('获取积分失败:', error)
@@ -209,10 +199,8 @@ export default {
     // 初始化签到数据 - 使用云函数获取
     async initSignInData() {
       try {
-        console.log('初始化签到数据...')
         await this.fetchSignInDataFromCloud()
       } catch (error) {
-        console.error('初始化签到数据失败:', error)
         // 如果失败，使用默认值
         this.initDefaultSignInData()
       }
@@ -226,7 +214,6 @@ export default {
         score: this.userScore
       }
       this.todaySigned = false
-      console.log('初始化默认签到数据:', this.signInData)
     },
     
     // 检查今天是否已签到
@@ -272,7 +259,6 @@ export default {
     // 签到成功回调 - 完全使用uni-sign-in组件的数据
     onSignInSuccess(signInData) {
       if (signInData && signInData.score !== undefined) {
-        console.log('收到签到成功回调数据:', signInData)
         
         // 直接使用组件返回的数据，不做任何修改
         this.signInData = {
@@ -302,12 +288,6 @@ export default {
           title: `签到成功，获得${earnedScore}积分！`,
           icon: 'success'
         })
-        
-        console.log('签到成功，更新后的数据:', {
-          signInData: this.signInData,
-          todaySigned: this.todaySigned,
-          userScore: this.userScore
-        })
       }
     },
     
@@ -317,7 +297,6 @@ export default {
         const today = new Date()
         const todayStr = today.toISOString().split('T')[0]
         uni.setStorageSync('lastSignInDate', todayStr)
-        console.log('保存最后签到日期:', todayStr)
       } catch (error) {
         console.error('保存签到日期失败:', error)
       }
@@ -337,7 +316,6 @@ export default {
     // 从云端获取签到数据
     async fetchSignInDataFromCloud() {
       try {
-        console.log('开始从云端获取签到数据...')
         
         // 调用云函数获取签到信息
         const res = await uniCloud.callFunction({
@@ -350,7 +328,6 @@ export default {
         
         if (res.result && res.result.code === 200) {
           const cloudData = res.result.data
-          console.log('云端签到数据:', cloudData)
           
           // 更新本地数据
           this.signInData = {
@@ -369,8 +346,6 @@ export default {
           
           // 检查今天是否已签到
           this.todaySigned = this.isTodaySigned()
-          
-          console.log('云端数据获取成功，当前状态:', this.signInData)
         } else {
           throw new Error(res.result?.message || '获取云端数据失败')
         }
