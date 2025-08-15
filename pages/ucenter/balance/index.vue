@@ -20,7 +20,7 @@
     </view>
 
     <!-- 充值金额选择弹窗 -->
-    <uni-popup ref="rechargePopup" type="bottom">
+    <uni-popup ref="rechargePopup" type="bottom" @change="onRechargePopupChange">
       <view class="recharge-modal">
         <view class="modal-header">
           <text class="modal-title">选择充值金额</text>
@@ -129,7 +129,9 @@ export default {
       dataLoaded: false,
       lastRefreshTime: 0,
       cacheExpireTime: 5 * 60 * 1000, // 5分钟缓存过期
-      isLoading: false
+      isLoading: false,
+      // 弹窗状态管理
+      isRechargeModalOpen: false
     }
   },
   computed: {
@@ -147,6 +149,13 @@ export default {
     
     // 监听充值成功事件
     uni.$on('rechargeSuccess', this.handleRechargeSuccess)
+    
+    // 监听弹窗状态变化
+    this.$nextTick(() => {
+      if (this.$refs.rechargePopup) {
+        this.$refs.rechargePopup.$on('change', this.onRechargePopupChange)
+      }
+    })
   },
   onShow() {
     // 页面显示时，优先使用store中的持久化数据
@@ -165,6 +174,24 @@ export default {
   onUnload() {
     // 页面卸载时移除事件监听
     uni.$off('rechargeSuccess', this.handleRechargeSuccess)
+    
+    // 注意：uni-popup 组件不需要手动移除事件监听，Vue 会自动清理
+    // 移除弹窗状态监听
+    if (this.$refs.rechargePopup) {
+      // uni-popup 组件没有 $off 方法，不需要手动移除
+      // 直接关闭弹窗即可
+      this.closeRechargeModal()
+    }
+  },
+  
+  // 页面返回拦截
+  onBackPress() {
+    // 检查充值弹窗是否打开
+    if (this.isRechargeModalOpen) {
+      this.closeRechargeModal()
+      return true // 阻止页面返回
+    }
+    return false // 允许页面正常返回
   },
   methods: {
     // 判断是否需要刷新数据
@@ -436,11 +463,13 @@ export default {
         return
       }
       this.$refs.rechargePopup.open()
+      this.isRechargeModalOpen = true
     },
     
     // 关闭充值弹窗
     closeRechargeModal() {
       this.$refs.rechargePopup.close()
+      this.isRechargeModalOpen = false
       this.selectedAmount = 10
       this.customAmount = ''
     },
@@ -622,6 +651,18 @@ export default {
       // 立即更新本地缓存
       this.updateLocalCache(rechargeData)
       uni.showToast({ title: '充值成功', icon: 'success' })
+    },
+    
+    // 处理充值弹窗状态变化
+    onRechargePopupChange(e) {
+      console.log('充值弹窗状态变化:', e)
+      // 确保状态同步正确
+      if (e && typeof e.show !== 'undefined') {
+        this.isRechargeModalOpen = e.show
+      } else if (e && typeof e === 'boolean') {
+        // 兼容不同版本的uni-popup
+        this.isRechargeModalOpen = e
+      }
     },
     
     // 检查是否有新的充值数据

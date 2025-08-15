@@ -171,6 +171,7 @@ export default {
       error: '',
       isFiltering: false,
       showFilterDrawer: false,
+      isFilterModalOpen: false, // 新增：筛选弹窗状态管理
       statusBarHeight: 0,
       CUSTOM_NAVBAR_HEIGHT: 48,
       FILTER_BAR_HEIGHT: 48,
@@ -527,20 +528,31 @@ export default {
     },
     toggleFilterDrawer() {
       this.showFilterDrawer = !this.showFilterDrawer
-      if (this.showFilterDrawer && this.$refs.filterDrawer) this.$refs.filterDrawer.open()
-      else if (!this.showFilterDrawer && this.$refs.filterDrawer) this.$refs.filterDrawer.close()
+      if (this.showFilterDrawer && this.$refs.filterDrawer) {
+        this.$refs.filterDrawer.open()
+        this.isFilterModalOpen = true
+      } else if (!this.showFilterDrawer && this.$refs.filterDrawer) {
+        this.$refs.filterDrawer.close()
+        this.isFilterModalOpen = false
+      }
     },
     openFilterDrawer() {
       if (this.$refs.filterDrawer) this.$refs.filterDrawer.open()
     },
     closeFilterDrawer() {
-      if (this.$refs.filterDrawer) this.$refs.filterDrawer.close()
+      if (this.$refs.filterDrawer) {
+        this.$refs.filterDrawer.close()
+        this.showFilterDrawer = false
+        this.isFilterModalOpen = false
+      }
     },
     onFilterDrawerOpen() {
       this.showFilterDrawer = true
+      this.isFilterModalOpen = true
     },
     onFilterDrawerClose() {
       this.showFilterDrawer = false
+      this.isFilterModalOpen = false
     },
     onDrawerContentClick() {
       if (this.$refs.filterDrawer) {
@@ -650,6 +662,24 @@ export default {
   },
   onReachBottom() {
     this.loadMore()
+  },
+  
+  // 页面卸载时清理定时器
+  onUnload() {
+    if (this.loginNoticeTimer) {
+      clearTimeout(this.loginNoticeTimer)
+      this.loginNoticeTimer = null
+    }
+  },
+  
+  // 页面返回拦截
+  onBackPress() {
+    // 检查筛选抽屉是否打开
+    if (this.isFilterModalOpen || this.showFilterDrawer) {
+      this.closeFilterDrawer()
+      return true // 阻止页面返回
+    }
+    return false // 允许页面正常返回
   }
 }
 </script>

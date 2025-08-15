@@ -144,7 +144,7 @@
             <text class="progress-title">{{
               progressData.task.status === 'not_started' ? '就绪状态' : '任务进度'
             }}</text>
-            <uni-icons type="close" size="20" color="#999" @click="$refs.progressDrawer.close()" />
+            <uni-icons type="close" size="20" color="#999" @click="closeProgressDrawer" />
           </view>
 
           <view class="progress-content" v-if="progressData">
@@ -282,7 +282,7 @@
                 </button>
               </template>
             </view>
-            <button class="close-btn" @click="$refs.progressDrawer.close()">
+            <button class="close-btn" @click="closeProgressDrawer">
               <uni-icons type="close" size="16" color="#666" />
               <text>关闭</text>
             </button>
@@ -415,7 +415,8 @@ export default {
       drawerStates: {
         progressDrawer: false,
         rateDrawer: false,
-        rateEditDrawer: false
+        rateEditDrawer: false,
+        filterDrawer: false
       }
     }
   },
@@ -468,6 +469,38 @@ export default {
   },
   onReachBottom() {
     this.loadMore()
+  },
+  // 页面返回拦截
+  onBackPress() {
+    // 检查筛选弹窗是否打开
+    if (this.drawerStates.filterDrawer) {
+      this.$refs.filterDrawer.close()
+      this.drawerStates.filterDrawer = false
+      return true // 阻止页面返回
+    }
+
+    // 检查进度抽屉是否打开
+    if (this.drawerStates.progressDrawer) {
+      this.$refs.progressDrawer.close()
+      this.drawerStates.progressDrawer = false
+      return true // 阻止页面返回
+    }
+
+    // 检查评价弹窗是否打开
+    if (this.drawerStates.rateDrawer) {
+      this.closeRateDrawer()
+      return true // 阻止页面返回
+    }
+
+    // 检查评价编辑弹窗是否打开
+    if (this.drawerStates.rateEditDrawer) {
+      this.$refs.rateEditDrawer.close()
+      this.showRateEditDrawer = false
+      this.drawerStates.rateEditDrawer = false
+      return true // 阻止页面返回
+    }
+
+    return false // 允许页面正常返回
   },
   methods: {
     formatTime,
@@ -862,11 +895,15 @@ export default {
     },
     openFilterDrawer() {
       this.$refs.filterDrawer.open('bottom')
+      this.drawerStates.filterDrawer = true
     },
     onFilterExtra(index) {
       if (this.filterExtraIndex !== index) {
         this.filterExtraIndex = index
-        if (this.$refs.filterDrawer) this.$refs.filterDrawer.close()
+        if (this.$refs.filterDrawer) {
+          this.$refs.filterDrawer.close()
+          this.drawerStates.filterDrawer = false
+        }
         this.page = 1
         this.tasks = []
         this.hasMore = true
@@ -986,9 +1023,11 @@ export default {
         document.body.style.overflow = 'hidden'
       }
       this.$refs.rateDrawer.open()
+      this.drawerStates.rateDrawer = true
     },
     closeRateDrawer() {
       this.$refs.rateDrawer.close()
+      this.drawerStates.rateDrawer = false
       if (typeof document !== 'undefined' && document.body) {
         document.body.style.overflow = ''
       }
@@ -999,6 +1038,7 @@ export default {
       this.rateEditComment = ''
       this.showRateEditDrawer = true
       this.$refs.rateEditDrawer.open()
+      this.drawerStates.rateEditDrawer = true
     },
     async submitRate() {
       if (this.rateEditValue <= 0) {
@@ -1040,6 +1080,7 @@ export default {
           }
           this.showRateEditDrawer = false
           this.$refs.rateEditDrawer.close()
+          this.drawerStates.rateEditDrawer = false
         } else {
           uni.showToast({
             title: res.result?.message || '评价失败',
@@ -1201,6 +1242,7 @@ export default {
             isAlsoMember
           }
           this.$refs.progressDrawer.open()
+          this.drawerStates.progressDrawer = true
         } else {
           uni.showToast({
             title: res.result?.message || '获取进度失败',
@@ -1444,6 +1486,7 @@ export default {
           }
           this.currentTask = task // 保存当前任务用于获取就绪状态
           this.$refs.progressDrawer.open()
+          this.drawerStates.progressDrawer = true
         } else {
           uni.showToast({
             title: res.result?.message || '获取状态失败',
@@ -1635,6 +1678,10 @@ export default {
           icon: 'none'
         })
       }
+    },
+    closeProgressDrawer() {
+      this.$refs.progressDrawer.close()
+      this.drawerStates.progressDrawer = false
     }
   }
 }

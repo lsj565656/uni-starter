@@ -104,12 +104,7 @@
         <button style="margin-top: 18px; width: 100%" :loading="rateEditLoading" @click="submitRate">
           提交评价
         </button>
-        <button style="margin-top: 8px; width: 100%" @click="
-          () => {
-            showRateEditDrawer = false
-            $refs.rateEditDrawer.close()
-          }
-        ">
+        <button style="margin-top: 8px; width: 100%" @click="closeRateEditDrawer">
           取消
         </button>
       </view>
@@ -286,7 +281,10 @@ export default {
       rateEditTaskId: '',
       progressData: null,
       drawerStates: {
-        progressDrawer: false
+        progressDrawer: false,
+        filterDrawer: false,
+        rateDrawer: false,
+        rateEditDrawer: false
       },
       categoryCounts: {
         全部: 0,
@@ -691,11 +689,15 @@ export default {
     },
     openFilterDrawer() {
       this.$refs.filterDrawer.open('bottom')
+      this.drawerStates.filterDrawer = true
     },
     onFilterExtra(index) {
       if (this.filterExtraIndex !== index) {
         this.filterExtraIndex = index
-        if (this.$refs.filterDrawer) this.$refs.filterDrawer.close()
+        if (this.$refs.filterDrawer) {
+          this.$refs.filterDrawer.close()
+          this.drawerStates.filterDrawer = false
+        }
         this.page = 1
         this.tasks = []
         this.hasMore = true
@@ -815,9 +817,11 @@ export default {
         document.body.style.overflow = 'hidden'
       }
       this.$refs.rateDrawer.open()
+      this.drawerStates.rateDrawer = true
     },
     closeRateDrawer() {
       this.$refs.rateDrawer.close()
+      this.drawerStates.rateDrawer = false
       if (typeof document !== 'undefined' && document.body) {
         document.body.style.overflow = ''
       }
@@ -828,6 +832,7 @@ export default {
       this.rateEditComment = ''
       this.showRateEditDrawer = true
       this.$refs.rateEditDrawer.open()
+      this.drawerStates.rateEditDrawer = true
     },
     async submitRate() {
       if (this.rateEditValue <= 0) {
@@ -867,8 +872,7 @@ export default {
           if (this.filterOptions[this.filterIndex] === '已完成') {
             this.tasks.splice(index, 1)
           }
-          this.showRateEditDrawer = false
-          this.$refs.rateEditDrawer.close()
+          this.closeRateEditDrawer()
         } else {
           uni.showToast({
             title: res.result?.message || '评价失败',
@@ -1286,14 +1290,46 @@ export default {
       this.$refs.progressDrawer.close()
     },
 
+    // 关闭评价编辑抽屉
+    closeRateEditDrawer() {
+      this.showRateEditDrawer = false
+      this.drawerStates.rateEditDrawer = false
+      this.$refs.rateEditDrawer.close()
+    },
+
     // 检查抽屉状态
     checkDrawerState() {
-      // 监听进度抽屉状态变化
+      // 监听所有弹窗和抽屉的状态变化
       this.$nextTick(() => {
+        // 监听进度抽屉状态变化
         if (this.$refs.progressDrawer) {
           this.$refs.progressDrawer.$on('change', e => {
             console.log('进度抽屉状态变化:', e)
             this.drawerStates.progressDrawer = e
+          })
+        }
+        
+        // 监听筛选弹窗状态变化
+        if (this.$refs.filterDrawer) {
+          this.$refs.filterDrawer.$on('change', e => {
+            console.log('筛选弹窗状态变化:', e)
+            this.drawerStates.filterDrawer = e
+          })
+        }
+        
+        // 监听评价弹窗状态变化
+        if (this.$refs.rateDrawer) {
+          this.$refs.rateDrawer.$on('change', e => {
+            console.log('评价弹窗状态变化:', e)
+            this.drawerStates.rateDrawer = e
+          })
+        }
+        
+        // 监听评价编辑弹窗状态变化
+        if (this.$refs.rateEditDrawer) {
+          this.$refs.rateEditDrawer.$on('change', e => {
+            console.log('评价编辑弹窗状态变化:', e)
+            this.drawerStates.rateEditDrawer = e
           })
         }
       })
@@ -1303,14 +1339,34 @@ export default {
     handleBackPress() {
       console.log('处理返回按钮，抽屉状态:', this.drawerStates)
 
-      // 检查是否有抽屉打开
-      if (this.drawerStates.progressDrawer) {
-        console.log('关闭进度抽屉')
-        this.closeProgressDrawer()
-        return true // 拦截返回事件
+      // 检查筛选弹窗是否打开
+      if (this.drawerStates.filterDrawer) {
+        this.$refs.filterDrawer.close()
+        this.drawerStates.filterDrawer = false
+        return true // 阻止页面返回
       }
 
-      return false // 不拦截返回事件
+      // 检查进度抽屉是否打开
+      if (this.drawerStates.progressDrawer) {
+        this.closeProgressDrawer()
+        return true // 阻止页面返回
+      }
+
+      // 检查评价弹窗是否打开
+      if (this.drawerStates.rateDrawer) {
+        this.closeRateDrawer()
+        return true // 阻止页面返回
+      }
+
+      // 检查评价编辑弹窗是否打开
+      if (this.drawerStates.rateEditDrawer) {
+        this.$refs.rateEditDrawer.close()
+        this.showRateEditDrawer = false
+        this.drawerStates.rateEditDrawer = false
+        return true // 阻止页面返回
+      }
+
+      return false // 允许页面正常返回
     }
   }
 }

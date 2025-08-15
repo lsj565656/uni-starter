@@ -16,10 +16,10 @@
       <view class="search-filter-row">
         <view class="search-bar-row">
           <uni-search-bar v-model="keyword" radius="100" cancelButton="auto" clearButton="auto" placeholder="请输入搜索内容"
-            @clear="resetKeyword" @cancel="resetKeyword" @confirm="onSearch" :height="36" />
+            @clear="resetKeyword" @cancel="resetKeyword" @confirm="onSearch" :height="36" :readonly="isSortPopupOpen" />
         </view>
         <view class="filter-bar">
-          <view class="filter-sort-btn" @click="openSortPopup">
+          <view class="filter-sort-btn" :class="{ disabled: isSortPopupOpen }" @click="openSortPopup">
             <text>{{ sortLabel }}</text>
             <uni-icons type="arrow-down" size="16" color="#1976d2" style="margin-left: 2px" />
           </view>
@@ -42,7 +42,7 @@
         <uni-load-state class="load-state" :state="{ data: tasksList, pagination, hasMore, loading, error }"
           @loadMore="loadMore" @networkResume="refresh" noMoreText="没有更多了" />
       </view>
-      <uni-popup ref="sortPopupRef" type="bottom" :is-mask-click="true">
+      <uni-popup ref="sortPopupRef" type="bottom" :is-mask-click="true" @change="onSortPopupChange" class="sort-popup">
         <view class="sort-popup-content">
           <view class="sort-popup-option" v-for="option in sortOptions" :key="option.value"
             :class="{ active: sortKey === option.value }" @click="selectSortOrder(option.value)">
@@ -65,13 +65,14 @@ import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import uniPopup from '@/uni_modules/uni-popup/components/uni-popup/uni-popup.vue'
 import uniSearchBar from '@/uni_modules/uni-search-bar/components/uni-search-bar/uni-search-bar.vue'
 import { toggleTaskLike } from '@/utils/taskLike.js'
-import { onLoad, onPageScroll, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
+import { onLoad, onPageScroll, onPullDownRefresh, onReachBottom, onBackPress } from '@dcloudio/uni-app'
 import { computed, onMounted, ref } from 'vue'
 
 const keyword = ref('')
 const sortKey = ref('time')
 const pageSize = 20
 const sortPopupRef = ref(null)
+const isSortPopupOpen = ref(false)
 const statusBarHeight = ref(0)
 const CUSTOM_NAVBAR_HEIGHT = 48
 const FILTER_BAR_HEIGHT = 48
@@ -257,10 +258,12 @@ function columns(data) {
 
 function openSortPopup() {
   sortPopupRef.value && sortPopupRef.value.open('bottom')
+  isSortPopupOpen.value = true
 }
 function selectSortOrder(value) {
   sortKey.value = value
   sortPopupRef.value && sortPopupRef.value.close()
+  isSortPopupOpen.value = false
   fetchTasks({ reset: true })
 }
 function goBack() {
@@ -347,6 +350,24 @@ onPullDownRefresh(() => {
 onReachBottom(() => {
   loadMore()
 })
+
+// 页面返回拦截
+onBackPress(() => {
+  // 检查排序弹窗是否打开
+  if (isSortPopupOpen.value) {
+    sortPopupRef.value && sortPopupRef.value.close()
+    isSortPopupOpen.value = false
+    return true // 阻止页面返回
+  }
+
+  return false // 允许页面正常返回
+})
+
+// 弹窗状态变化监听
+function onSortPopupChange(e) {
+  isSortPopupOpen.value = e.show
+}
+
 </script>
 
 <style scoped>
@@ -437,6 +458,13 @@ onReachBottom(() => {
   font-weight: 600;
   margin-right: 0;
   cursor: pointer;
+}
+
+.filter-sort-btn.disabled {
+  color: #ccc;
+  background-color: #f0f0f0;
+  border-color: #e0e0e0;
+  cursor: not-allowed;
 }
 
 .masonry-row {
