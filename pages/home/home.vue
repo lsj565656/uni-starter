@@ -9,12 +9,9 @@
 
     <!-- #ifdef MP-WEIXIN -->
     <!-- 微信 自定义导航栏 -->
-    <view class="custom-nav" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <view class="nav-content">
-        <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
-        <view class="nav-title">首页</view>
-      </view>
-    </view>
+    <uni-nav-bar :fixed="true" :border="false" :shadow="true" :statusBar="true" background-color="#fff" color="#333"
+    title="首页">
+    </uni-nav-bar>
     <!-- #endif -->
 
     <!-- 状态栏占位和背景 -->
@@ -26,8 +23,7 @@
     <unicloud-db ref="bannerdb" v-slot:default="{data, loading, error, options}" collection="opendb-banner"
 			field="_id,bannerfile,open_url,title,sort,status" 
 			where="status == true" 
-			orderby="sort asc, create_date desc" 
-			@load="onqueryload" >
+			orderby="sort asc, create_date desc" >
 			
 			<!-- 正常数据状态 -->
 			<uni-swiper-dot v-if="data && data.length > 0" 
@@ -426,11 +422,6 @@ function changeSwiper(e) {
   current.value = e.detail.current
 }
 
-// Banner数据加载完成回调
-function onqueryload(e) {
-  console.log('Banner数据加载完成:', e)
-}
-
 function clickBannerItem(item) {
   console.log('点击了banner:', item)
   
@@ -605,8 +596,10 @@ let addNoticeTimer = null
 
 onMounted(() => {
   // 获取状态栏高度
+   // #ifndef MP-WEIXIN
   const systemInfo = uni.getSystemInfoSync()
   statusBarHeight.value = systemInfo.statusBarHeight || 0
+  // #endif
 
   // 获取热门任务
   fetchHotTasks()
@@ -714,38 +707,6 @@ onPageScroll(e => {
 </script>
 
 <style scoped>
-.custom-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
-}
-
-.nav-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20rpx 40rpx;
-  height: 88rpx;
-}
-
-.nav-content .logo {
-  width: 60rpx;
-  height: 60rpx;
-  border-radius: 12rpx;
-}
-
-.nav-content .nav-title {
-  font-size: 36rpx;
-  font-weight: bold;
-  color: #fff;
-  flex: 1;
-  text-align: center;
-  margin: 0 20rpx;
-}
 
 .section-box {
   display: flex;
@@ -844,8 +805,6 @@ onPageScroll(e => {
 .home-container {
   background: #f8f9fa;
   min-height: 100vh;
-  padding-bottom: 10rpx;
-  padding-top: 10rpx;
 }
 
 .banner-image {

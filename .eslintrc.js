@@ -50,6 +50,7 @@ module.exports = {
     'no-var': 'warn', // 改为warn
     'no-useless-catch': 'off', // 关闭不必要的 try/catch 检查
     'no-empty': 'off', // 关闭空代码块检查
+    'no-unreachable': 'off', // 关闭不可达代码检查，避免条件编译误报
 
     // Promise 相关规则 - 更宽松
     'promise/always-return': 'off', // 关闭 Promise then 返回值检查

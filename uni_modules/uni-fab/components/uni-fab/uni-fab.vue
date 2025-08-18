@@ -162,16 +162,46 @@
 			horizontalRight() {
 				return this.getPosition(2, 'horizontal', 'right')
 			},
-			// 计算 nvue bottom
-			nvueBottom() {
-				const safeBottom = uni.getSystemInfoSync().windowBottom;
-				// #ifdef APP-NVUE
-				return 30 + safeBottom
-				// #endif
-				// #ifndef APP-NVUE
-				return 30
-				// #endif
-			}
+      // 计算 nvue bottom
+      nvueBottom() {
+          const defaultBottom = 30
+
+          // #ifdef MP-WEIXIN
+          // 微信小程序使用新API
+          try {
+              if (typeof wx !== 'undefined' && wx.getWindowInfo) {
+                  const windowInfo = wx.getWindowInfo()
+                  if (windowInfo && windowInfo.safeArea) {
+                      const safeBottom = windowInfo.safeArea.bottom - windowInfo.windowHeight
+                      return defaultBottom + safeBottom
+                  }
+              }
+          } catch (error) {
+              console.warn('微信小程序获取窗口信息失败:', error)
+          }
+          return defaultBottom
+          // #endif
+
+          // #ifndef MP-WEIXIN
+          // App端和其他平台使用旧API
+          try {
+              if (typeof uni !== 'undefined' && uni.getSystemInfoSync) {
+                  const systemInfo = uni.getSystemInfoSync()
+                  if (systemInfo && typeof systemInfo.windowBottom === 'number') {
+                      // #ifdef APP-NVUE
+                      return defaultBottom + systemInfo.windowBottom
+                      // #endif
+                      // #ifndef APP-NVUE
+                      return defaultBottom
+                      // #endif
+                  }
+              }
+          } catch (error) {
+              console.warn('获取系统信息失败:', error)
+          }
+          return defaultBottom
+          // #endif
+      }
 		},
 		watch: {
 			pattern: {

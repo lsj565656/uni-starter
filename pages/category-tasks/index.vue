@@ -298,9 +298,39 @@ function onLike(item) {
 onLoad(options => {
   catId.value = Number(options.catId) || 0
   catName.value = options.catName || ''
-  // #ifdef APP
-  statusBarHeight.value = uni.getSystemInfoSync().statusBarHeight || 0
+  
+  // 根据平台获取状态栏高度
+  // #ifdef MP-WEIXIN
+  // 微信小程序使用新API
+  try {
+    if (typeof wx !== 'undefined' && wx.getWindowInfo) {
+      const windowInfo = wx.getWindowInfo()
+      if (windowInfo && typeof windowInfo.statusBarHeight === 'number') {
+        statusBarHeight.value = windowInfo.statusBarHeight
+      } else {
+        statusBarHeight.value = 0
+      }
+    } else {
+      // 降级到旧API
+      const systemInfo = uni.getSystemInfoSync()
+      statusBarHeight.value = systemInfo.statusBarHeight || 0
+    }
+  } catch (error) {
+    console.warn('微信小程序获取状态栏高度失败:', error)
+    statusBarHeight.value = 0
+  }
   // #endif
+  
+  // #ifndef MP-WEIXIN
+  // App端和其他平台使用旧API
+  try {
+    statusBarHeight.value = uni.getSystemInfoSync().statusBarHeight || 0
+  } catch (error) {
+    console.warn('获取状态栏高度失败:', error)
+    statusBarHeight.value = 0
+  }
+  // #endif
+  
   fetchTasks({ reset: true })
 })
 onPullDownRefresh(() => {
