@@ -318,7 +318,12 @@ export default {
     },
     signInByAd() {
       //看激励视频广告签到
+      // #ifdef MP-WEIXIN
+      console.log('signInByAd')
+      // #endif
+      // #ifdef APP
       this.$refs.signIn.showRewardedVideoAd()
+      // #endif
     },
     /**
      * 个人中心项目列表点击事件

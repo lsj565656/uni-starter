@@ -4,7 +4,9 @@ import openApp from '@/common/openApp.js'
 // #ifdef H5
 openApp() //创建在h5端全局悬浮引导用户下载app的功能
 // #endif
+// #ifdef APP
 import uniIdPageInit from '@/uni_modules/uni-id-pages/init.js'
+// #endif
 export default {
   globalData: {
     searchText: '',
@@ -15,11 +17,19 @@ export default {
   },
   onLaunch: function () {
     console.log('App Launch')
+    
+    // #ifndef MP-WEIXIN
+    // 非微信小程序环境才初始化i18n
     this.globalData.$i18n = this.$i18n
     this.globalData.$t = string_ => this.$t(string_)
+    // #endif
+    
     initApp()
+    
+    // #ifdef APP
     uniIdPageInit()
-
+    // #endif
+    
     // #ifdef APP
     //checkIsAgree(); APP端暂时先用原生默认生成的。目前，自定义方式启动vue界面时，原生层已经请求了部分权限这并不符合国家的法规
     // #endif
