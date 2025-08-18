@@ -37,7 +37,7 @@
 				:dotsStyles="bannerDotsStyles"
 				class="banner-swiper-dot">
 				<swiper class="swiper-box" @change="changeSwiper" :current="current" :indicator-dots="false" :circular="true">
-					<swiper-item v-for="(item, index) in data" :key="item._id">
+					<swiper-item v-for="(item, index) in data" :key="index">
 						<image class="banner-image" :src="item.bannerfile.url" mode="aspectFill" @click="clickBannerItem(item)" :draggable="false" />
 						<!-- 可选：显示标题 -->
 						<view v-if="item.title" class="banner-title">{{ item.title }}</view>
@@ -47,12 +47,6 @@
 			<!-- 空数据状态 -->
 			<image v-else-if="!loading && (!data || data.length === 0)" class="banner-image" src="/static/uni-center/headers.png" mode="aspectFill" :draggable="false" />
 		</unicloud-db>
-    <!-- <swiper class="swiper-box" @change="changeSwiper" :current="current" indicator-dots>
-      <swiper-item v-for="(item) in imageDatas" :key="item.id">
-        <image class="banner-image" :src="item.image" mode="aspectFill" @click="clickBannerItem(item)"
-          :draggable="false" />
-      </swiper-item>
-    </swiper> -->
 
     <!-- 通告消息栏 -->
     <view class="notice-section">
@@ -75,8 +69,8 @@
           :current="gridSwiperCurrent" @change="handleGridChange" circular :autoplay="false" :duration="300">
           <swiper-item v-for="(page, pageIdx) in gridPages" :key="pageIdx">
             <view class="grid-page">
-              <view class="grid-row" v-for="row in currentGridRows" :key="row">
-                <view class="grid-col" v-for="col in gridColumn" :key="col">
+              <view class="grid-row" v-for="(row,rowIdx) in currentGridRows" :key="rowIdx">
+                <view class="grid-col" v-for="(col,colIdx) in gridColumn" :key="colIdx">
                   <template v-if="page[(row - 1) * gridColumn + (col - 1)]">
                     <view class="grid-item" @click="handleGridItemClick(page[(row - 1) * gridColumn + (col - 1)])">
                       <image class="grid-item-icon"
@@ -104,7 +98,7 @@
         <view class="masonry-row">
           <template v-if="!hotTasksLoading && hotTasksList && hotTasksList.length > 0">
             <view class="masonry-col" v-for="(col, colIdx) in homeHotColumnsWithMoreCard(hotTasksList)" :key="colIdx">
-              <template v-for="item in col">
+              <template v-for="(item,itemIdx) in col" :key="itemIdx">
                 <task-card v-if="!item._isMoreCard" :key="item._id" :task="withLikeStatus(item)" :user="item.user"
                   :showActions="false" @like="handleLikeTask" />
                 <uni-card v-else class="masonry-card more-card" :style="{
@@ -125,7 +119,7 @@
           </template>
           <template v-else>
             <view class="masonry-col" v-for="(col, colIdx) in homeHotColumns(hotTasksList)" :key="colIdx">
-              <task-card v-for="item in col" :key="item._id" :task="withLikeStatus(item)" :user="item.user"
+              <task-card v-for="(item,itemIdx) in col" :key="itemIdx" :task="withLikeStatus(item)" :user="item.user"
                 :showActions="false" @like="handleLikeTask" />
             </view>
           </template>
@@ -148,7 +142,7 @@
     <scroll-view class="evaluateds-scroll" :class="{ 'scrolled-left': isevaluatedsScrolledLeft }" scroll-x
       show-scrollbar="false" @scroll="handleevaluatedsScroll">
       <view class="evaluateds-container">
-        <evaluated-card v-for="evaluated in evaluateds" :key="evaluated.id" :evaluated="evaluated"
+        <evaluated-card v-for="(evaluated,evaluatedIdx) in evaluateds" :key="evaluatedIdx" :evaluated="evaluated"
           @click="showevaluatedDetail(evaluated)" />
       </view>
     </scroll-view>
@@ -191,7 +185,7 @@
           </view>
           <view class="comment-content">{{ currentComment.content }}</view>
           <view class="comment-tags">
-            <uni-badge v-for="tag in currentComment.tags" :key="tag" :text="tag" type="primary" size="small"
+            <uni-badge v-for="(tag,index) in currentComment.tags" :key="index" :text="tag" type="primary" size="small"
               :inverted="true" />
           </view>
         </view>
@@ -239,7 +233,6 @@ import { store } from '@/uni_modules/uni-id-pages/common/store.js'
 import { categories } from '@/utils/categories'
 import { evaluateds } from '@/utils/evaluateds'
 import { flourProcess as flourProcessData } from '@/utils/flourProcess'
-import { images } from '@/utils/images'
 import { generateRandomNotice, notices } from '@/utils/notices'
 import { toggleTaskLike } from '@/utils/taskLike.js'
 import { onPageScroll } from '@dcloudio/uni-app'
@@ -257,23 +250,6 @@ function updateStatusBarAlpha(scrollTop) {
 }
 const statusBarBg = computed(() => `rgba(255,255,255,${statusBarAlpha.value})`) // 白色渐变
 
-const imageDatas = ref([
-  {
-    id: 1,
-    name: 'banner1',
-    image: images.evaluateds.wuhuarou
-  },
-  {
-    id: 2,
-    name: 'banner2',
-    image: images.evaluateds.shucai
-  },
-  {
-    id: 3,
-    name: 'banner3',
-    image: images.evaluateds.mianfen
-  }
-])
 const evaluatedsUpdateTime = ref('12-01 14:30')
 const flourProcess = ref(flourProcessData)
 

@@ -39,11 +39,13 @@
         </view>
       </view>
     </view>
+    <!-- #ifdef APP -->
     <ad-rewarded-video adpid="1507000689" :loadnext="true" v-slot:default="{loading, error}">
       <button :disabled="loading" :loading="loading">显示广告</button>
       <view v-if="error">{{error}}</view>
     </ad-rewarded-video>
-    
+    <!-- #endif -->
+     
     <!-- 跑马灯抽奖区 -->
     <view class="lottery-area">
       <view class="marquee-container">

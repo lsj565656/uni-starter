@@ -13,7 +13,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* #ifndef APP-NVUE */
+
 
 .icon-xiugai:before {
   content: "\e8cf";
@@ -126,5 +126,5 @@
 .icon-time:before {
   content: "\e6ce";
 }
-/* #endif */
+
 

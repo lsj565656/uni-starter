@@ -43,7 +43,8 @@
                 ]
             },
             "ios" : {
-                "dSYMs" : false
+                "dSYMs" : false,
+                "idfa" : false
             },
             "sdkConfigs" : {
                 "push" : {
@@ -62,14 +63,7 @@
                         "UniversalLinks" : ""
                     }
                 },
-                "ad" : {
-                    "fl" : {},
-                    "ks-content" : {},
-                    "sigmob" : {},
-                    "ks" : {},
-                    "jl" : {},
-                    "zy" : {}
-                },
+                "ad" : {},
                 "share" : {
                     "weixin" : {
                         "appid" : "wxa63d9e386df1c1cf",
@@ -91,7 +85,8 @@
     "mp-weixin" : {
         "appid" : "wxa63d9e386df1c1cf",
         "setting" : {
-            "urlCheck" : false
+            "urlCheck" : false,
+            "es6" : true
         },
         "usingComponents" : true,
         "optimization" : {
@@ -102,10 +97,16 @@
         "usingComponents" : true
     },
     "mp-baidu" : {
-        "usingComponents" : true
+        "usingComponents" : true,
+        "setting" : {
+            "urlCheck" : false
+        }
     },
     "mp-toutiao" : {
-        "usingComponents" : true
+        "usingComponents" : true,
+        "setting" : {
+            "urlCheck" : false
+        }
     },
     "uniStatistics" : {
         "enable" : false

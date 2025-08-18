@@ -62,9 +62,9 @@ export default {
 
 <style lang="scss">
 /*每个页面公共css */
-/* #ifndef APP-NVUE */
+
 @import 'static/iconfont.css';
-/* #endif */
+
 
 /* 全局CSS变量定义 */
 /* #ifndef APP-NVUE */
