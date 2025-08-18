@@ -26,22 +26,28 @@
 			orderby="sort asc, create_date desc" >
 			
 			<!-- 正常数据状态 -->
-			<uni-swiper-dot v-if="data && data.length > 0" 
+      <!-- #ifndef MP-WEIXIN -->
+			<uni-swiper-dot v-if="data && data.length > 0"
 				:info="data" 
-				:current="current" 
+				:current="currentBanner" 
 				mode="round" 
-				:dotsStyles="bannerDotsStyles"
-				class="banner-swiper-dot">
-				<swiper class="swiper-box" @change="changeSwiper" :current="current" :indicator-dots="false" :circular="true">
+				:dotsStyles="bannerDotsStyles" >
+				<swiper class="swiper-box" @change="handleBannerChange" :current="currentBanner" :indicator-dots="false" :circular="true">
 					<swiper-item v-for="(item, index) in data" :key="index">
 						<image class="banner-image" :src="item.bannerfile.url" mode="aspectFill" @click="clickBannerItem(item)" :draggable="false" />
-						<!-- 可选：显示标题 -->
 						<view v-if="item.title" class="banner-title">{{ item.title }}</view>
 					</swiper-item>
 				</swiper>
 			</uni-swiper-dot>
-			<!-- 空数据状态 -->
-			<image v-else-if="!loading && (!data || data.length === 0)" class="banner-image" src="/static/uni-center/headers.png" mode="aspectFill" :draggable="false" />
+      <!-- #endif -->
+      <!-- #ifdef MP-WEIXIN -->
+      <swiper class="swiper-box" :current="currentBanner" :indicator-dots="true" :circular="true">
+        <swiper-item v-for="(item, index) in data" :key="index">
+          <image class="banner-image" :src="item.bannerfile.url" mode="aspectFill" @click="clickBannerItem(item)" :draggable="false" />
+          <view v-if="item.title" class="banner-title banner-title-weixin ">{{ item.title }}</view>
+        </swiper-item>
+      </swiper>
+      <!-- #endif -->
 		</unicloud-db>
 
     <!-- 通告消息栏 -->
@@ -251,7 +257,9 @@ const flourProcess = ref(flourProcessData)
 
 // 通告消息相关
 const noticeList = ref([...notices])
-const current = ref(0)
+
+// Banner相关
+const currentBanner = ref(0)
 
 // Banner指示点样式配置
 const bannerDotsStyles = {
@@ -400,7 +408,6 @@ function previewImage(index) {
 }
 
 function handleFlourTimelineImageClick({ allImages, currentIndex }) {
-  console.log('点击了面图片', allImages, currentIndex)
   uni.previewImage({
     current: currentIndex,
     urls: allImages
@@ -417,13 +424,7 @@ function handleNoticeClick(notice) {
   }
 }
 
-// Banner相关方法
-function changeSwiper(e) {
-  current.value = e.detail.current
-}
-
 function clickBannerItem(item) {
-  console.log('点击了banner:', item)
   
   // 处理banner点击跳转
   if (item.open_url) {
@@ -655,6 +656,23 @@ function goToPublish() {
   })
 }
 
+function onFabMenuClick({ item }) {
+  if (!item || !item.text) {
+    return
+  }
+  if (item.text === '发布') {
+    goToPublish()
+  } else if (item.text === '置顶' && !isAtTop.value) {
+    uni.pageScrollTo({ scrollTop: 0, duration: 300 })
+  }
+}
+
+function handleBannerChange(e) {
+  if (e && e.detail && typeof e.detail.current === 'number') {
+    currentBanner.value = e.detail.current
+  }
+}
+
 // 直接注册页面滚动钩子
 onPageScroll(e => {
   // 实时更新状态栏透明度
@@ -689,14 +707,6 @@ const fabContent = [
     disabled: false
   }
 ]
-
-function onFabMenuClick({ item }) {
-  if (item.text === '发布') {
-    goToPublish()
-  } else if (item.text === '置顶' && !isAtTop.value) {
-    uni.pageScrollTo({ scrollTop: 0, duration: 300 })
-  }
-}
 
 onPageScroll(e => {
   showFab.value = true
@@ -1281,6 +1291,11 @@ onPageScroll(e => {
   font-weight: 600;
   text-align: center;
   border-radius: 0 0 12px 12px;
+}
+
+.banner-title-weixin {
+  position: absolute;
+  bottom: 10px;
 }
 
 </style>
