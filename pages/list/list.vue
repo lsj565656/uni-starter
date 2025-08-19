@@ -10,7 +10,6 @@
     <!-- 自定义头部导航 -->
     <view class="custom-navbar">
       <!-- #ifdef MP-WEIXIN -->
-      <view class="navbar-placeholder"></view>
       <view class="navbar-search-mp">
         <view style="position: relative; width: 90%">
           <uni-search-bar v-model="keyword" ref="searchBar" radius="100" cancelButton="auto" clearButton="none" disabled
@@ -148,6 +147,7 @@ import statusBar from '@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-stat
 import { categories } from '@/utils/categories'
 import { toggleTaskLike } from '@/utils/taskLike.js'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
+import { getStatusBarHeight, getWindowWidth } from '@/utils/tools.js'
 
 export default {
   components: {
@@ -287,7 +287,7 @@ export default {
       return this.activeFilterCount > 0
     },
     categoryItemStyle() {
-      const screenWidth = uni.getSystemInfoSync().windowWidth || 375
+      const screenWidth = getWindowWidth()
       const VISIBLE_COUNT = 4.5
       const marginPx = 8
       const itemWidth = Math.floor(
@@ -575,7 +575,7 @@ export default {
         this.categoryScrollLeft = 0
         return
       }
-      const screenWidth = uni.getSystemInfoSync().windowWidth || 375
+      const screenWidth = getWindowWidth()
       const itemStyle = this.categoryItemStyle
       const itemWidth = Number.parseInt(itemStyle.width)
       const itemMargin = Number.parseInt(itemStyle.margin.split(' ')[1])
@@ -618,7 +618,7 @@ export default {
     }
   },
   onLoad() {
-    this.statusBarHeight = uni.getSystemInfoSync().statusBarHeight || 0
+    this.statusBarHeight = getStatusBarHeight()
     // 同步全局搜索内容
     const searchText = getApp().globalData.searchText
     if (searchText && searchText !== this.keyword) {
@@ -736,12 +736,6 @@ view {
   top: 0;
   z-index: 1000;
   border-bottom: 1px solid #f0f0f0;
-}
-
-.navbar-placeholder {
-  width: 100%;
-  height: 100%;
-  display: inline-block;
 }
 
 .navbar-search-mp {
@@ -915,7 +909,7 @@ view {
 .masonry-col {
   width: 49%;
   margin: 0 auto;
-  margin-top: 50px;
+  margin-top: 0;
   box-sizing: border-box;
 }
 

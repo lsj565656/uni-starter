@@ -122,3 +122,109 @@ export function formatDuration(start, end) {
   }
   return '大于一月'
 }
+
+/**
+ * 获取系统信息（兼容微信小程序和APP）
+ * @returns {object} 系统信息对象
+ */
+export function getSystemInfo() {
+  // #ifdef MP-WEIXIN
+  try {
+    // 微信小程序使用新的API组合
+    const windowInfo = wx.getWindowInfo()
+    const deviceInfo = wx.getDeviceInfo()
+    const appBaseInfo = wx.getAppBaseInfo()
+    
+    return {
+      windowWidth: windowInfo.windowWidth,
+      windowHeight: windowInfo.windowHeight,
+      statusBarHeight: windowInfo.statusBarHeight,
+      screenWidth: deviceInfo.screenWidth,
+      screenHeight: deviceInfo.screenHeight,
+      pixelRatio: deviceInfo.pixelRatio,
+      platform: appBaseInfo.platform,
+      system: appBaseInfo.system,
+      version: appBaseInfo.version,
+      SDKVersion: appBaseInfo.SDKVersion
+    }
+  } catch (error) {
+    // 如果新API都不可用，返回默认值
+    console.warn('微信小程序新API不可用，使用默认值:', error)
+    return {
+      windowWidth: 375,
+      windowHeight: 667,
+      statusBarHeight: 20,
+      screenWidth: 375,
+      screenHeight: 667,
+      pixelRatio: 2,
+      platform: 'devtools',
+      system: 'iOS 14.0',
+      version: '1.0.0',
+      SDKVersion: '3.0.0'
+    }
+  }
+  // #endif
+  
+  // #ifndef MP-WEIXIN
+  // APP和其他平台使用uni.getSystemInfoSync
+  try {
+    return uni.getSystemInfoSync()
+  } catch (error) {
+    console.warn('uni.getSystemInfoSync失败，使用默认值:', error)
+    return {
+      windowWidth: 375,
+      windowHeight: 667,
+      statusBarHeight: 20,
+      screenWidth: 375,
+      screenHeight: 667,
+      pixelRatio: 2,
+      platform: 'devtools',
+      system: 'iOS 14.0',
+      version: '1.0.0',
+      SDKVersion: '3.0.0'
+    }
+  }
+  // #endif
+}
+
+/**
+ * 获取窗口宽度
+ * @returns {number} 窗口宽度
+ */
+export function getWindowWidth() {
+  try {
+    const systemInfo = getSystemInfo()
+    return systemInfo.windowWidth || systemInfo.screenWidth || 375
+  } catch (error) {
+    console.warn('获取窗口宽度失败，使用默认值:', error)
+    return 375
+  }
+}
+
+/**
+ * 获取状态栏高度
+ * @returns {number} 状态栏高度
+ */
+export function getStatusBarHeight() {
+  try {
+    const systemInfo = getSystemInfo()
+    return systemInfo.statusBarHeight || 0
+  } catch (error) {
+    console.warn('获取状态栏高度失败，使用默认值:', error)
+    return 0
+  }
+}
+
+/**
+ * 获取窗口高度
+ * @returns {number} 窗口高度
+ */
+export function getWindowHeight() {
+  try {
+    const systemInfo = getSystemInfo()
+    return systemInfo.windowHeight || systemInfo.screenHeight || 667
+  } catch (error) {
+    console.warn('获取窗口高度失败，使用默认值:', error)
+    return 667
+  }
+}
