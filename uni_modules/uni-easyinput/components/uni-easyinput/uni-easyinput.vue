@@ -535,16 +535,20 @@
 	}
 
 	.uni-easyinput__content-input {
-		/* #ifndef APP-NVUE */
-		width: auto;
-		/* #endif */
 		position: relative;
 		overflow: hidden;
 		flex: 1;
 		line-height: 1;
 		font-size: 14px;
-		height: 35px;
-		// min-height: 36px;
+    /* #ifdef MP-WEIXIN */
+		height: auto;
+    /* #endif */
+    /* #ifndef MP-WEIXIN */
+    height: 34px;
+    /* #endif */
+    /* #ifndef APP-NVUE */
+		width: auto;
+		/* #endif */
 
 		/*ifdef H5*/
 		& ::-ms-reveal {

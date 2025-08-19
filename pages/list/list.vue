@@ -20,8 +20,17 @@
       </template>
       <template #default>
         <view class="search-container">
-          <view class="custom-search-box">
-            <uni-easyinput suffixIcon="search" :inputBorder="false" v-model="keyword" :placeholder="inputPlaceholder" :styles="easyinputStyle" @focus="goToSearch" @iconClick="goToSearch"></uni-easyinput>
+          <view class="custom-search-box" :style="{ height: easyinputHeight + 'px' }">
+            <uni-easyinput
+              suffixIcon="search"
+              :inputBorder="false" 
+              v-model="keyword" 
+              :placeholder="inputPlaceholder" 
+              :styles="easyinputStyle" 
+              @focus="goToSearch" 
+              @iconClick="goToSearch"
+              @clear="resetKeyword"
+              ></uni-easyinput>
             <view v-if="keyword" class="cancel-btn" @click.stop="resetKeyword">
               <uni-icons type="close" size="18" color="#999" />
             </view>
@@ -233,9 +242,10 @@ export default {
       loginNoticeTimer: null,
       isWeixin: false,
       navBarHeight: 0,
+      easyinputHeight: 0,
       easyinputStyle: {
         backgroundColor: '#f5f5f5',
-        borderColor: '#f5f5f5'
+        borderColor: '#f5f5f5',
       }
     }
   },
@@ -655,6 +665,7 @@ export default {
     try {
       const menuButtonInfo = uni.getMenuButtonBoundingClientRect()
       this.navBarHeight = menuButtonInfo.bottom + 8
+      this.easyinputHeight = menuButtonInfo.height
     } catch (error) {
       console.warn('获取导航栏高度失败:', error)
       this.navBarHeight = 88 // 默认高度
@@ -1125,10 +1136,9 @@ view {
   align-items: center;
   background-color: #f5f5f5;
   border-radius: 20px;
-  padding: 8px 16px;
+  padding: 2px 16px;
   width: 100%;
   max-width: 280px;
-  height: 36px;
   box-sizing: border-box;
 }
 
