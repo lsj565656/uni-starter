@@ -1,25 +1,45 @@
 <template>
   <view class="pages">
-    <!-- #ifndef H5 -->
-    <statusBar></statusBar>
-    <!-- #endif -->
     <view v-if="loginNoticeVisible" class="login-notice-bar" @click="handleLoginNoticeClick">
       去登录 &gt;
     </view>
 
     <!-- 自定义头部导航 -->
-    <view class="custom-navbar">
-      <!-- #ifdef MP-WEIXIN -->
-      <view class="navbar-search-mp">
-        <view style="position: relative; width: 90%">
-          <uni-search-bar v-model="keyword" ref="searchBar" radius="100" cancelButton="auto" clearButton="none" disabled
-            :placeholder="inputPlaceholder" @clear="resetKeyword" @cancel="resetKeyword" />
-          <view class="search-click-area" @click="goToSearch"
-            style="position: absolute; left: 0; top: 0; bottom: 0; right: 10%; z-index: 2"></view>
+    <!-- #ifdef MP-WEIXIN -->
+    <uni-nav-bar 
+      height="44px" 
+      :fixed="true" 
+      :shadow="false"
+      :border="false"
+      background-color="#ffffff"
+      color="#333333"
+      status-bar
+      @clickLeft="goBack"
+      @clickRight="toggleFilterDrawer">
+      <template #left>
+        <uni-icons type="left" size="20" color="#333" />
+      </template>
+      <template #default>
+        <view class="search-container">
+          <uni-search-bar 
+            v-model="keyword" 
+            ref="searchBar" 
+            radius="100" 
+            cancelButton="auto" 
+            clearButton="none" 
+            class="searchBar"
+            disabled
+            :placeholder="inputPlaceholder" 
+            @clear.stop="resetKeyword" 
+            @cancel.stop="resetKeyword" />
+          <view class="search-click-area" @click.stop="goToSearch"></view>
         </view>
-      </view>
-      <!-- #endif -->
-      <!-- #ifndef MP-WEIXIN -->
+      </template>
+    </uni-nav-bar>
+    <!-- #endif -->
+    
+    <!-- #ifndef MP-WEIXIN -->
+    <view class="custom-navbar">
       <view class="navbar-search-app">
         <view style="position: relative; width: 90%">
           <uni-search-bar v-model="keyword" ref="searchBar" radius="100" cancelButton="auto" clearButton="none" disabled
@@ -28,13 +48,13 @@
             style="position: absolute; left: 0; top: 0; bottom: 0; right: 10%; z-index: 2"></view>
         </view>
       </view>
-      <!-- #endif -->
     </view>
+    <!-- #endif -->
 
     <!-- 分类栏 -->
-    <view class="sticky-bar">
+    <view class="sticky-bar" :style="stickyBarStyle">
       <!-- 左侧返回全部按钮 -->
-      <view v-if="showBackToAllBtn" class="back-to-all-btn" @click.stop="backToAll">
+      <view v-if="showBackToAllBtn" class="back-to-all-btn" :style="stickyBarStyle" @click.stop="backToAll">
         <uni-icons type="left" size="20" color="#4c82ff" />
       </view>
 
@@ -54,7 +74,7 @@
         }"></view>
       </scroll-view>
       <!-- 筛选按钮 -->
-      <view class="filter-icon-btn" @click.stop="toggleFilterDrawer">
+      <view class="filter-icon-btn" :style="stickyBarStyle" @click.stop="toggleFilterDrawer">
         <uni-badge :text="activeFilterCount" :absolute="'true'" :offset="[0, 0]" :is-dot="false"
           v-if="activeFilterCount > 0">
           <uni-icons type="tune" size="26" color="#4c82ff" />
@@ -64,9 +84,9 @@
     </view>
 
     <!-- 筛选抽屉 -->
-    <uni-drawer ref="filterDrawer" mode="right" :mask="true" :mask-click="false" :width="300"
+    <uni-drawer ref="filterDrawer" mode="right" :mask="true" :mask-click="false" :width="300" style="z-index: 9999 !important;"
       @close="onFilterDrawerClose" @open="onFilterDrawerOpen">
-      <view class="filter-drawer-content" @click.stop>
+      <view class="filter-drawer-content" :style="stickyBarStyle" @click.stop>
         <view class="filter-header">
           <text class="filter-title">筛选条件</text>
         </view>
@@ -219,8 +239,9 @@ export default {
       taskCache: {},
       cacheExpire: 120_000, // 1分钟
       loginNoticeVisible: false,
-      loginNoticeTimer: null
-      // ... 其他筛选项 ...
+      loginNoticeTimer: null,
+      isWeixin: false,
+      navBarHeight: 0
     }
   },
   computed: {
@@ -304,7 +325,17 @@ export default {
     inputPlaceholder() {
       return uni.getStorageSync('CURRENT_LANG') == 'en'
         ? 'Please enter the search content'
-        : '请输入搜索内容'
+        : '请输入'
+    },
+    stickyBarStyle() {
+      if (this.isWeixin) {
+        return {
+          top: `${this.navBarHeight}px`
+        }
+      }
+      return {
+        top: '60px'
+      }
     }
   },
   watch: {
@@ -615,9 +646,26 @@ export default {
       uni.navigateTo({
         url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
       })
+    },
+    goBack() {
+      uni.navigateBack({
+        delta: 1
+      })
     }
   },
   onLoad() {
+    // #ifdef MP-WEIXIN
+    this.isWeixin = true
+    // 获取导航栏高度
+    try {
+      const menuButtonInfo = uni.getMenuButtonBoundingClientRect()
+      this.navBarHeight = menuButtonInfo.bottom + 8
+    } catch (error) {
+      console.warn('获取导航栏高度失败:', error)
+      this.navBarHeight = 88 // 默认高度
+    }
+    // #endif
+    
     this.statusBarHeight = getStatusBarHeight()
     // 同步全局搜索内容
     const searchText = getApp().globalData.searchText
@@ -785,7 +833,6 @@ view {
 
 .back-to-all-btn {
   position: fixed;
-  top: 60px;
   left: 0px;
   background: #fff;
   height: 45px !important;
@@ -800,7 +847,6 @@ view {
 
 .filter-icon-btn {
   position: fixed;
-  top: 60px;
   right: 0px;
   background: #fff;
   height: 45px !important;
@@ -809,6 +855,7 @@ view {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-left: 4px;
 }
 
 .uni-badge--x {
@@ -835,21 +882,13 @@ view {
   overflow-y: hidden;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  padding: 0 16px;
+  padding: -2px 16px;
   /* 左右各16px内边距，配合4.5个分类项显示 */
   box-sizing: border-box;
 }
 
 .category-scroll::-webkit-scrollbar {
   display: none;
-}
-
-.filter-icon-btn {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 4px;
 }
 
 .seg-item {
@@ -927,7 +966,7 @@ view {
 
 /* 筛选抽屉样式 */
 .filter-drawer-content {
-  padding: 20px 10px;
+  padding: 0 10px 20px 10px;
   background: #fff;
   min-height: 400px;
   position: relative;
@@ -1073,4 +1112,83 @@ view {
   background-color: #1976d2;
   color: #fff;
 }
+
+/* #ifdef MP-WEIXIN */
+/* 小程序导航栏样式 */
+.search-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2px;
+  position: relative;
+}
+
+.searchBar {
+  width: 40vw !important;
+}
+
+.search-container .uni-searchbar {
+  width: 100%;
+  max-width: 280px;
+  padding: 0 10px !important;
+}
+
+.search-click-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.filter-btn-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-right: 16px;
+}
+
+/* 调整分类栏位置 */
+.sticky-bar {
+  position: sticky;
+  left: 0;
+  height: 45px;
+  background: #fff;
+  z-index: 1001;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.back-to-all-btn {
+  position: fixed;
+  left: 0px;
+  background: #fff;
+  height: 45px !important;
+  width: 8%;
+  z-index: 1002;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid #f0f0f0;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04);
+}
+
+.filter-icon-btn {
+  position: fixed;
+  right: 0px;
+  background: #fff;
+  height: 45px !important;
+  width: 8%;
+  z-index: 1002;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* #endif */
 </style>
