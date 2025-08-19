@@ -14,25 +14,18 @@
       background-color="#ffffff"
       color="#333333"
       status-bar
-      @clickLeft="goBack"
-      @clickRight="toggleFilterDrawer">
+      @clickLeft="goBack">
       <template #left>
         <uni-icons type="left" size="20" color="#333" />
       </template>
       <template #default>
         <view class="search-container">
-          <uni-search-bar 
-            v-model="keyword" 
-            ref="searchBar" 
-            radius="100" 
-            cancelButton="auto" 
-            clearButton="none" 
-            class="searchBar"
-            disabled
-            :placeholder="inputPlaceholder" 
-            @clear.stop="resetKeyword" 
-            @cancel.stop="resetKeyword" />
-          <view class="search-click-area" @click.stop="goToSearch"></view>
+          <view class="custom-search-box">
+            <uni-easyinput suffixIcon="search" :inputBorder="false" v-model="keyword" :placeholder="inputPlaceholder" :styles="easyinputStyle" @focus="goToSearch" @iconClick="goToSearch"></uni-easyinput>
+            <view v-if="keyword" class="cancel-btn" @click.stop="resetKeyword">
+              <uni-icons type="close" size="18" color="#999" />
+            </view>
+          </view>
         </view>
       </template>
     </uni-nav-bar>
@@ -163,7 +156,6 @@
 <script>
 import taskCard from '@/components/task-card/task-card.vue'
 import { useTaskLikeStore } from '@/store/taskLike.js'
-import statusBar from '@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar'
 import { categories } from '@/utils/categories'
 import { toggleTaskLike } from '@/utils/taskLike.js'
 import { store } from '@/uni_modules/uni-id-pages/common/store.js'
@@ -171,7 +163,6 @@ import { getStatusBarHeight, getWindowWidth } from '@/utils/tools.js'
 
 export default {
   components: {
-    statusBar,
     taskCard
   },
   data() {
@@ -241,7 +232,11 @@ export default {
       loginNoticeVisible: false,
       loginNoticeTimer: null,
       isWeixin: false,
-      navBarHeight: 0
+      navBarHeight: 0,
+      easyinputStyle: {
+        backgroundColor: '#f5f5f5',
+        borderColor: '#f5f5f5'
+      }
     }
   },
   computed: {
@@ -1120,18 +1115,38 @@ view {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 2px;
+  padding: 0 16px;
   position: relative;
 }
 
-.searchBar {
-  width: 40vw !important;
-}
-
-.search-container .uni-searchbar {
+.custom-search-box {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background-color: #f5f5f5;
+  border-radius: 20px;
+  padding: 8px 16px;
   width: 100%;
   max-width: 280px;
-  padding: 0 10px !important;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.cancel-btn {
+  margin-left: 8px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.cancel-btn:active {
+  background-color: #ccc;
 }
 
 .search-click-area {
@@ -1142,6 +1157,11 @@ view {
   bottom: 0;
   z-index: 2;
   cursor: pointer;
+}
+
+/* 当有取消按钮时，调整点击区域，避免覆盖取消按钮 */
+.search-click-area:has(+ .cancel-btn) {
+  right: 32px;
 }
 
 .filter-btn-container {
