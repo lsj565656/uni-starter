@@ -148,7 +148,7 @@
       </view>
     </uni-drawer>
 
-    <view class="masonry-scroll">
+    <view :class="['masonry-scroll', isWeixin === true ? '' : 'masonry-margin-top']">
       <view class="masonry-row">
         <view class="masonry-col" v-for="(col, colIdx) in getColumnsFiltered(tasksList)" :key="colIdx">
           <task-card v-for="item in col" :key="item._id" :task="withLikeStatus(item)" :user="item.userInfo"
@@ -939,6 +939,10 @@ view {
 .masonry-scroll {
   width: 100%;
   background: #f8f8f8;
+}
+
+.masonry-margin-top {
+  padding-top: 48px;
 }
 
 .masonry-row {

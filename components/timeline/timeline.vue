@@ -236,7 +236,7 @@ const getStepImages = index => {
 const getAllImages = () => {
   let array = []
   for (let index = 0; index < properties.processData.length; index++) {
-    array = array.concat(getStepImages(index))
+    array = [...array, ...getStepImages(index)]
   }
   return array
 }
@@ -287,11 +287,6 @@ const handlePreviewImage = index => {
 
 // 由 props.mode 控制展示模式
 const displayMode = computed(() => properties.mode)
-// 模式切换按钮仅在组件内部演示用，实际由父组件 props.mode 控制
-const switchMode = newMode => {
-  // emit('update:mode', newMode) // 如果需要支持 v-model:mode
-}
-
 // 图片堆叠相关
 const selectedImageIndex = ref(0)
 const currentStepIndex = ref(-1)

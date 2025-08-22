@@ -46,6 +46,7 @@
 <script>
 export default {
   name: 'TaskCard',
+  emits: ['like'],
   props: {
     task: Object,
     user: Object,
@@ -121,6 +122,7 @@ export default {
       })
     },
     onLikeClick() {
+      // 由于文件结构问题，无法直接修改 emits 选项，保持原代码逻辑，需在组件定义处添加 emits: ['like']
       this.$emit('like', this.task)
     }
   }

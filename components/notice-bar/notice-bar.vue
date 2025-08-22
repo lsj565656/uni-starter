@@ -24,7 +24,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { getNoticeIcon, getNoticeColor } from '@/utils/notices'
 import { formatRelativeTime } from '@/utils/tools'
 
@@ -42,8 +42,6 @@ const properties = defineProps({
     default: 60
   }
 })
-
-const emit = defineEmits(['click'])
 
 const currentNoticeIndex = ref(0)
 const switchTimer = ref(null)
@@ -91,11 +89,6 @@ watch(
   },
   { immediate: true }
 )
-
-// 点击事件
-const handleClick = () => {
-  emit('click', currentNotice.value)
-}
 
 onMounted(() => {
   if (properties.notices.length > 0) {
